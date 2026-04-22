@@ -1,4 +1,4 @@
-# Test Engine for Iterative Methods — Architecture (v3)
+# Test Engine for Iterative Methods — Architecture
 
 > A Julia-based experimentation framework for benchmarking conventional solvers against
 > multiple variants of an under-development iterative method, with composable stopping
@@ -129,7 +129,6 @@ end
     objective     :: Float64 = Inf
     gradient_norm :: Float64 = Inf
     step_norm     :: Float64 = Inf
-    residual      :: Float64 = Inf
 end
 
 # Per-step core computation time; reset by runner before each step!
@@ -184,7 +183,6 @@ function extract_log_entry(method::IterativeMethod, state, iter::Int)::Iteration
         objective     = state.metrics.objective,
         gradient_norm = state.metrics.gradient_norm,
         step_norm     = state.metrics.step_norm,
-        residual      = state.metrics.residual,
     )
     # Methods override this to additionally populate the extras dict
 end
@@ -454,10 +452,9 @@ grid = VariantGrid(
 
 ## 5. Layer 3 — Stopping Criteria
 
-The runner uses a **`while true` loop controlled entirely by `StoppingCriteria`**.
-There is no `for iter in 1:max_iter`. This gives full, composable control over
-how many steps any algorithm takes: by count, time, proximity to solution, or
-any user-defined condition.
+The runner uses a `while true` loop controlled entirely by `StoppingCriteria`.
+This gives full, composable control over
+how many steps any algorithm takes: by count, time, proximity to solution, or any user-defined condition.
 
 ### Type Hierarchy
 
@@ -562,9 +559,6 @@ quick_stop = MaxIterations(n=200)
 
 # Assigned per-method in the experiment config (see Layer 5)
 ```
-
-This separation means the same `GradientDescent` struct can be benchmarked for 500
-iterations in one experiment and 5000 in another without any code changes.
 
 ---
 
@@ -882,7 +876,6 @@ data through three hooks: `log_init!`, `log_iter!`, and `log_event!`.
     objective      :: Float64
     gradient_norm  :: Float64
     step_norm      :: Float64
-    residual       :: Float64
     extras         :: Dict{Symbol,Any} = Dict()  # algorithm-specific & sub-logs
 end
 ```
@@ -1270,7 +1263,7 @@ result = load_experiment("logs/20260417/001/")
 
 # Convert all iteration logs to a flat DataFrame
 # Columns: :run_id, :method_name, :iter, :objective, :gradient_norm,
-#          :step_norm, :residual, :core_time_ns, + any extras keys
+#          :step_norm, :core_time_ns, + any extras keys
 df = to_dataframe(result)
 
 # Standard filter/aggregate utilities (all DataFrame -> DataFrame)
