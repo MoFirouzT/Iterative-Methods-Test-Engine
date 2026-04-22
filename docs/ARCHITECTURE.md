@@ -75,8 +75,9 @@ Problems  ──►  Algorithms  ──►  Experiments  ──►  Logging  ─
 
 ### Type Hierarchy
 
-Every algorithm — conventional or experimental — is a concrete subtype of
-`IterativeMethod`. The hierarchy separates baselines from the under-development family,
+Every algorithm, conventional or experimental, is a concrete subtype of
+`IterativeMethod`. 
+The hierarchy separates baselines from the under-development family,
 enabling dispatch and experiment-level filtering.
 
 ```julia
@@ -86,9 +87,8 @@ abstract type ExperimentalMethod  <: IterativeMethod end
 ```
 
 Each method is a `@kwdef` struct carrying its own fixed hyperparameters.
-**Stopping criteria are no longer embedded in the algorithm struct** — they are
-supplied separately at experiment definition time (see Layer 3). This keeps the
-algorithm struct a pure description of the method, not of how long to run it.
+**Stopping criteria** are supplied separately at experiment definition time (see Layer 3). 
+This keeps the algorithm struct a pure description of the method, not of how long to run it.
 
 ```julia
 @kwdef struct GradientDescent <: ConventionalMethod
@@ -106,22 +106,20 @@ end
 
 ### State Parameter Groups
 
-A method's state struct can carry many heterogeneous fields: the current iterate,
-convergence metrics, timing, Hessian approximations, step vectors, curvature
-scalars, flags that toggle subroutines, and handles to method-specific functions.
-Keeping all of these flat becomes unmanageable for complex methods and makes it
-impossible for a sub-routine to reuse a clean subset.
+A method's state struct can carry many heterogeneous fields: 
+the current iterate, convergence metrics, timing, Hessian approximations, flags that toggle subroutines, and handles to method-specific functions.
+Keeping all of these flat becomes unmanageable for complex methods and makes it impossible for a sub-routine to reuse a clean subset.
 
-The solution is to partition every state struct into **four canonical groups** plus
-one method-specific numerics group:
+The proposed solution is to partition every state struct into **four canonical groups** plus one method-specific numerics group:
 
 ```julia
 # --- Shared groups (identical structure across all methods) ---
 
 # The optimization variables
 @kwdef mutable struct IterateGroup
-    x      :: Vector{Float64}              # current iterate
-    x_prev :: Vector{Float64} = Float64[] # previous iterate (step norm, momentum, …)
+    x             :: Vector{Float64}              # current iterate
+    gradient      :: Vector{Float64} 
+    x_prev        :: Vector{Float64} = Float64[]  # previous iterate
 end
 
 # Scalar convergence metrics — mirrors the fixed fields of IterationLog
@@ -166,14 +164,13 @@ end
 end
 ```
 
-**Sub-routine states.** When a sub-routine solves a subproblem, it receives its own
-state struct following the same four-group pattern. The outer algorithm passes an
-`IterateGroup` (or a derived subproblem variable) as the sub-routine's initial iterate.
-The sub-state has its own independent `TimingGroup`; its accumulated `core_time_ns` is
-reported in `SubResult.core_time_ns` separately from the outer timing.
+**Sub-routine states.** When a sub-routine solves a subproblem, it receives its own state struct following the same four-group pattern. 
+The outer algorithm passes an `IterateGroup` (or a derived subproblem variable) as the sub-routine's initial iterate.
+The sub-state has its own independent `TimingGroup`; 
+its accumulated `core_time_ns` is reported in `SubResult.core_time_ns` separately from the outer timing.
 
-**`extract_log_entry` simplification.** Because `state.metrics` mirrors
-`IterationLog`'s fixed fields, the default implementation is trivial:
+**`extract_log_entry`** simplification: 
+Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is trivial:
 
 ```julia
 function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog
@@ -188,8 +185,7 @@ function extract_log_entry(method::IterativeMethod, state, iter::Int)::Iteration
 end
 ```
 
-**`should_stop` field access.** Stopping criteria that inspect state read from the
-appropriate group, e.g. `state.metrics.gradient_norm` (not `state.gradient_norm`).
+**`should_stop`** field access: Stopping criteria that inspect state read from the appropriate group, e.g. `state.metrics.gradient_norm` (not `state.gradient_norm`).
 
 ### The Three Dispatch Points
 
