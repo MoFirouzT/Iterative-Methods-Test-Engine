@@ -792,9 +792,8 @@ end
 end
 ```
 
-`method_criteria` lets specific methods use different stopping budgets within the
-same experiment — e.g., a fast baseline gets `MaxIterations(100)` while the
-experimental methods get a full composite criterion.
+`method_criteria` lets specific methods use different stopping budgets within the same experiment — 
+e.g., a fast baseline gets `MaxIterations(100)` while the experimental methods get a full composite criterion.
 
 ### Result Types
 
@@ -824,9 +823,8 @@ struct ExperimentResult
 end
 ```
 
-`finalize!(logger, method, state)` (called by the runner at loop exit) assembles and
-returns a `MethodResult`. The runner collects these into a `RunResult` per run and
-wraps everything in `ExperimentResult` at the end of `run_experiment`.
+`finalize!(logger, method, state)` (called by the runner at loop exit) assembles and returns a `MethodResult`. 
+The runner collects these into a `RunResult` per run and wraps everything in `ExperimentResult` at the end of `run_experiment`.
 
 ### Result Hierarchy (Overview)
 
@@ -1274,9 +1272,9 @@ The analysis layer has two roles:
 2. **Figure layout system** — compose any number of plots in any formation and
    render them to a single PDF or image file.
 
-There is no grid-aware analysis layer. Because variant names embed axis information
-(e.g. `MyMethod[hessian=BFGS,minor=Mom10,...]`), the user can always parse or filter
-on names as plain strings if needed.
+There is no grid-aware analysis layer. 
+Because variant names embed axis information (e.g. `MyMethod[hessian=BFGS,minor=Mom10,...]`), 
+the user can always parse or filter on names as plain strings if needed.
 
 ### Loading and Transforming
 

@@ -172,3 +172,7 @@ end
     @test specs[1].params == (; hessian = BFGS(), linesearch = ArmijoLS(), step_size = 0.01)
     @test specs[1].method isa DummyMethod
 end
+
+include(joinpath(@__DIR__, "test_layer5.jl"))
+include(joinpath(@__DIR__, "test_layer7.jl"))
+include(joinpath(@__DIR__, "test_layer8.jl"))

@@ -15,6 +15,34 @@ using Dates
 
 
 # ─────────────────────────────────────────────────────────────────────────
+# Layer 7 — Verbosity System
+# ─────────────────────────────────────────────────────────────────────────
+
+@enum VerbosityLevel begin
+    SILENT = 0
+    MILESTONE = 1
+    SUMMARY = 2
+    DETAILED = 3
+    DEBUG = 4
+end
+
+
+"""
+    VerbosityConfig
+
+Controls console output from the logger.
+"""
+@kwdef mutable struct VerbosityConfig
+    level::VerbosityLevel = SUMMARY
+    print_every::Int = 10
+    fields::Vector{Symbol} = [:iter, :objective, :gradient_norm]
+    color::Bool = true
+    io::IO = stdout
+    iter_range::Union{Nothing,UnitRange{Int}} = nothing
+end
+
+
+# ─────────────────────────────────────────────────────────────────────────
 # IterationLog — Per-iteration record
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -78,6 +106,53 @@ mutable struct Logger
 end
 
 
+_verbosity_config(logger::Logger) = logger.verbosity_config isa VerbosityConfig ? logger.verbosity_config : nothing
+
+
+function _entry_field(entry::IterationLog, field::Symbol)
+    if field === :iter
+        return entry.iter
+    elseif field === :core_time_ns
+        return entry.core_time_ns
+    elseif field === :objective
+        return entry.objective
+    elseif field === :gradient_norm
+        return entry.gradient_norm
+    elseif field === :step_norm
+        return entry.step_norm
+    else
+        return get(entry.extras, field, missing)
+    end
+end
+
+
+function _fmt_field(value)
+    if value isa AbstractFloat
+        return string(round(value; sigdigits = 6))
+    end
+    return string(value)
+end
+
+
+function format_and_print(cfg::VerbosityConfig, logger::Logger, entry::IterationLog, level::VerbosityLevel)
+    parts = String[string(field, "=", _fmt_field(_entry_field(entry, field))) for field in cfg.fields]
+    line = string("[", logger.method_name, "|run ", logger.run_id, "] ", join(parts, " "))
+    if level == DEBUG
+        line = string(line, " extras=", entry.extras)
+    end
+    println(cfg.io, line)
+end
+
+
+function _print_milestone(logger::Logger, message::String)
+    cfg = _verbosity_config(logger)
+    isnothing(cfg) && return
+    if cfg.level >= MILESTONE
+        println(cfg.io, "[", logger.method_name, "|run ", logger.run_id, "] ", message)
+    end
+end
+
+
 # ─────────────────────────────────────────────────────────────────────────
 # Helper Functions — Timing Queries
 # ─────────────────────────────────────────────────────────────────────────
@@ -126,6 +201,7 @@ function log_init!(logger::Logger, method, state)
     logger.iter_logs = IterationLog[]
     logger.events = NamedTuple[]
     logger.pending_sub_logs = IterationLog[]
+    _print_milestone(logger, "start")
     # Subclasses or extensions can override to capture method-specific metadata
 end
 
@@ -161,6 +237,7 @@ Called after should_stop returns true (never timed).
 function log_event!(logger::Logger, reason::Symbol, iter::Int)
     event = (reason=reason, iter=iter, timestamp=now())
     push!(logger.events, event)
+    _print_milestone(logger, string("event=", reason, " iter=", iter))
 end
 
 
@@ -205,10 +282,20 @@ function finalize!(logger::Logger, method, state)
     end
     
     n_iters = length(logger.iter_logs)
+    _print_milestone(logger, string("finalize stop_reason=", stop_reason, " n_iters=", n_iters))
     
-    # Return MethodResult (will be defined in experiment.jl)
-    # For now, we construct a basic result structure
-    (
+    # Return typed MethodResult when Layer 5 is loaded, otherwise a compatible NamedTuple.
+    if @isdefined(MethodResult)
+        return MethodResult(
+            logger.method_name,
+            logger.iter_logs,
+            state,
+            stop_reason,
+            n_iters,
+        )
+    end
+
+    return (
         method_name = logger.method_name,
         iter_logs = logger.iter_logs,
         final_state = state,
@@ -229,6 +316,24 @@ Placeholder for verbosity-gated console output (Layer 7).
 Will be implemented with VerbosityConfig and range-gated printing.
 """
 function maybe_print(logger::Logger, entry::IterationLog)
-    # Placeholder: Layer 7 (Verbosity System) will implement this
-    # For now, do nothing to avoid errors
+    cfg = _verbosity_config(logger)
+    isnothing(cfg) && return
+
+    effective_level = if !isnothing(cfg.iter_range) && entry.iter in cfg.iter_range
+        DETAILED
+    elseif !isnothing(cfg.iter_range)
+        SILENT
+    else
+        cfg.level
+    end
+
+    effective_level == SILENT && return
+    effective_level == MILESTONE && return
+
+    if effective_level >= SUMMARY
+        if !(effective_level >= DETAILED || entry.iter % cfg.print_every == 0)
+            return
+        end
+        format_and_print(cfg, logger, entry, effective_level)
+    end
 end
