@@ -10,55 +10,8 @@ Illustrates the composable state module pattern with method-specific numerics,
 optional sub-solver modules, and parameter-driven control flow.
 """
 
+using LinearAlgebra: I, norm
 using Random: AbstractRNG
-
-
-# ─────────────────────────────────────────────────────────────────────────
-# Component Abstractions (Layer 2 Component Slots)
-# ─────────────────────────────────────────────────────────────────────────
-
-"""
-	abstract type HessianApprox
-
-Base type for Hessian approximation strategies.
-"""
-abstract type HessianApprox end
-
-"""
-	struct BFGS <: HessianApprox
-BFGS rank-2 update.
-"""
-@kwdef struct BFGS <: HessianApprox
-end
-
-"""
-	abstract type MinorUpdate
-
-Base type for minor update (e.g., curvature correction) strategies.
-"""
-abstract type MinorUpdate end
-
-"""
-	struct NoMinorUpdate <: MinorUpdate
-Placeholder for no minor update.
-"""
-@kwdef struct NoMinorUpdate <: MinorUpdate
-end
-
-"""
-	abstract type LineSearch
-
-Base type for line search strategies.
-"""
-abstract type LineSearch end
-
-"""
-	struct ArmijoLS <: LineSearch
-Armijo backtracking line search.
-"""
-@kwdef struct ArmijoLS <: LineSearch
-	c :: Float64 = 1e-4
-end
 
 
 # ─────────────────────────────────────────────────────────────────────────

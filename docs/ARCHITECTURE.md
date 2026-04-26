@@ -259,19 +259,20 @@ function extract_log_entry(method::IterativeMethod, state, iter::Int)::Iteration
 ### Core Timing — `@core_timed`
 
 Scientific timing measures **only the mathematical kernel** of each step.
-The `@core_timed` macro is the single entry point for this. It accumulates elapsed
-nanoseconds into `state.timing.core_time_ns`. The runner resets that field to zero
-before each `step!` call; after `step!` returns, `extract_log_entry` copies it into
-`IterationLog.core_time_ns`; `log_iter!` then adds it to `logger.total_core_ns`.
+The `@core_timed` macro is the single entry point for this. 
+It accumulates elapsed nanoseconds into `state.timing.core_time_ns`. 
+The runner resets that field to zero before each `step!` call; 
+after `step!` returns, `extract_log_entry` copies it into `IterationLog.core_time_ns`; 
+`log_iter!` then adds it to `logger.total_core_ns`.
 The runner never wraps `step!` in a timer itself.
 
 ```julia
 """
     @core_timed state expr
 
-Wraps `expr` in a high-resolution timer. Elapsed nanoseconds are **added** to
-`state.timing.core_time_ns`, so multiple disjoint kernels in a single step are all
-counted without timing the bookkeeping between them.
+Wraps `expr` in a high-resolution timer. 
+Elapsed nanoseconds are **added** to `state.timing.core_time_ns`, 
+so multiple disjoint mathematical kernels in a single step are all counted without timing the bookkeeping between them.
 """
 macro core_timed(state, expr)
     quote
@@ -294,7 +295,9 @@ function step!(m::MyMethod, state, problem, iter)
 
     # Line search and minor update may themselves call @core_timed if appropriate:
     α = search_step(m.linesearch, problem, state, Δx)
-    state.iterate.x .-= α .* Δx
+    @core_timed state begin
+        state.iterate.x .-= α .* Δx
+    end
     state.metrics.step_norm = norm(α .* Δx)
     apply_minor_update!(m.minor, state, problem, iter)
 end
@@ -306,9 +309,8 @@ sees a single-step measurement.
 
 ### The Generic Runner
 
-The runner owns the loop. Algorithms never call the logger directly — it is injected
-by the runner. `converged` is gone; a `StoppingCriteria` object controls termination
-(see Layer 3).
+The runner owns the loop. Algorithms never call the logger directly — it is injected by the runner. 
+a `StoppingCriteria` object controls termination (see Layer 3).
 
 ```julia
 function run_method(method     :: IterativeMethod,
@@ -347,8 +349,8 @@ end
 
 ## 4. Layer 2 — Variant Grid Engine
 
-This layer models each **dimension of variation** as a typed component, then
-constructs all valid combinations automatically.
+This layer models each **dimension of variation** as a typed component, 
+then constructs all valid combinations automatically.
 
 ### Component Abstraction
 
@@ -378,21 +380,6 @@ abstract type LineSearch end
 @kwdef struct FixedStep         <: LineSearch;     α::Float64 = 0.01 end
 struct ArmijoLS                 <: LineSearch end
 struct WolfeLS                  <: LineSearch end
-```
-
-Each component is dispatched inside `step!`, keeping every piece independently testable:
-
-```julia
-function step!(m::MyMethod, state, problem, iter)
-    @core_timed state begin
-        g  = grad(problem.f, state.iterate.x)
-        H  = approximate_hessian(m.hessian, state)    # dispatches on hessian type
-        Δx = solve_direction(H, g)
-        α  = search_step(m.linesearch, problem, state, Δx)
-        state.iterate.x .-= α .* Δx
-        apply_minor_update!(m.minor, state, problem, iter)
-    end
-end
 ```
 
 ### VariantAxis and VariantGrid
@@ -425,8 +412,8 @@ end
 ### Grid Expansion
 
 `expand(grid)` takes the Cartesian product of all axes, applies filters, builds each
-method instance, and attaches auto-generated names. This function operates on a
-**single** `VariantGrid` and is independently callable and unit-testable.
+method instance, and attaches auto-generated names. 
+This function operates on a **single** `VariantGrid` and is independently callable and unit-testable.
 
 ```julia
 struct VariantSpec
