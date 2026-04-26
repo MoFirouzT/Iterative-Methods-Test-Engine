@@ -82,7 +82,7 @@ function init_state(method::GradientDescent, problem, rng::AbstractRNG)
 	gradient = zeros(Float64, n)
 	
 	# Compute initial gradient
-	grad!(gradient, problem, x)
+	grad!(gradient, problem.f, x)
 	
 	return GradientDescentState(
 		iterate = IterateGroup(
@@ -91,7 +91,7 @@ function init_state(method::GradientDescent, problem, rng::AbstractRNG)
 			x_prev = Float64[]
 		),
 		metrics = MetricsGroup(
-			objective = f(problem, x),
+			objective = objective(problem, x),
 			gradient_norm = norm(gradient),
 			step_norm = 0.0
 		),
@@ -121,7 +121,7 @@ function step!(method::GradientDescent, state::GradientDescentState, problem, it
 	# Core kernel: gradient evaluation and step
 	@core_timed state begin
 		# Compute gradient at current x
-		grad!(state.numerics.gradient, problem, state.iterate.x)
+		grad!(state.numerics.gradient, problem.f, state.iterate.x)
 		
 		# Gradient descent direction: -∇f
 		copyto!(state.numerics.direction, state.numerics.gradient)
@@ -133,8 +133,8 @@ function step!(method::GradientDescent, state::GradientDescentState, problem, it
 	end
 	
 	# Update metrics (not timed: bookkeeping)
-	state.metrics.objective = f(problem, state.iterate.x)
-	grad!(state.iterate.gradient, problem, state.iterate.x)
+	state.metrics.objective = objective(problem, state.iterate.x)
+	grad!(state.iterate.gradient, problem.f, state.iterate.x)
 	state.metrics.gradient_norm = norm(state.iterate.gradient)
 	state.metrics.step_norm = norm(state.numerics.direction)
 end

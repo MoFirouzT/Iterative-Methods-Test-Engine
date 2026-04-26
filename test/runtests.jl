@@ -114,6 +114,38 @@ struct UnimplementedMethod <: IterativeMethod end
     @test empty_logger.total_core_ns == result.iter_logs[1].core_time_ns
 end
 
+@testset "Layer 4 nested runner skeleton" begin
+    problem = DummyProblem(2, [1.0, -0.5])
+    outer_logger = make_logger()
+
+    cfg = SubRunConfig(
+        method = SimpleMethod(),
+        criteria = MaxIterations(n = 2),
+        log_sub_iters = true,
+    )
+
+    sub = run_sub_method(cfg, problem, outer_logger)
+
+    @test sub.stop_reason == :max_iterations
+    @test sub.converged == false
+    @test sub.n_iters == 2
+    @test length(sub.iter_logs) == 2
+    @test sub.core_time_ns == sum(log.core_time_ns for log in sub.iter_logs)
+    @test length(outer_logger.pending_sub_logs) == 2
+
+    outer_logger_2 = make_logger()
+    cfg_no_attach = SubRunConfig(
+        method = SimpleMethod(),
+        criteria = MaxIterations(n = 1),
+        log_sub_iters = false,
+    )
+
+    sub_no_attach = run_sub_method(cfg_no_attach, problem, outer_logger_2)
+
+    @test sub_no_attach.n_iters == 1
+    @test isempty(outer_logger_2.pending_sub_logs)
+end
+
 @testset "Variant grid expansion" begin
     axis1 = VariantAxis(:hessian,
         BFGS() => "BFGS",

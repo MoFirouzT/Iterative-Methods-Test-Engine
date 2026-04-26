@@ -10,7 +10,7 @@ Illustrates the composable state module pattern with method-specific numerics,
 optional sub-solver modules, and parameter-driven control flow.
 """
 
-using LinearAlgebra: I, norm
+using LinearAlgebra: I, norm, Diagonal
 using Random: AbstractRNG
 
 
@@ -153,7 +153,7 @@ function init_state(method::MyMethod, problem, rng::AbstractRNG)
 	gradient = zeros(Float64, n)
 	
 	# Compute initial gradient
-	grad!(gradient, problem, x)
+	grad!(gradient, problem.f, x)
 	
 	return MyMethodState(
 		iterate = IterateGroup(
@@ -162,7 +162,7 @@ function init_state(method::MyMethod, problem, rng::AbstractRNG)
 			x_prev = Float64[]
 		),
 		metrics = MetricsGroup(
-			objective = f(problem, x),
+			objective = objective(problem, x),
 			gradient_norm = norm(gradient),
 			step_norm = 0.0
 		),
@@ -205,7 +205,7 @@ updates are not timed.
 function step!(method::MyMethod, state::MyMethodState, problem, iter::Int)
 	@core_timed state begin
 		# Compute gradient at current x
-		grad!(state.numerics.gradient, problem, state.iterate.x)
+		grad!(state.numerics.gradient, problem.f, state.iterate.x)
 		
 		# Solve for direction: H·d = -∇f (simplified: d = -∇f)
 		# In a real implementation, would solve H·d = -∇f using the Hessian approximation
@@ -223,8 +223,8 @@ function step!(method::MyMethod, state::MyMethodState, problem, iter::Int)
 	end
 	
 	# Metrics update (not timed: bookkeeping)
-	state.metrics.objective = f(problem, state.iterate.x)
-	grad!(state.iterate.gradient, problem, state.iterate.x)
+	state.metrics.objective = objective(problem, state.iterate.x)
+	grad!(state.iterate.gradient, problem.f, state.iterate.x)
 	state.metrics.gradient_norm = norm(state.iterate.gradient)
 	state.metrics.step_norm = norm(state.numerics.direction)
 	

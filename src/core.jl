@@ -5,7 +5,7 @@ Defines the core method hierarchy, canonical state parameter groups, required
 dispatch points, `@core_timed`, and the generic `run_method` loop.
 """
 
-using Random: AbstractRNG
+using Random: AbstractRNG, TaskLocalRNG
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -149,6 +149,116 @@ macro core_timed(state, expr)
 		local _ret = $(esc(expr))
 		$(esc(state)).timing.core_time_ns += time_ns() - _t0
 		_ret
+	end
+end
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Nested Algorithm Infrastructure (Layer 4)
+# ─────────────────────────────────────────────────────────────────────────
+
+"""
+	SubRunConfig
+
+Configuration for a nested algorithm invocation.
+"""
+@kwdef struct SubRunConfig
+	method::IterativeMethod
+	criteria
+	log_sub_iters::Bool = true
+	verbosity::Any = nothing
+end
+
+
+"""
+	SubResult
+
+Result summary for one nested algorithm run.
+"""
+struct SubResult
+	converged::Bool
+	stop_reason::Symbol
+	n_iters::Int
+	final_state::Any
+	iter_logs::Vector{Any}
+	core_time_ns::Int64
+end
+
+
+"""
+	is_converged_reason(reason::Symbol) -> Bool
+
+Classifies stop reasons that indicate successful convergence.
+"""
+function is_converged_reason(reason::Symbol)
+	reason in (:gradient_converged, :step_converged, :objective_stagnated, :all_criteria_met)
+end
+
+
+"""
+	make_sub_logger(method, outer_logger, verbosity) -> Logger
+
+Constructs an in-memory logger for nested runs.
+"""
+function make_sub_logger(method::IterativeMethod, outer_logger::Logger, verbosity)
+	Logger(
+		string(typeof(method)),
+		outer_logger.run_id,
+		outer_logger.exp_path,
+		verbosity,
+		IterationLog[],
+		NamedTuple[],
+		Dict{Symbol,Any}(),
+		0.0,
+		0,
+		IterationLog[],
+	)
+end
+
+
+"""
+	run_sub_method(config, problem, outer_logger) -> SubResult
+
+Runs a nested method with its own state and logger. If configured, sub-iteration
+logs are attached to the outer logger via `attach_sub_logs!`.
+"""
+function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger)::SubResult
+	rng = TaskLocalRNG()
+	sub_state = init_state(config.method, problem, rng)
+
+	if hasproperty(sub_state, :_logger)
+		setproperty!(sub_state, :_logger, outer_logger)
+	end
+
+	sub_logger = make_sub_logger(config.method, outer_logger, config.verbosity)
+	log_init!(sub_logger, config.method, sub_state)
+
+	iter = 0
+	while true
+		iter += 1
+
+		sub_state.timing.core_time_ns = 0
+		step!(config.method, sub_state, problem, iter)
+
+		entry = extract_log_entry(config.method, sub_state, iter)
+		log_iter!(sub_logger, entry)
+
+		stop, reason = should_stop(config.criteria, sub_state, iter, sub_logger)
+		if stop
+			if config.log_sub_iters
+				attach_sub_logs!(outer_logger, sub_logger.iter_logs)
+			end
+
+			total_core = sum(e.core_time_ns for e in sub_logger.iter_logs; init = Int64(0))
+			return SubResult(
+				is_converged_reason(reason),
+				reason,
+				iter,
+				sub_state,
+				sub_logger.iter_logs,
+				total_core,
+			)
+		end
 	end
 end
 

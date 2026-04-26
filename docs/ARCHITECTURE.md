@@ -488,8 +488,8 @@ grid = VariantGrid(
 ## 5. Layer 3 — Stopping Criteria
 
 The runner uses a `while true` loop controlled entirely by `StoppingCriteria`.
-This gives full, composable control over
-how many steps any algorithm takes: by count, time, proximity to solution, or any user-defined condition.
+This gives full, composable control ove how many steps any algorithm takes: 
+by count, time, proximity to solution, or any user-defined condition.
 
 ### Type Hierarchy
 
@@ -599,21 +599,20 @@ quick_stop = MaxIterations(n=200)
 
 ## 6. Layer 4 — Nested Algorithm Infrastructure
 
-Some algorithms run another iterative method as a **sub-routine inside their own
-`step!`**. Examples: trust-region methods that solve an inner subproblem iteratively,
-bi-level methods, inner loop methods that refine a correction, or meta-algorithms
-that call multiple sub-solvers per outer step.
+Some algorithms run another iterative method as a **sub-routine** inside their own `step!`. 
+Examples: trust-region methods that solve an inner subproblem iteratively,
+bi-level methods, inner loop methods that refine a correction, 
+or meta-algorithms that call multiple sub-solvers per outer step.
 
-This layer provides the infrastructure to make nested invocation clean, safe, and
-fully logged.
+This layer provides the infrastructure to make nested invocation clean, safe, and fully logged.
 
 ### Design Principle
 
-An algorithm struct holds a **sub-method slot** typed as `IterativeMethod`. During
-`step!`, the algorithm calls `run_sub_method(...)`, which is a lightweight runner
-that returns a `SubResult`. Sub-iteration logs are attached to the current outer
-iteration's log entry under `extras`. The outer logger coordinates this; the
-sub-runner never writes to disk or console independently unless configured to do so.
+An algorithm struct holds a **sub-method slot** typed as `IterativeMethod`. 
+During `step!`, the algorithm calls `run_sub_method(...)`, which is a lightweight runner that returns a `SubResult`. 
+Sub-iteration logs are attached to the current outer iteration's log entry under `extras`. 
+The outer logger coordinates this; 
+the sub-runner never writes to disk or console independently unless configured to do so.
 
 ### Infrastructure Types
 
@@ -705,8 +704,9 @@ function step!(m::MyOuterMethod, state, problem, iter)
         Δx = extract_direction(sub_result.final_state)
         α  = search_step(m.linesearch, problem, state, Δx)
         state.iterate.x .-= α .* Δx
-        state.metrics.step_norm = norm(α .* Δx)
     end
+    state.metrics.step_norm = norm(α .* Δx)
+    # rest of the code ...
 end
 ```
 
@@ -737,9 +737,9 @@ state._logger = logger   # set once by runner before the loop; read in step! if 
 
 ### Experiment Naming
 
-Each experiment is stored under a two-level path: a **date folder** and a
-**zero-padded sequential counter** that resets each day. This produces a clean,
-browsable log hierarchy:
+Each experiment is stored under a two-level path: 
+a **date folder** and a **zero-padded sequential counter** that resets each day. 
+This produces a clean, browsable log hierarchy:
 
 ```
 logs/
@@ -753,8 +753,8 @@ logs/
 ```
 
 The counter is determined at save time by scanning the date folder for the highest
-existing number and incrementing it. The human-readable `name` field from
-`ExperimentConfig` is stored inside `manifest.json`, not in the path.
+existing number and incrementing it. 
+The human-readable `name` field from `ExperimentConfig` is stored inside `manifest.json`, not in the path.
 
 ```julia
 function next_experiment_path(log_root::String)::String
@@ -769,20 +769,6 @@ function next_experiment_path(log_root::String)::String
 end
 ```
 
-### `expand` and `resolve_methods`
-
-These two functions are **not** the same and must not share a name.
-
-- `expand(grid::VariantGrid)` (Layer 2) operates on a **single** grid and returns a
-  `Vector{VariantSpec}`. It is independently callable and unit-testable.
-- `resolve_methods(config::ExperimentConfig)` is the **config-level aggregator**: it
-  concatenates `config.conventional_methods`, `config.experimental_methods`, and the
-  flattened output of calling `expand(grid)` on every entry in `config.variant_grids`.
-  It returns two flat `Vector{Tuple{String, IterativeMethod}}` — one conventional,
-  one experimental.
-
-The separation keeps grid expansion a pure, reusable primitive while orchestration
-logic stays in Layer 5.
 
 ### ExperimentConfig
 
@@ -894,6 +880,9 @@ function run_experiment(config   :: ExperimentConfig,
     return exp_result
 end
 ```
+`resolve_methods(config::ExperimentConfig)` is the **config-level aggregator**: 
+it   concatenates `config.conventional_methods`, `config.experimental_methods`, and the flattened output of calling `expand(grid)` on every entry in `config.variant_grids`.
+It returns two flat `Vector{Tuple{String, IterativeMethod}}` — one conventional, one experimental.
 
 ---
 
@@ -1080,16 +1069,15 @@ list_experiments(log_root="logs") :: Vector{NamedTuple}
 
 ## 11. Layer 9 — Problem Factory
 
-Problems are declared as typed `ProblemSpec` values. `make_problem(spec, rng)` dispatches
-on the spec type to construct the problem. This provides a structured, serializable,
-and reproducible system where every problem — analytic, file-based, or randomly
-generated — has an identical interface.
+Problems are declared as typed `ProblemSpec` values. 
+`make_problem(spec, rng)` dispatches on the spec type to construct the problem. 
+This provides a structured, serializable, and reproducible system where every problem — analytic, file-based, or randomly generated — has an identical interface.
 
 ### Problem Interface
 
 Every problem has a **composite objective** `f(x) + g₁(x) + g₂(x) + …`, where `f`
-is the data fidelity term and the `gᵢ` are regularizers. All algorithms interact
-with the problem exclusively through this interface.
+is the data fidelity term and the `gᵢ` are regularizers. 
+All algorithms interact with the problem exclusively through this interface.
 
 ```julia
 # --- Data Fidelity ---
@@ -1100,8 +1088,7 @@ abstract type DataFidelity end
 #   grad(f, x)                → gradient vector ∇f(x)
 #   hessian_vec(f, x, d)      → Hessian-vector product H_f(x)·d  (d is a direction)
 #
-# DataFidelity is backed by a kernel h. For LeastSquares, for example:
-#   h(x) = 0.5‖Ax − b‖²,  ∇h(x) = Aᵀ(Ax−b),  H_h(x,d) = AᵀAd
+# DataFidelity can be backed by a kernel h.
 
 # --- Regularizer ---
 
@@ -1187,7 +1174,8 @@ make_problem(s::AnalyticProblem, rng::AbstractRNG) =
 
 #### File-Based Problems
 
-Data is loaded from a file on disk. The loader is a user-supplied function.
+Data is loaded from a file on disk. 
+The loader is a user-supplied function.
 
 ```julia
 @kwdef struct FileProblem <: ProblemSpec
@@ -1210,13 +1198,13 @@ FileProblem(
 
 A `RandomProblem` generates **data** (e.g. matrix `A` and vector `b` for Lasso)
 using an RNG, but produces a `Problem` with **exactly the same interface** as one
-built from a file. There is no separate "random problem interface" — algorithms
-cannot tell the difference.
+built from a file. 
+There is no separate "random problem interface", so algorithms cannot tell the difference.
 
-There is **no `seed` field** on `RandomProblem`. One seed — `ExperimentConfig.seed`
-— controls everything: data generation, initial point `x0`, and any algorithmic
-stochasticity. The experiment runner derives a per-run `rng` from this seed and
-passes it to `make_problem`.
+There is **no `seed` field** on `RandomProblem`. 
+One seed — `ExperimentConfig.seed` — controls everything: 
+data generation, initial point `x0`, and any algorithmic stochasticity. 
+The experiment runner derives a per-run `rng` from this seed and passes it to `make_problem`.
 
 ```julia
 @kwdef struct RandomProblem <: ProblemSpec
