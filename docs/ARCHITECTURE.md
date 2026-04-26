@@ -43,7 +43,7 @@ The framework is built on four Julia-native principles:
   independent operations.
 - **Scientific measurement discipline.** Timing records only the core mathematical
   computation inside each step, accumulated per iteration and summed across iterations.
-  All bookkeeping — logging, stopping criterion checks, verbosity output — is
+  All bookkeeping (logging, stopping criterion checks, verbosity output) is
   deliberately excluded from measured time.
 
 The top-level concerns flow in one direction:
@@ -104,17 +104,16 @@ end
 end
 ```
 
-### State Parameter Groups
+### State Parameter Groups — Composable Modules
 
-A method's state struct can carry many heterogeneous fields: 
-the current iterate, convergence metrics, timing, Hessian approximations, flags that toggle subroutines, and handles to method-specific functions.
-Keeping all of these flat becomes unmanageable for complex methods and makes it impossible for a sub-routine to reuse a clean subset.
+A method's state can carry many heterogeneous fields: the current iterate, convergence metrics, 
+timing, Hessian approximations, flags that toggle subroutines, references to sub-solver states, 
+and handles to method-specific functions. The solution is to partition state into **reusable, 
+independently typed modules** that compose together.
 
-The proposed solution is to partition every state struct into **four canonical groups** plus one method-specific numerics group:
+**Three canonical shared modules** (identical across all methods):
 
 ```julia
-# --- Shared groups (identical structure across all methods) ---
-
 # The optimization variables
 @kwdef mutable struct IterateGroup
     x             :: Vector{Float64}              # current iterate
@@ -133,10 +132,12 @@ end
 @kwdef mutable struct TimingGroup
     core_time_ns :: Int64 = 0
 end
+```
 
-# --- Method-specific numerics group (one per concrete method) ---
+**Method-specific numerics module** (one per concrete method):
 
-# Example for MyMethod: all scalars, vectors, matrices, and behavioral flags.
+```julia
+# Example for MyMethod: scalars, vectors, matrices, and behavioral flags.
 # Each flag enables a distinct subroutine or update path inside step!.
 @kwdef mutable struct MyMethodNumerics
     # Scalars
@@ -148,26 +149,77 @@ end
     # Matrices
     H             :: Matrix{Float64} = Matrix{Float64}(undef, 0, 0)
     # Behavioral flags — each toggles a distinct code path in step!
-    use_correction      :: Bool = false   # enable correction subroutine
-    subproblem_solved   :: Bool = false   # set true when inner solve succeeds
-    use_extra_x_update  :: Bool = false   # apply secondary iterate update after main step
-end
-
-# --- Concrete state struct ---
-
-@kwdef mutable struct MyMethodState
-    iterate  :: IterateGroup
-    metrics  :: MetricsGroup
-    timing   :: TimingGroup
-    numerics :: MyMethodNumerics
-    _logger  :: Union{Nothing, Logger} = nothing  # injected by runner; used for sub-calls
+    use_correction      :: Bool = false
+    subproblem_solved   :: Bool = false
+    use_extra_x_update  :: Bool = false
 end
 ```
 
-**Sub-routine states.** When a sub-routine solves a subproblem, it receives its own state struct following the same four-group pattern. 
-The outer algorithm passes an `IterateGroup` (or a derived subproblem variable) as the sub-routine's initial iterate.
-The sub-state has its own independent `TimingGroup`; 
-its accumulated `core_time_ns` is reported in `SubResult.core_time_ns` separately from the outer timing.
+**Optional sub-solver modules** (attach only if the method uses a nested solver):
+
+If `MyMethod` calls a `GradientDescentState` as a sub-solver, instead of duplicating that 
+state definition, directly embed it:
+
+```julia
+# Reuse the conventional method's state struct directly
+# (defined in algorithms/conventional/gradient_descent.jl)
+
+# Or wrap multiple sub-solver states in a named module for clarity:
+@kwdef mutable struct InnerLBFGSModule
+    solver_state :: LBFGSState       # reuse existing LBFGS state struct
+    subproblem_iterate :: IterateGroup  # optional: shared iterate for subproblem
+end
+```
+
+**Concrete composed state struct** (assembles all needed modules):
+
+```julia
+@kwdef mutable struct MyMethodState
+    # Shared groups
+    iterate  :: IterateGroup
+    metrics  :: MetricsGroup
+    timing   :: TimingGroup
+    
+    # Method-specific numerics
+    numerics :: MyMethodNumerics
+    
+    # Optional sub-solver modules (attach only if used)
+    inner_solver :: Union{Nothing, InnerLBFGSModule} = nothing
+    
+    # Injected by runner for sub-calls
+    _logger  :: Union{Nothing, Logger} = nothing
+end
+```
+
+Alternatively, if the sub-solver is always present, attach directly without the `Union`:
+
+```julia
+@kwdef mutable struct MyOuterMethodState
+    iterate  :: IterateGroup
+    metrics  :: MetricsGroup
+    timing   :: TimingGroup
+    numerics :: MyOuterMethodNumerics
+    
+    # Always-present sub-solver state: reuse GradientDescentState directly
+    sub_gd   :: GradientDescentState
+    
+    _logger  :: Union{Nothing, Logger} = nothing
+end
+```
+
+**Sub-routine state reuse.** When a method uses a nested solver, the outer state struct **includes 
+a field typed as the sub-solver's state type** for documentation and optional result storage. 
+However, `run_sub_method` **creates and manages a fresh sub-state instance** each time it is called 
+in `step!`—the outer runner and outer state struct do not initialize or directly manage it. 
+
+**Example:** `MyOuterMethodState` includes a field `sub_gd :: GradientDescentState` (initialized to 
+default or `nothing`). When `step!` calls `run_sub_method(m.inner_sub, sub_problem, state._logger)`, 
+a brand-new `GradientDescentState` is instantiated inside `run_sub_method`, run independently, and 
+returned as part of `SubResult`. The outer state's `sub_gd` field can optionally store the final 
+sub-state for inspection, but it is **not used to initialize or control** the sub-run.
+
+Each state (outer and sub) has its own independent `TimingGroup`. The sub-solver's accumulated 
+`core_time_ns` is reported in `SubResult.core_time_ns` and tracked separately from the outer timing.
 
 **`extract_log_entry`** simplification: 
 Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is trivial:
@@ -1635,6 +1687,94 @@ Create `algorithms/conventional/my_baseline.jl`. Define the struct, implement
 `@core_timed state begin ... end` around the kernel), and `extract_log_entry`.
 Add it to an `ExperimentConfig`. The runner, logger, stopping criteria, and plots
 all pick it up automatically.
+
+### Building reusable state modules
+
+For a method that needs sub-solver state or shared problem-specific data, define a 
+**state module** struct once in a dedicated file (e.g. `algorithms/experimental/state_modules.jl`):
+
+```julia
+# A state module that holds a sub-solver and its problem iterate
+@kwdef mutable struct InnerSolverModule
+    solver      :: IterativeMethod        # the inner algorithm
+    solver_state :: Any                   # concrete state (e.g., GradientDescentState)
+    subproblem_iterate :: IterateGroup   # the subproblem's current iterate
+end
+
+# A state module for methods that use a Hessian approximation
+@kwdef mutable struct HessianModule
+    H             :: Matrix{Float64}
+    last_s        :: Vector{Float64}  # last step
+    last_y        :: Vector{Float64}  # last gradient change
+    damping_factor :: Float64 = 1.0
+end
+```
+
+Then compose them in your method state:
+
+```julia
+@kwdef mutable struct MyMethodState
+    iterate  :: IterateGroup
+    metrics  :: MetricsGroup
+    timing   :: TimingGroup
+    numerics :: MyMethodNumerics
+    
+    # Attach reusable modules
+    hessian_module :: Union{Nothing, HessianModule} = nothing
+    inner_solver   :: Union{Nothing, InnerSolverModule} = nothing
+    
+    _logger  :: Union{Nothing, Logger} = nothing
+end
+```
+
+In `init_state`, instantiate only the modules your method needs:
+
+```julia
+function init_state(method::MyMethod, problem, rng::AbstractRNG)
+    x0 = problem.x0
+    state = MyMethodState(
+        iterate = IterateGroup(x = copy(x0), gradient = grad(problem.f, x0)),
+        metrics = MetricsGroup(),
+        timing = TimingGroup(),
+        numerics = MyMethodNumerics(step_size = method.step_size),
+        hessian_module = HessianModule(H = zeros(length(x0), length(x0))),
+        inner_solver = nothing,  # or initialize if always present
+    )
+    return state
+end
+```
+
+### Reusing conventional method states as sub-solver modules
+
+If your experimental method calls a conventional method (e.g., `GradientDescent`) as a 
+sub-solver, directly embed its state struct instead of redefining it:
+
+```julia
+# In algorithms/conventional/gradient_descent.jl
+@kwdef mutable struct GradientDescentState
+    iterate :: IterateGroup
+    metrics :: MetricsGroup
+    timing :: TimingGroup
+    numerics :: GradientDescentNumerics
+    _logger :: Union{Nothing, Logger} = nothing
+end
+
+# In algorithms/experimental/mymethod.jl — reuse directly!
+@kwdef mutable struct MyOuterMethodState
+    iterate  :: IterateGroup
+    metrics  :: MetricsGroup
+    timing   :: TimingGroup
+    numerics :: MyOuterMethodNumerics
+    
+    # Reuse the GradientDescentState without modification or duplication
+    sub_gd_state :: GradientDescentState
+    
+    _logger  :: Union{Nothing, Logger} = nothing
+end
+```
+
+The sub-solver state is managed by `run_sub_method` inside your `step!` implementation; 
+you do not manually initialize or update it in the outer `init_state`.
 
 ### Adding a new stopping criterion
 
