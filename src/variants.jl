@@ -99,35 +99,6 @@ Iterated correction step.
 	n_inner::Int = 3
 end
 
-"""
-	abstract type LineSearch
-
-Base type for step-size selection strategies.
-"""
-abstract type LineSearch end
-
-"""
-	struct FixedStep <: LineSearch
-
-Constant step size.
-"""
-@kwdef struct FixedStep <: LineSearch
-	α::Float64 = 0.01
-end
-
-"""
-	struct ArmijoLS <: LineSearch
-
-Armijo backtracking search.
-"""
-struct ArmijoLS <: LineSearch end
-
-"""
-	struct WolfeLS <: LineSearch
-
-Wolfe line search.
-"""
-struct WolfeLS <: LineSearch end
 
 
 # ─────────────────────────────────────────────────────────────────────────

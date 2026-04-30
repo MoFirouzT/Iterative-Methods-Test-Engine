@@ -27,13 +27,13 @@ Fields:
 - step_size::Float64 — base step size or learning rate
 - hessian::HessianApprox — Hessian approximation strategy (BFGS)
 - minor::MinorUpdate — minor update strategy
-- linesearch::LineSearch — line search strategy
+- linesearch::StepSizeRule — step-size strategy
 """
 @kwdef struct MyMethod <: ExperimentalMethod
 	step_size::Float64 = 0.01
 	hessian::HessianApprox = BFGS()
 	minor::MinorUpdate = NoMinorUpdate()
-	linesearch::LineSearch = ArmijoLS()
+	linesearch::StepSizeRule = ArmijoLS()
 end
 
 

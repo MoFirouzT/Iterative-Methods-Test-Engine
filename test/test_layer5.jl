@@ -11,6 +11,9 @@ end
 if !@isdefined(StoppingCriterion)
     include(joinpath(@__DIR__, "..", "src", "stopping.jl"))
 end
+if !@isdefined(StepSizeRule)
+    include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
+end
 if !@isdefined(VariantGrid)
     include(joinpath(@__DIR__, "..", "src", "variants.jl"))
 end

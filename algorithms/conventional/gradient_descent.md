@@ -196,15 +196,15 @@ function step!(method::GradientDescent, state::GradientDescentState,
 | `grad(problem.f, x_k)` | **Yes** | Core mathematical computation |
 | `compute_direction(...)` | **Yes** | Core mathematical computation |
 | `compute_step(...)` with FixedStep / BB / Cauchy | **Yes** | $O(n)$ dot products only |
-| `compute_step(...)` with ArmijoLS | **No** | Function evaluations excluded |
+| `compute_step(...)` with ArmijoLS | **Yes** | Function evaluations are core computation |
 | `x_{k+1} = x_k + α d_k` | **Yes** | Core update |
 | `norm(...)`, metric updates | **No** | Bookkeeping |
 
-> **ArmijoLS exception.** Line search calls to `objective(problem, ...)` are
-> delibertely outside `@core_timed` — they are bookkeeping overhead, not core
-> computation. The count is tracked in `state.numerics.n_linesearch_evals`.
+> **ArmijoLS timing.** Line search calls to `objective(problem, ...)` are
+> part of the core computation and should be wrapped in `@core_timed`. The count
+> is tracked in `state.numerics.n_linesearch_evals`.
 > All other step-size rules (FixedStep, Cauchy, BB) contain only $O(n)$ dot
-> products and Hessian-vector products, which count as core computation.
+> products and Hessian-vector products, which also count as core computation.
 
 **Implementation:**
 

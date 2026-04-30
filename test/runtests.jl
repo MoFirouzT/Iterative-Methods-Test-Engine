@@ -1,10 +1,12 @@
 using Test
-using LinearAlgebra: norm
+using LinearAlgebra: I, norm
 using Random: AbstractRNG, default_rng
 
 include(joinpath(@__DIR__, "..", "src", "logging.jl"))
 include(joinpath(@__DIR__, "..", "src", "core.jl"))
 include(joinpath(@__DIR__, "..", "src", "stopping.jl"))
+include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
+include(joinpath(@__DIR__, "..", "src", "problems.jl"))
 include(joinpath(@__DIR__, "..", "src", "variants.jl"))
 
 struct DummyProblem
@@ -43,6 +45,18 @@ end
 struct DummyMethod <: ExperimentalMethod
 end
 
+@kwdef mutable struct StepSizeNumerics
+    n_linesearch_evals::Int = 0
+    grad_prev::Vector{Float64} = Float64[]
+end
+
+@kwdef mutable struct StepSizeState
+    iterate::IterateGroup
+    metrics::MetricsGroup
+    timing::TimingGroup
+    numerics::StepSizeNumerics
+end
+
 @kwdef mutable struct SimpleState
     iterate::IterateGroup
     metrics::MetricsGroup
@@ -78,6 +92,55 @@ function step!(::SimpleMethod, state::SimpleState, problem::DummyProblem, iter::
 end
 
 struct UnimplementedMethod <: IterativeMethod end
+
+
+@testset "Step size rules" begin
+    a = Matrix{Float64}(I, 2, 2)
+    problem = Problem(LeastSquares(LeastSquaresKernel(a, zeros(2))), zeros(2))
+
+    x = [2.0, -1.0]
+    gradient = zeros(2)
+    grad!(gradient, problem.f, x)
+    direction = -gradient
+
+    state = StepSizeState(
+        iterate = IterateGroup(x = copy(x), gradient = copy(gradient), x_prev = Float64[]),
+        metrics = MetricsGroup(objective = objective(problem, x), gradient_norm = norm(gradient), step_norm = 0.0),
+        timing = TimingGroup(core_time_ns = 0),
+        numerics = StepSizeNumerics(),
+    )
+
+    @test compute_step(FixedStep(α = 0.25), state, problem, direction) == 0.25
+
+    state.timing.core_time_ns = 0
+    state.numerics.n_linesearch_evals = 0
+    α_armijo = compute_step(ArmijoLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, max_iter = 10), state, problem, direction)
+    @test α_armijo ≈ 1.0
+    @test state.numerics.n_linesearch_evals == 1
+    @test state.timing.core_time_ns > 0
+
+    state.timing.core_time_ns = 0
+    state.numerics.n_linesearch_evals = 0
+    α_wolfe = compute_step(WolfeLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, c₂ = 0.9, max_iter = 10), state, problem, direction)
+    @test α_wolfe ≈ 1.0
+    @test state.numerics.n_linesearch_evals == 1
+    @test state.timing.core_time_ns > 0
+
+    state.timing.core_time_ns = 0
+    α_cauchy = compute_step(CauchyStep(), state, problem, direction)
+    @test α_cauchy ≈ 1.0
+    @test state.timing.core_time_ns > 0
+
+    state.iterate.x_prev = [1.0, 0.0]
+    state.numerics.grad_prev = [1.0, 0.0]
+    state.iterate.x = [2.0, 0.0]
+    grad!(state.iterate.gradient, problem.f, state.iterate.x)
+
+    α_bb1 = compute_step(BarzilaiBorwein(variant = :BB1), state, problem, direction)
+    α_bb2 = compute_step(BarzilaiBorwein(variant = :BB2), state, problem, direction)
+    @test α_bb1 ≈ 1.0
+    @test α_bb2 ≈ 1.0
+end
 
 
 @testset "Layer 1 core abstraction" begin
