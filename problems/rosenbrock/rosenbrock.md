@@ -2,15 +2,12 @@
 
 ## 1. Problem Statement
 
-Find the minimizer of the **Rosenbrock function** (also known as Rosenbrock's banana
-function or the valley function):
-
-$$\min_{x \in \mathbb{R}^2} f(x_1, x_2) = (1 - x_1)^2 + 100\,(x_2 - x_1^2)^2$$
-
-The scalar $100$ is the **curvature parameter** $\rho$. In the general parametric form:
+Find the minimizer of the **Rosenbrock function** 
+(also known as Rosenbrock's banana function or the valley function):
 
 $$f_\rho(x_1, x_2) = (1 - x_1)^2 + \rho\,(x_2 - x_1^2)^2, \qquad \rho > 0$$
 
+The scalar $\rho$ is the **curvature parameter**.
 The default value $\rho = 100$ is used unless stated otherwise.
 
 ---
@@ -21,8 +18,7 @@ The default value $\rho = 100$ is used unless stated otherwise.
 
 $$x^* = (1,\, 1), \qquad f(x^*) = 0$$
 
-The minimizer is unique and lies inside a narrow, curved parabolic valley defined by
-$x_2 = x_1^2$.
+The minimizer is unique and lies inside a narrow, curved parabolic valley defined by $x_2 = x_1^2$.
 
 ### 2.2 Gradient
 
@@ -59,14 +55,12 @@ $$\nabla^2 f(x^*) =
 
 $$\kappa(\nabla^2 f(x^*)) = \frac{\lambda_{\max}}{\lambda_{\min}} \approx 2508 \quad (\rho = 100)$$
 
-This very large condition number — together with the non-convex curved valley — is
-what makes the Rosenbrock function a canonical stress-test for iterative methods.
+This very large condition number, together with the non-convex curved valley, is what makes the Rosenbrock function a canonical stress-test for iterative methods.
 
 ### 2.4 Convexity
 
-The function is **non-convex** globally. It has no saddle points or local minima
-other than $x^*$, but gradient-based methods can stall inside the curved valley for
-many iterations.
+The function is **non-convex** globally. 
+It has no saddle points or local minima other than $x^*$, but gradient-based methods can stall inside the curved valley for many iterations.
 
 ---
 
@@ -192,11 +186,6 @@ problem_spec = AnalyticProblem(
 - **Classical starting point**: $x^0 = (-1.2,\ 1.0)$ — lies outside the valley;
   standard in the optimization literature (Rosenbrock 1960).
 - **Alternative starting point**: $x^0 = (0, 0)$ — inside the valley, easier.
-- The `dist_to_opt` field in `IterationLog` tracks $\|x_k - x^*\|_2$ automatically
-  once `x_opt` is set in the `Problem` struct — no algorithm-level code needed.
-- The condition number $\kappa \approx 2508$ means that a gradient method with fixed
-  step-size will require $O(\kappa)$ iterations to converge linearly — expect slow
-  progress and visible stalling in the curved valley.
 
 ---
 

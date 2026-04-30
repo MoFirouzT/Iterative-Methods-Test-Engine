@@ -1,26 +1,23 @@
 # Descent Directions — Specification
 
-> This file specifies the `DescentDirection` abstraction and its concrete
-> implementations. It is shared across all gradient-based methods in the framework.
-> Add new directions here and reference this file when implementing algorithms that
-> use pluggable descent directions.
+> This file specifies the `DescentDirection` abstraction and its concrete implementations.
+> It is shared across all gradient-based methods in the framework.
+> Add new directions here and reference this file when implementing algorithms that use pluggable descent directions.
 
 ---
 
 ## 1. Abstraction
 
-A **descent direction** at iterate $x_k$ is any vector $d_k \in \mathbb{R}^n$
-satisfying:
+A **descent direction** at iterate $x_k$ is any vector $d_k \in \mathbb{R}^n$ satisfying:
 
 $$\nabla f(x_k)^T d_k < 0$$
 
-This inner product condition guarantees that moving from $x_k$ along $d_k$ decreases
-$f$ for sufficiently small step sizes.
+This inner product condition guarantees that moving from $x_k$ along $d_k$ decreases $f$ for sufficiently small step sizes.
 
 ### Julia Type Hierarchy
 
 ```julia
-# In: algorithms/conventional/gradient_descent/directions.jl
+# In: algorithms/conventional/componenets/descent_directions.jl
 
 abstract type DescentDirection end
 ```
@@ -34,8 +31,8 @@ Every concrete direction implements exactly one method:
     compute_direction(dir, state, problem) -> Vector{Float64}
 
 Returns the descent direction d_k at the current iterate.
-The returned vector is NOT normalized. Normalization, if desired,
-is the responsibility of the step-size rule.
+The returned vector is NOT normalized. 
+Normalization, if desired, is the responsibility of the step-size rule.
 
 Preconditions (guaranteed by runner on entry to step!):
   - state.iterate.x        holds the current iterate x_k
@@ -74,11 +71,7 @@ $$d_k^{SD} = -\nabla f(x_k)$$
 | Descent guarantee | Yes (whenever $\nabla f(x_k) \neq 0$) |
 | Memory per iteration | None — stateless |
 | Extra problem calls | None (gradient already computed in `step!`) |
-| Effective on ill-conditioned problems | No — convergence rate degrades as $\kappa \to \infty$ |
 
-For the Rosenbrock function with $\rho = 100$, the curvature ratio across the valley
-forces steepest descent to exhibit characteristic **zigzag behaviour**, taking $O(\kappa)$
-iterations to converge linearly near the minimum.
 
 ### 2.3 Julia Struct
 
@@ -114,7 +107,7 @@ end
 
 To add a new direction (e.g. Newton, conjugate gradient, L-BFGS):
 
-1. Add a concrete struct subtyping `DescentDirection` in `directions.jl`.
+1. Add a concrete struct subtyping `DescentDirection` in `descent_directions.jl`.
 2. Implement `compute_direction(::YourDirection, state, problem)`.
 3. The `GradientDescentNumerics` struct already holds `direction :: Vector{Float64}`;
    no structural changes needed.

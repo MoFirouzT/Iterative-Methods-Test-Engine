@@ -1,25 +1,24 @@
 # Step-Size Rules — Specification
 
-> This file specifies the `StepSizeRule` abstraction and all concrete implementations
-> currently available. Step-size rules are shared across any gradient-based algorithm
-> in the framework. Add new rules here and reference this file when implementing
-> algorithms that use pluggable step sizes.
+> This file specifies the `StepSizeRule` abstraction and all concrete implementations currently available.
+> Step-size rules are shared across any gradient-based algorithm in the framework.
+> Add new rules here and reference this file when implementing algorithms that use pluggable step sizes.
 
 ---
 
 ## 1. Abstraction
 
-Given the current iterate $x_k$ and a descent direction $d_k$, a **step-size rule**
-produces a scalar $\alpha_k > 0$ such that the update
+Given the current iterate $x_k$ and a descent direction $d_k$, a **step-size rule** produces a scalar $\alpha_k > 0$ such that the update
 
 $$x_{k+1} = x_k + \alpha_k\, d_k$$
 
-makes sufficient progress. Different rules trade exactness for cost.
+makes sufficient progress. 
+Different rules trade exactness for cost.
 
 ### Julia Type Hierarchy
 
 ```julia
-# In: algorithms/conventional/gradient_descent/step_sizes.jl
+# In: algorithms/conventional/components/step_sizes.jl
 
 abstract type StepSizeRule end
 ```

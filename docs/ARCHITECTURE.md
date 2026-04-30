@@ -47,7 +47,12 @@ The framework is built on four Julia-native principles:
   computation inside each step, accumulated per iteration and summed across iterations.
   All bookkeeping (logging, stopping criterion checks, verbosity output) is
   deliberately excluded from measured time.
-
+- **Specification-driven implementation.** Every problem and every algorithm is
+  accompanied by a `md` file co-located with its source. Each spec is the
+  single source of truth for the mathematical formulation, variable mapping, and
+  implementation contracts (`init_state`, `step!`, `extract_log_entry`). Pluggable
+  components (descent directions, step-size rules) get their own dedicated spec file
+  when they are shared across algorithms.
 The top-level concerns flow in one direction:
 
 ```
@@ -1997,6 +2002,12 @@ function step!(m::GradientDescent, state, problem, iter, logger, rng)
 end
 ```
 
+Before writing any code, create `algorithms/conventional/<your_method>/<your_method>.md`
+following the structure of `algorithms/conventional/gradient_descent/gradient_descent.md`:
+problem statement, iteration formula, Julia structs, `init_state`/`step!`/`extract_log_entry` contracts, and a full variable mapping table. 
+If the method has pluggable components (directions, step-size rules), give each a dedicated
+`<component>.md` file in components directory.
+
 ### Adding an algorithm that uses a sub-algorithm
 
 Embed a `SubRunConfig{M}` field in the outer algorithm struct (typed concretely for
@@ -2137,6 +2148,18 @@ end)
 
 FileProblem(path="data/my_file.bin", loader_name=:my_format)
 ```
+
+### Adding a new problem
+
+Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`:
+
+1. State the optimization problem in standard form.
+2. Derive and document $\nabla f$ and $\nabla^2 f$ (or $\nabla^2 f \cdot d$).
+3. Provide the known minimizer `x_opt` if it exists analytically; document why it is `nothing` if it does not.
+4. Include the variable mapping table and the `register_problem!` call.
+
+Then implement `problems/<name>/<name>.jl` with `value`, `grad`, `hessian_vec`, and the registration call. 
+The `<name>.md` is the contract; the `.jl` is the implementation.
 
 ### Adding a new logged field
 
