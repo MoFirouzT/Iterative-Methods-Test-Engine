@@ -6,7 +6,7 @@ include(joinpath(@__DIR__, "..", "src", "logging.jl"))
 include(joinpath(@__DIR__, "..", "src", "core.jl"))
 include(joinpath(@__DIR__, "..", "src", "problems.jl"))
 
-@testset "Layer 9 Problem Factory" begin
+@testset "Module 9 Problem Factory" begin
     # Test LeastSquares data fidelity
     A = [1.0 2.0; 3.0 4.0]
     b = [5.0; 6.0]

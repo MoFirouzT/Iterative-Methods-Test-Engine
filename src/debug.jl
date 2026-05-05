@@ -1,5 +1,5 @@
 """
-    Layer 9 — Debug Mode
+    Module 9 — Debug Mode
 
 Provides `DebugConfig`, the `DebugCheck` hierarchy, `run_debug_checks!`,
 `debug_check!` dispatch for several checks, `trigger_debug!`, and a

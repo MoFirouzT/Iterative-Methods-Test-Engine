@@ -1,5 +1,5 @@
 """
-    Layer 6 — Logging System
+    Module 6 — Logging System
 
 Provides per-iteration capture, core-time accumulation, event logging, and sub-logs.
 The logger is external to all algorithms and injected by the runner.
@@ -15,7 +15,7 @@ using Dates
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Layer 7 — Verbosity System
+# Module 7 — Verbosity System
 # ─────────────────────────────────────────────────────────────────────────
 
 @enum VerbosityLevel begin
@@ -86,7 +86,7 @@ events, and accumulated timing information. Never called directly by algorithms.
 - `method_name::String` — name of the algorithm being run
 - `run_id::Int` — which run within the experiment (1, 2, ...)
 - `exp_path::String` — path to experiment directory
-- `verbosity_config::VerbosityConfig` — controls console output (see Layer 7)
+- `verbosity_config::VerbosityConfig` — controls console output (see Module 7)
 - `iter_logs::Vector{IterationLog}` — all iteration records
 - `events::Vector{NamedTuple}` — named events (convergence, stop reasons, warnings)
 - `metadata::Dict{Symbol,Any}` — custom metadata
@@ -98,7 +98,7 @@ mutable struct Logger
     method_name      :: String
     run_id           :: Int
     exp_path         :: String
-    verbosity_config :: Any  # VerbosityConfig (forward ref to Layer 7)
+    verbosity_config :: VerbosityConfig
     iter_logs        :: Vector{IterationLog}
     events           :: Vector{NamedTuple}
     metadata         :: Dict{Symbol,Any}
@@ -108,7 +108,7 @@ mutable struct Logger
 end
 
 
-_verbosity_config(logger::Logger) = logger.verbosity_config isa VerbosityConfig ? logger.verbosity_config : nothing
+_verbosity_config(logger::Logger) = logger.verbosity_config
 
 
 function _entry_field(entry::IterationLog, field::Symbol)
@@ -221,7 +221,7 @@ Called after each step!, after extract_log_entry, but before should_stop.
 function log_iter!(logger::Logger, entry::IterationLog)
     push!(logger.iter_logs, entry)
     logger.total_core_ns += entry.core_time_ns   # feeds elapsed_core_s() → TimeLimit
-    maybe_print(logger, entry)  # forward ref to Layer 7
+    maybe_print(logger, entry)  # forward ref to Module 7
 end
 
 
@@ -286,7 +286,7 @@ function finalize!(logger::Logger, method, state)
     n_iters = length(logger.iter_logs)
     _print_milestone(logger, string("finalize stop_reason=", stop_reason, " n_iters=", n_iters))
     
-    # Return typed MethodResult when Layer 5 is loaded, otherwise a compatible NamedTuple.
+    # Return typed MethodResult when Module 5 is loaded, otherwise a compatible NamedTuple.
     if @isdefined(MethodResult)
         return MethodResult(
             logger.method_name,
@@ -308,13 +308,13 @@ end
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Placeholder for Layer 7 (Verbosity) Functions
+# Placeholder for Module 7 (Verbosity) Functions
 # ─────────────────────────────────────────────────────────────────────────
 
 """
     maybe_print(logger::Logger, entry::IterationLog)
 
-Placeholder for verbosity-gated console output (Layer 7).
+Placeholder for verbosity-gated console output (Module 7).
 Will be implemented with VerbosityConfig and range-gated printing.
 """
 function maybe_print(logger::Logger, entry::IterationLog)

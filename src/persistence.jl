@@ -1,5 +1,5 @@
 """
-	Layer 8 — Persistence & Experiment Naming
+	Module 8 — Persistence & Experiment Naming
 
 Writes and restores experiment outputs in three formats:
 - Full binary: result.jld2

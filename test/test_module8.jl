@@ -11,7 +11,7 @@ end
 if !@isdefined(StoppingCriterion)
     include(joinpath(@__DIR__, "..", "src", "stopping.jl"))
 end
-if !@isdefined(StepSizeRule)
+if !@isdefined(StepSize)
     include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
 end
 if !@isdefined(VariantGrid)
@@ -28,7 +28,7 @@ if !@isdefined(save_experiment)
 end
 
 @kwdef struct PersistMethod <: ConventionalMethod
-    step_size::Float64 = 0.3
+    step_size::StepSize = FixedStep(α = 0.3)
 end
 
 @kwdef mutable struct PersistState
@@ -53,10 +53,11 @@ function init_state(method::PersistMethod, problem::Problem, rng::AbstractRNG)
     )
 end
 
-function step!(method::PersistMethod, state::PersistState, problem::Problem, iter::Int)
+function step!(method::PersistMethod, state::PersistState, problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
     @core_timed state begin
         state.iterate.x_prev = copy(state.iterate.x)
-        state.iterate.x .-= method.step_size .* state.iterate.x
+        α = compute_step_size(method.step_size, state, problem, state.iterate.x)
+        state.iterate.x .-= α .* state.iterate.x
         grad!(state.iterate.gradient, problem.f, state.iterate.x)
         state.metrics.objective = objective(problem, state.iterate.x)
         state.metrics.gradient_norm = norm(state.iterate.gradient)
@@ -64,7 +65,7 @@ function step!(method::PersistMethod, state::PersistState, problem::Problem, ite
     end
 end
 
-@testset "Layer 8 persistence" begin
+@testset "Module 8 persistence" begin
     spec = AnalyticProblem(
         name = :quadratic,
         params = (
@@ -81,7 +82,7 @@ end
         stopping_criteria = MaxIterations(n = 2),
         n_runs = 2,
         seed = 123,
-        tags = Dict("suite" => "layer8"),
+        tags = Dict("suite" => "module8"),
     )
 
     mktempdir() do tmpdir

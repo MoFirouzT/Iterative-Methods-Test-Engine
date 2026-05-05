@@ -11,7 +11,7 @@ end
 if !@isdefined(StoppingCriterion)
     include(joinpath(@__DIR__, "..", "src", "stopping.jl"))
 end
-if !@isdefined(StepSizeRule)
+if !@isdefined(StepSize)
     include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
 end
 if !@isdefined(VariantGrid)
@@ -25,11 +25,11 @@ if !@isdefined(ExperimentConfig)
 end
 
 @kwdef struct TinyGD <: ConventionalMethod
-    step_size::Float64 = 0.2
+    step_size::StepSize = FixedStep(α = 0.2)
 end
 
 @kwdef struct TinyExp <: ExperimentalMethod
-    step_size::Float64 = 0.2
+    step_size::StepSize = FixedStep(α = 0.2)
 end
 
 @kwdef mutable struct TinyState
@@ -54,10 +54,11 @@ function init_state(method::Union{TinyGD,TinyExp}, problem::Problem, rng::Abstra
     )
 end
 
-function step!(method::Union{TinyGD,TinyExp}, state::TinyState, problem::Problem, iter::Int)
+function step!(method::Union{TinyGD,TinyExp}, state::TinyState, problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
     @core_timed state begin
         state.iterate.x_prev = copy(state.iterate.x)
-        state.iterate.x .-= method.step_size .* state.iterate.x
+        α = compute_step_size(method.step_size, state, problem, state.iterate.x)
+        state.iterate.x .-= α .* state.iterate.x
         grad!(state.iterate.gradient, problem.f, state.iterate.x)
         state.metrics.objective = objective(problem, state.iterate.x)
         state.metrics.gradient_norm = norm(state.iterate.gradient)
@@ -65,7 +66,7 @@ function step!(method::Union{TinyGD,TinyExp}, state::TinyState, problem::Problem
     end
 end
 
-@testset "Layer 5 experiment orchestration" begin
+@testset "Module 5 experiment orchestration" begin
     quad_spec = AnalyticProblem(
         name = :quadratic,
         params = (
@@ -81,7 +82,7 @@ end
         conventional_methods = [TinyGD()],
         variant_grids = [VariantGrid(
             base_name = "TinyExp",
-            axes = [VariantAxis(:step_size, 0.1 => "s1", 0.2 => "s2")],
+            axes = [VariantAxis(:step_size, FixedStep(α = 0.1) => "s1", FixedStep(α = 0.2) => "s2")],
             builder = (; step_size) -> TinyExp(step_size = step_size),
         )],
         n_runs = 1,
@@ -94,7 +95,7 @@ end
     @test startswith(experimental[1][1], "TinyExp[")
 
     cfg_run = ExperimentConfig(
-        name = "layer5 run",
+        name = "module5 run",
         problem_spec = quad_spec,
         conventional_methods = [TinyGD()],
         experimental_methods = [TinyExp()],
@@ -113,7 +114,7 @@ end
 
         result = run_experiment(cfg_run, tmpdir)
         @test result isa ExperimentResult
-        @test result.config.name == "layer5 run"
+        @test result.config.name == "module5 run"
         @test isdir(result.experiment_path)
         @test length(result.run_results) == 2
 

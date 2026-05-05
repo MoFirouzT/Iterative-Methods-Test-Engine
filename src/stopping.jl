@@ -1,5 +1,5 @@
 """
-    Layer 3 — Stopping Criteria
+    Module 3 — Stopping Criteria
 
 Defines the StoppingCriterion type hierarchy and the `should_stop` dispatch interface.
 Provides composable criteria: by iteration count, core computation time, tolerance,

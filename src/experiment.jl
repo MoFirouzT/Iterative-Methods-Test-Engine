@@ -1,5 +1,5 @@
 """
-	Layer 5 — Experiment Orchestration
+	Module 5 — Experiment Orchestration
 
 Defines experiment configuration and typed results, resolves methods from direct
 lists + variant grids, and provides the multi-run `run_experiment` driver.

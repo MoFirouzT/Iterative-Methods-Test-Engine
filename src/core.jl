@@ -1,5 +1,5 @@
 """
-	Layer 1 — Algorithm Abstraction & Core Timing
+	Module 1 — Algorithm Abstraction & Core Timing
 
 Defines the core method hierarchy, canonical state parameter groups, required
 dispatch points, `@core_timed`, and the generic `run_method` loop.
@@ -157,7 +157,7 @@ end
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Nested Algorithm Infrastructure (Layer 4)
+# Nested Algorithm Infrastructure (Module 4)
 # ─────────────────────────────────────────────────────────────────────────
 
 """
@@ -165,11 +165,11 @@ end
 
 Configuration for a nested algorithm invocation.
 """
-@kwdef struct SubRunConfig
-	method::IterativeMethod
+@kwdef struct SubRunConfig{M <: IterativeMethod}
+	method::M
 	criteria
 	log_sub_iters::Bool = true
-	verbosity::Any = nothing
+	verbosity::VerbosityConfig = VerbosityConfig(level=SILENT)
 end
 
 
@@ -178,11 +178,11 @@ end
 
 Result summary for one nested algorithm run.
 """
-struct SubResult
+struct SubResult{S}
 	converged::Bool
 	stop_reason::Symbol
 	n_iters::Int
-	final_state::Any
+	final_state::S
 	iter_logs::Vector{Any}
 	core_time_ns::Int64
 end
@@ -203,7 +203,7 @@ end
 
 Constructs an in-memory logger for nested runs.
 """
-function make_sub_logger(method::IterativeMethod, outer_logger::Logger, verbosity)
+function make_sub_logger(method::IterativeMethod, outer_logger::Logger, verbosity::VerbosityConfig)
 	Logger(
 		string(typeof(method)),
 		outer_logger.run_id,
@@ -225,7 +225,7 @@ end
 Runs a nested method with its own state and logger. If configured, sub-iteration
 logs are attached to the outer logger via `attach_sub_logs!`.
 """
-function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger, outer_rng::AbstractRNG)::SubResult
+function run_sub_method(config::SubRunConfig{M}, problem, outer_logger::Logger, outer_rng::AbstractRNG)::SubResult where M
 	# Derive a child RNG deterministically from the outer RNG
 	sub_rng = Xoshiro(rand(outer_rng, UInt64))
 	sub_state = init_state(config.method, problem, sub_rng)
@@ -242,7 +242,7 @@ function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger, out
 		iter += 1
 
 		sub_state.timing.core_time_ns = 0
-		step!(config.method, sub_state, problem, iter, sub_logger, rng)
+		step!(config.method, sub_state, problem, iter, sub_logger, sub_rng)
 
 		entry = extract_log_entry(config.method, sub_state, iter)
 		log_iter!(sub_logger, entry)
@@ -254,7 +254,7 @@ function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger, out
 			end
 
 			total_core = sum(e.core_time_ns for e in sub_logger.iter_logs; init = Int64(0))
-			return SubResult(
+			return SubResult{typeof(sub_state)}(
 				is_converged_reason(reason),
 				reason,
 				iter,

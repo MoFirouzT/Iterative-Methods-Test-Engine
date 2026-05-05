@@ -29,7 +29,7 @@ function make_logger()
         "Dummy",
         1,
         "",
-        nothing,
+        VerbosityConfig(),
         IterationLog[],
         NamedTuple[],
         Dict{Symbol,Any}(),
@@ -75,7 +75,7 @@ function init_state(::SimpleMethod, problem::DummyProblem, rng::AbstractRNG)
     )
 end
 
-function step!(::SimpleMethod, state::SimpleState, problem::DummyProblem, iter::Int)
+function step!(::SimpleMethod, state::SimpleState, problem::DummyProblem, iter::Int, logger::Logger, rng::AbstractRNG)
     @core_timed state begin
         acc = 0.0
         for value in 1:50_000
@@ -110,24 +110,24 @@ struct UnimplementedMethod <: IterativeMethod end
         numerics = StepSizeNumerics(),
     )
 
-    @test compute_step(FixedStep(α = 0.25), state, problem, direction) == 0.25
+    @test compute_step_size(FixedStep(α = 0.25), state, problem, direction) == 0.25
 
     state.timing.core_time_ns = 0
     state.numerics.n_linesearch_evals = 0
-    α_armijo = compute_step(ArmijoLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, max_iter = 10), state, problem, direction)
+    α_armijo = compute_step_size(ArmijoLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, max_iter = 10), state, problem, direction)
     @test α_armijo ≈ 1.0
     @test state.numerics.n_linesearch_evals == 1
     @test state.timing.core_time_ns > 0
 
     state.timing.core_time_ns = 0
     state.numerics.n_linesearch_evals = 0
-    α_wolfe = compute_step(WolfeLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, c₂ = 0.9, max_iter = 10), state, problem, direction)
+    α_wolfe = compute_step_size(WolfeLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, c₂ = 0.9, max_iter = 10), state, problem, direction)
     @test α_wolfe ≈ 1.0
     @test state.numerics.n_linesearch_evals == 1
     @test state.timing.core_time_ns > 0
 
     state.timing.core_time_ns = 0
-    α_cauchy = compute_step(CauchyStep(), state, problem, direction)
+    α_cauchy = compute_step_size(CauchyStep(), state, problem, direction)
     @test α_cauchy ≈ 1.0
     @test state.timing.core_time_ns > 0
 
@@ -136,14 +136,14 @@ struct UnimplementedMethod <: IterativeMethod end
     state.iterate.x = [2.0, 0.0]
     grad!(state.iterate.gradient, problem.f, state.iterate.x)
 
-    α_bb1 = compute_step(BarzilaiBorwein(variant = :BB1), state, problem, direction)
-    α_bb2 = compute_step(BarzilaiBorwein(variant = :BB2), state, problem, direction)
+    α_bb1 = compute_step_size(BarzilaiBorwein(variant = :BB1), state, problem, direction)
+    α_bb2 = compute_step_size(BarzilaiBorwein(variant = :BB2), state, problem, direction)
     @test α_bb1 ≈ 1.0
     @test α_bb2 ≈ 1.0
 end
 
 
-@testset "Layer 1 core abstraction" begin
+@testset "Module 1 core abstraction" begin
     problem = DummyProblem(3, [2.0, -1.0, 0.5])
 
     @test IterativeMethod <: Any
@@ -164,7 +164,7 @@ end
     @test isempty(entry.extras)
 
     @test_throws MethodError init_state(UnimplementedMethod(), problem, default_rng())
-    @test_throws MethodError step!(UnimplementedMethod(), empty_state, problem, 1)
+    @test_throws MethodError step!(UnimplementedMethod(), empty_state, problem, 1, empty_logger, default_rng())
 
     result = run_method(SimpleMethod(), problem, MaxIterations(n = 1), empty_logger, default_rng())
 
@@ -177,7 +177,7 @@ end
     @test empty_logger.total_core_ns == result.iter_logs[1].core_time_ns
 end
 
-@testset "Layer 4 nested runner skeleton" begin
+@testset "Module 4 nested runner skeleton" begin
     problem = DummyProblem(2, [1.0, -0.5])
     outer_logger = make_logger()
 
@@ -236,6 +236,6 @@ end
     @test specs[1].method isa DummyMethod
 end
 
-include(joinpath(@__DIR__, "test_layer5.jl"))
-include(joinpath(@__DIR__, "test_layer7.jl"))
-include(joinpath(@__DIR__, "test_layer8.jl"))
+include(joinpath(@__DIR__, "test_module5.jl"))
+include(joinpath(@__DIR__, "test_module7.jl"))
+include(joinpath(@__DIR__, "test_module8.jl"))

@@ -30,7 +30,7 @@ function make_logger_with(cfg::VerbosityConfig)
     )
 end
 
-@testset "Layer 7 verbosity system" begin
+@testset "Module 7 verbosity system" begin
     io_silent = IOBuffer()
     logger_silent = make_logger_with(VerbosityConfig(level = SILENT, io = io_silent))
     maybe_print(logger_silent, make_entry(1))

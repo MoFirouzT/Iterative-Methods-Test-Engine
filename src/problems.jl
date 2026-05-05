@@ -1,5 +1,5 @@
 """
-	Layer 9 — Problem Factory
+	Module 9 — Problem Factory
 
 Defines the problem abstraction: data fidelity (loss), regularizers, and the
 `Problem` composite. Provides a `ProblemSpec` type hierarchy for declarative,
