@@ -42,6 +42,12 @@ Compute gradient of f at x. Returns a new gradient vector.
 """
 function grad end
 
+# Backwards-compatible mutating gradient: fill `g` with gradient values.
+function grad!(g::Vector{Float64}, f::Objective, x::Vector{Float64})
+	gbuf = grad(f, x)
+	copyto!(g, gbuf)
+	return g
+end
 
 """
 	hessian(f::Objective, x::Vector) -> Hessian
@@ -50,6 +56,13 @@ Compute Hessian of f at x. Returns a Hessian object (optional; default raises er
 """
 function hessian(f::Objective, x::Vector)
 	throw(MethodError(hessian, (f, x)))
+end
+
+
+# Backwards-compatible Hessian-vector product wrapper.
+function hessian_vec(f::Objective, x::Vector{Float64}, d::Vector{Float64})::Vector{Float64}
+	H = hessian(f, x)
+	return apply(H, d)
 end
 
 

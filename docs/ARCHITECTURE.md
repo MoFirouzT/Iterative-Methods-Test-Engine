@@ -1575,6 +1575,8 @@ df = filter_methods(df, ["GradientDescent[step_size=Armijo]",
 df = aggregate_runs(df, :median)    # :all | :mean | :median
 ```
 
+**Aggregation Semantics:** When `aggregate_runs(df, mode)` is called with `:mean` or `:median`, the DataFrame is grouped by `(:method_name, :iter)` pairs to collapse multiple runs into a representative curve per method at each iteration. Numeric columns (objective, gradient_norm, step_norm, core_time_ns, dist_to_opt, and any numeric extras) are aggregated using the specified mode; non-numeric columns (strings, booleans, etc.) are preserved from the first row of each group. The `:run_id` column is dropped during aggregation.
+
 User transforms are plain `DataFrame -> DataFrame` functions:
 
 ```julia
@@ -1657,7 +1659,7 @@ end
 end
 
 function render_figure(layout::FigureLayout)::Makie.Figure
-    fig = Figure(resolution=layout.figure_size)
+    fig = Figure(size=layout.figure_size)
     for row in 1:size(layout.plots, 1), col in 1:size(layout.plots, 2)
         spec = layout.plots[row, col]
         isnothing(spec) && continue

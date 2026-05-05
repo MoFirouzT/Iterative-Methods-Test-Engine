@@ -8,8 +8,6 @@ Implements the Rosenbrock function as an Objective:
 with analytical gradient and Hessian.
 """
 
-using LinearAlgebra: diag, Diagonal
-
 # Objective, MatrixHessian, and Problem are available from src/problems.jl
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -107,7 +105,7 @@ Compute the Hessian of the Rosenbrock function as a MatrixHessian object:
 # Returns
 - `MatrixHessian` — the 2×2 Hessian matrix
 """
-function hessian(f::RosenbrockObjective, x::Vector{Float64})::MatrixHessian
+function hessian(f::RosenbrockObjective, x::Vector{Float64})::Hessian
     ρ  = f.kernel.ρ
     x₁ = x[1]
     x₂ = x[2]
@@ -132,7 +130,7 @@ Register the Rosenbrock problem with the problem factory.
 Invoked automatically when this module is loaded.
 """
 function register_rosenbrock!()
-    register_problem!(:rosenbrock, (params, rng) -> begin
+    register_analytic_problem!(:rosenbrock, (params) -> begin
         ρ   = get(params, :rho, 100.0)
         x0  = get(params, :x0, [-1.2, 1.0])
         f   = RosenbrockObjective(RosenbrockKernel(ρ))

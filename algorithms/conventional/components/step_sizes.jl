@@ -14,11 +14,13 @@ using LinearAlgebra: dot
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	abstract type StepSizeRule
+	abstract type StepSize end
 
-Base type for conventional step-size selection strategies.
+Base type for step-size rules. `LineSearch` is a subtype for rules that
+perform actual 1D searches along the descent direction.
 """
-abstract type StepSizeRule end
+abstract type StepSize end
+abstract type LineSearch <: StepSize end
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -30,8 +32,8 @@ abstract type StepSizeRule end
 
 Constant step size.
 """
-@kwdef struct FixedStep <: StepSizeRule
-	α::Float64 = 0.01
+@kwdef struct FixedStep <: StepSize
+	α::Float64 = 1e-3
 end
 
 """
@@ -39,7 +41,7 @@ end
 
 Armijo backtracking search.
 """
-@kwdef struct ArmijoLS <: StepSizeRule
+@kwdef struct ArmijoLS <: LineSearch
 	α₀::Float64 = 1.0
 	β::Float64 = 0.5
 	c₁::Float64 = 1e-4
@@ -51,7 +53,7 @@ end
 
 Wolfe line search.
 """
-@kwdef struct WolfeLS <: StepSizeRule
+@kwdef struct WolfeLS <: LineSearch
 	α₀::Float64 = 1.0
 	β::Float64 = 0.5
 	c₁::Float64 = 1e-4
@@ -64,7 +66,7 @@ end
 
 Exact quadratic line-search step based on the local Hessian model.
 """
-@kwdef struct CauchyStep <: StepSizeRule
+@kwdef struct CauchyStep <: StepSize
 	fallback_α::Float64 = 1e-3
 	ε_denom::Float64 = 1e-14
 end
@@ -74,7 +76,7 @@ end
 
 Curvature-based step size from two consecutive iterates.
 """
-@kwdef struct BarzilaiBorwein <: StepSizeRule
+@kwdef struct BarzilaiBorwein <: StepSize
 	variant::Symbol = :BB1
 	fallback_α::Float64 = 1e-3
 	ε_denom::Float64 = 1e-14
@@ -85,11 +87,11 @@ end
 # Dispatch
 # ─────────────────────────────────────────────────────────────────────────
 
-function compute_step(rule::StepSizeRule, state, problem, direction::Vector{Float64})
-	throw(MethodError(compute_step, (rule, state, problem, direction)))
+function compute_step_size(rule::StepSize, state, problem, direction::Vector{Float64})
+	throw(MethodError(compute_step_size, (rule, state, problem, direction)))
 end
 
-compute_step(rule::FixedStep, state, problem, direction::Vector{Float64}) = rule.α
+compute_step_size(rule::FixedStep, state, problem, direction::Vector{Float64}) = rule.α
 
 @inline function _increment_linesearch_evals!(state)
 	hasproperty(state, :numerics) && hasproperty(state.numerics, :n_linesearch_evals) || return
@@ -98,11 +100,11 @@ end
 
 @inline function _objective_eval(state, problem, x::Vector{Float64})
 	@core_timed state begin
-		objective(problem, x)
+		total_objective(problem, x)
 	end
 end
 
-function compute_step(rule::ArmijoLS, state, problem, direction::Vector{Float64})::Float64
+function compute_step_size(rule::ArmijoLS, state, problem, direction::Vector{Float64})::Float64
 	x_k = state.iterate.x
 	f_k = state.metrics.objective
 	slope = dot(state.iterate.gradient, direction)
@@ -119,7 +121,7 @@ function compute_step(rule::ArmijoLS, state, problem, direction::Vector{Float64}
 	return α
 end
 
-function compute_step(rule::WolfeLS, state, problem, direction::Vector{Float64})::Float64
+function compute_step_size(rule::WolfeLS, state, problem, direction::Vector{Float64})::Float64
 	x_k = state.iterate.x
 	g_k = state.iterate.gradient
 	f_k = state.metrics.objective
@@ -150,10 +152,11 @@ function compute_step(rule::WolfeLS, state, problem, direction::Vector{Float64})
 	return α
 end
 
-function compute_step(rule::CauchyStep, state, problem, direction::Vector{Float64})::Float64
+function compute_step_size(rule::CauchyStep, state, problem, direction::Vector{Float64})::Float64
 	local Hd, num, den
 	@core_timed state begin
-		Hd = hessian_vec(problem.f, state.iterate.x, direction)
+		H = hessian(problem.f, state.iterate.x)
+		Hd = apply(H, direction)
 		num = dot(state.iterate.gradient, direction)
 		den = dot(direction, Hd)
 	end
@@ -162,7 +165,7 @@ function compute_step(rule::CauchyStep, state, problem, direction::Vector{Float6
 	return -num / den
 end
 
-function compute_step(rule::BarzilaiBorwein, state, problem, direction::Vector{Float64})::Float64
+function compute_step_size(rule::BarzilaiBorwein, state, problem, direction::Vector{Float64})::Float64
 	if !hasproperty(state, :iterate) || !hasproperty(state, :numerics) ||
 	   !hasproperty(state.iterate, :x_prev) || !hasproperty(state.numerics, :grad_prev) ||
 	   isempty(state.iterate.x_prev) || isempty(state.numerics.grad_prev)
