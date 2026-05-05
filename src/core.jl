@@ -5,7 +5,7 @@ Defines the core method hierarchy, canonical state parameter groups, required
 dispatch points, `@core_timed`, and the generic `run_method` loop.
 """
 
-using Random: AbstractRNG, TaskLocalRNG
+using Random: AbstractRNG, Xoshiro, rand
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -225,9 +225,10 @@ end
 Runs a nested method with its own state and logger. If configured, sub-iteration
 logs are attached to the outer logger via `attach_sub_logs!`.
 """
-function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger)::SubResult
-	rng = TaskLocalRNG()
-	sub_state = init_state(config.method, problem, rng)
+function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger, outer_rng::AbstractRNG)::SubResult
+	# Derive a child RNG deterministically from the outer RNG
+	sub_rng = Xoshiro(rand(outer_rng, UInt64))
+	sub_state = init_state(config.method, problem, sub_rng)
 
 	if hasproperty(sub_state, :_logger)
 		setproperty!(sub_state, :_logger, outer_logger)

@@ -182,14 +182,18 @@ function run_experiment(config::ExperimentConfig,
 	run_results = RunResult[]
 
 	for run_id in 1:config.n_runs
-		rng = isnothing(config.seed) ? Random.TaskLocalRNG() : Random.MersenneTwister(config.seed + run_id - 1)
-		problem = make_problem(config.problem_spec, rng)
+		root_seed = isnothing(config.seed) ? rand(UInt64) : UInt64(config.seed)
+
+		# Per-role deterministic RNGs derived from the root seed
+		rng_problem = Xoshiro(hash((root_seed, run_id, :data)))
+		problem = make_problem(config.problem_spec, rng_problem)
 
 		method_results = Dict{String,MethodResult}()
 		for (name, method) in all_methods
 			criteria = get(config.method_criteria, name, config.stopping_criteria)
 			logger = _make_logger(name, run_id, exp_path, verbosity)
-			raw_result = run_method(method, problem, criteria, logger, rng)
+			method_rng = Xoshiro(hash((root_seed, run_id, name)))
+			raw_result = run_method(method, problem, criteria, logger, method_rng)
 			method_results[name] = _to_method_result(name, raw_result)
 		end
 

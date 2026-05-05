@@ -187,7 +187,7 @@ end
         log_sub_iters = true,
     )
 
-    sub = run_sub_method(cfg, problem, outer_logger)
+    sub = run_sub_method(cfg, problem, outer_logger, default_rng())
 
     @test sub.stop_reason == :max_iterations
     @test sub.converged == false
@@ -203,7 +203,7 @@ end
         log_sub_iters = false,
     )
 
-    sub_no_attach = run_sub_method(cfg_no_attach, problem, outer_logger_2)
+    sub_no_attach = run_sub_method(cfg_no_attach, problem, outer_logger_2, default_rng())
 
     @test sub_no_attach.n_iters == 1
     @test isempty(outer_logger_2.pending_sub_logs)

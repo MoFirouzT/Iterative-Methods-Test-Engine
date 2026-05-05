@@ -14,6 +14,7 @@ include(joinpath(@__DIR__, "..", "problems", "rosenbrock", "rosenbrock.jl"))
 
 include("experiment.jl")
 include("persistence.jl")
+include("debug.jl")
 include("analysis.jl")
 
 export Objective, Regularizer, Hessian, MatrixHessian, OperatorHessian, DiagonalHessian
@@ -46,6 +47,10 @@ export elapsed_core_s, elapsed_wall_s
 
 export ExperimentConfig, MethodResult, RunResult, ExperimentResult
 export resolve_methods, next_experiment_path, run_experiment
+
+export DebugConfig, DebugCheck
+export CheckObjectiveMonotonicity, CheckGradientNormBound, CheckStepDecay, CheckNumericalGradient
+export run_debug_checks!, trigger_debug!, numerical_gradient
 
 export save_experiment, load_experiment, load_manifest, list_experiments
 

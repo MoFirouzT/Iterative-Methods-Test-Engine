@@ -1259,6 +1259,17 @@ computation each draw from independent, deterministically-derived Xoshiro stream
 Per-method RNGs are additionally keyed by method name so that adding or removing a
 method from the config does not alter other methods' streams.
 
+**Per-role deterministic RNG derivation:**
+The framework derives all active RNGs from a single root seed to guarantee
+reproducibility regardless of method ordering or composition. Concretely:
+
+- `root_seed` is `config.seed` when provided, otherwise a freshly sampled `UInt64`.
+- `rng_problem = Xoshiro(hash((root_seed, run_id, :data)))` — RNG used to build the problem instance.
+- `method_rng  = Xoshiro(hash((root_seed, run_id, method_name)))` — RNG passed to each method's run.
+- For nested sub-runs, `sub_rng = Xoshiro(rand(outer_rng, UInt64))` is derived deterministically from the outer RNG.
+
+This guarantees that adding or removing a method (or re-ordering methods) does not shift the RNG streams of other methods.
+
 ```julia
 function run_experiment(config    :: ExperimentConfig,
                         log_root  :: String = "logs";
@@ -1523,6 +1534,13 @@ function numerical_gradient(f::Objective, x::Vector{Float64},
     return g
 end
 ```
+
+Note on silent logging (`:log`): when `cfg.on_trigger == :log`, callers may
+pass a `logger` instance to `trigger_debug!` (or ensure `state` carries a
+reference to the current logger) so the event can be recorded in
+`logger.events` rather than printed. This allows debug checks to be recorded
+without altering console output; the runner or caller should supply the
+logger when invoking debug helpers in order to enable this mode.
 
 ### Integration Example
 

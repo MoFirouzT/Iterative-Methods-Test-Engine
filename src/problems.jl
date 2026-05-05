@@ -264,6 +264,16 @@ end
 
 
 """
+	Problem(f::Objective, gs::Vector{Regularizer}, x0::Vector; x_opt = nothing)
+
+Convenience constructor for multiple regularizers.
+"""
+function Problem(f::Objective, gs::Vector{Regularizer}, x0::Vector{Float64}; x_opt::Union{Nothing,Vector{Float64}}=nothing)
+	Problem(f, gs, x0, length(x0), Dict{Symbol,Any}(), x_opt)
+end
+
+
+"""
 	total_objective(p::Problem, x::Vector) -> Float64
 
 Compute total objective: f(x) + Σᵢ gᵢ(x).
@@ -423,7 +433,7 @@ Load a problem from a file using a custom loader function.
 """
 @kwdef struct FileProblem <: ProblemSpec
 	path::String
-	loader::Function
+	loader_name::Symbol
 	description::String = ""
 end
 
@@ -449,6 +459,7 @@ end
 Registry of analytic problem generators. Maps Symbol → (params, rng) -> Problem.
 """
 const ANALYTIC_PROBLEMS = Dict{Symbol,Function}()
+const FILE_LOADERS = Dict{Symbol,Function}()
 
 
 """
@@ -466,8 +477,11 @@ Register a named analytic problem generator.
 Builder signature: (params::NamedTuple) -> Problem.
 """
 function register_analytic_problem!(name::Symbol, builder::Function)
+	# Builder signature: (params::NamedTuple, rng::AbstractRNG) -> Problem
 	ANALYTIC_PROBLEMS[name] = builder
 end
+
+register_file_loader!(name::Symbol, f::Function) = (FILE_LOADERS[name] = f)
 
 
 """
@@ -500,7 +514,7 @@ function make_problem(spec::AnalyticProblem, rng::AbstractRNG)
 	if !haskey(ANALYTIC_PROBLEMS, spec.name)
 		throw(KeyError("Analytic problem :$(spec.name) not registered"))
 	end
-	ANALYTIC_PROBLEMS[spec.name](spec.params)
+	ANALYTIC_PROBLEMS[spec.name](spec.params, rng)
 end
 
 
@@ -510,7 +524,10 @@ end
 Load a problem from a file using the provided loader function.
 """
 function make_problem(spec::FileProblem, rng::AbstractRNG)
-	spec.loader(spec.path)
+	if !haskey(FILE_LOADERS, spec.loader_name)
+		throw(KeyError("File loader :$(spec.loader_name) not registered"))
+	end
+	FILE_LOADERS[spec.loader_name](spec.path)
 end
 
 
@@ -532,7 +549,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 # Quadratic
-register_analytic_problem!(:quadratic, (params) -> begin
+register_analytic_problem!(:quadratic, (params, rng) -> begin
 	A = get(params, :A, Matrix{Float64}(I, 2, 2))
 	b = get(params, :b, zeros(2))
 	x0 = get(params, :x0, zeros(length(b)))
@@ -541,7 +558,7 @@ end)
 
 # Rosenbrock-like: f(x) = sum((1 - x[i])^2 + 100(x[i+1] - x[i]^2)^2)
 # For now, a simpler variant
-register_analytic_problem!(:rosenbrock, (params) -> begin
+register_analytic_problem!(:rosenbrock, (params, rng) -> begin
 	n = get(params, :dim, 2)
 	x0 = ones(n) .* 0.5
 	# Use a quadratic approximation or a generic dense problem
