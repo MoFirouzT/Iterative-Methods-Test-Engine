@@ -148,10 +148,12 @@ Multiple @core_timed blocks per step accumulate naturally.
 """
 macro core_timed(state, expr)
 	quote
-		local _t0 = time_ns()
-		local _ret = $(esc(expr))
-		$(esc(state)).timing.core_time_ns += time_ns() - _t0
-		_ret
+		_t0 = time_ns()
+		try
+			$(esc(expr))
+		finally
+			$(esc(state)).timing.core_time_ns += time_ns() - _t0
+		end
 	end
 end
 

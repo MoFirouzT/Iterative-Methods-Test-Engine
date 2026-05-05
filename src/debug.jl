@@ -6,8 +6,6 @@ Provides `DebugConfig`, the `DebugCheck` hierarchy, `run_debug_checks!`,
 central-difference numerical gradient helper.
 """
 
-using .logging: Logger, IterationLog
-
 @kwdef struct DebugConfig
     enabled    :: Bool               = false
     checks     :: Vector{Any} = Any[

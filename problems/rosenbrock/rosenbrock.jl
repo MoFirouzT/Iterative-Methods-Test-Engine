@@ -130,15 +130,13 @@ Register the Rosenbrock problem with the problem factory.
 Invoked automatically when this module is loaded.
 """
 function register_rosenbrock!()
-    register_analytic_problem!(:rosenbrock, (params) -> begin
+    register_analytic_problem!(:rosenbrock, (params, rng) -> begin
         ρ   = get(params, :rho, 100.0)
         x0  = get(params, :x0, [-1.2, 1.0])
         f   = RosenbrockObjective(RosenbrockKernel(ρ))
-        Problem(
-            f, x0;
-            x_opt = [1.0, 1.0],
-            meta  = Dict(:rho => ρ, :condition_number => 2508.0),
-        )
+        meta = Dict{Symbol,Any}(:rho => ρ, :condition_number => 2508.0)
+        x_opt = [1.0, 1.0]
+        Problem(f, x0; meta = meta, x_opt = x_opt)
     end)
 end
 

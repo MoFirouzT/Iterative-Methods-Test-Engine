@@ -111,6 +111,27 @@ end
 _verbosity_config(logger::Logger) = logger.verbosity_config
 
 
+"""
+    make_logger(method_name::String, run_id::Int, exp_path::String, verbosity::VerbosityConfig) -> Logger
+
+Convenience constructor for creating a Logger with default values for all fields except the provided ones.
+"""
+function make_logger(method_name::String, run_id::Int, exp_path::String, verbosity::VerbosityConfig)
+    Logger(
+        method_name,
+        run_id,
+        exp_path,
+        verbosity,
+        IterationLog[],
+        NamedTuple[],
+        Dict{Symbol,Any}(),
+        time(),
+        0,
+        IterationLog[],
+    )
+end
+
+
 function _entry_field(entry::IterationLog, field::Symbol)
     if field === :iter
         return entry.iter

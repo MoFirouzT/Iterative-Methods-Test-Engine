@@ -158,8 +158,9 @@ M  = materialize(H)            # 2×2 Matrix{Float64}
 
 ## 4. Problem Factory Registration
 
-The Rosenbrock problem has no regularizer, so it uses the **non-composite
-convenience constructor** `Problem(f, x0; x_opt = ...)`:
+The Rosenbrock problem has no regularizer, so it should use the
+**non-composite convenience constructor** `Problem(f, x0; meta = ..., x_opt = ...)`.
+That keeps the registration readable while still allowing custom metadata:
 
 ```julia
 register_problem!(:rosenbrock, (params, rng) -> begin
@@ -173,6 +174,10 @@ register_problem!(:rosenbrock, (params, rng) -> begin
     )
 end)
 ```
+
+If a future Rosenbrock variant needs one or more regularizers, it should switch
+to the composite convenience constructor instead of constructing the struct
+positionally.
 
 ### Usage in ExperimentConfig
 

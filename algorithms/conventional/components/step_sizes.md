@@ -373,7 +373,7 @@ function compute_step_size(rule::BarzilaiBorwein, state, problem,
         s  = state.iterate.x        .- state.iterate.x_prev      # s_{k-1} = x_k - x_{k-1}
         y  = state.iterate.gradient .- state.numerics.grad_prev  # y_{k-1} = g_k - g_{k-1}
         sy = dot(s, y)
-
+        sy <= rule.ε_denom && return rule.fallback_α   # curvature condition violated
         α = if rule.variant == :BB1
             dot(s, s) / sy       # α^BB1 = ‖s‖² / (s^T y)
         else
@@ -381,7 +381,6 @@ function compute_step_size(rule::BarzilaiBorwein, state, problem,
         end
     end
 
-    sy <= rule.ε_denom && return rule.fallback_α   # curvature condition violated
     return α
 end
 ```

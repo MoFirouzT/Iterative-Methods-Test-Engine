@@ -115,7 +115,7 @@ One iteration of gradient descent: x ← x - step_size · ∇f(x)
 The core computation (gradient evaluation, step) is timed.
 Metrics update is not timed (bookkeeping).
 """
-function step!(method::GradientDescent, state::GradientDescentState, problem, iter::Int, logger, rng::AbstractRNG)
+function step!(method::GradientDescent, state::GradientDescentState, problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
 	# Save previous iterate for x_prev and BB s_{k-1}
 	x_prev = copy(state.iterate.x)
@@ -141,7 +141,7 @@ function step!(method::GradientDescent, state::GradientDescentState, problem, it
 
 	# Bookkeeping required for BB and logging
 	state.iterate.x_prev = x_prev
-	state.numerics.grad_prev = copy(g_k)
+	state.numerics.grad_prev = copy(state.iterate.gradient)
 
 	# Core: refresh objective and gradient at new iterate
 	@core_timed state begin

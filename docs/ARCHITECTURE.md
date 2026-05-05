@@ -200,20 +200,26 @@ struct Problem
 end
 ```
 
+This is the canonical, complete representation. Everything else should be an
+outer constructor that forwards into this shape.
+
 Convenience constructors keep simple problems simple:
 
 ```julia
-# Pure (non-composite) problem — no regularizer, no x_opt:
+# Pure (non-composite) problem — no regularizer, default metadata:
 Problem(f, x0)
 
-# Pure problem with a known optimum:
-Problem(f, x0; x_opt = ...)
+# Pure problem with metadata and a known optimum:
+Problem(f, x0; meta = Dict{Symbol,Any}(), x_opt = nothing)
 
 # Composite with one regularizer:
-Problem(f, g::Regularizer, x0; x_opt = nothing)
+Problem(f, g::Regularizer, x0; meta = Dict{Symbol,Any}(), x_opt = nothing)
 
 # Composite with multiple regularizers:
-Problem(f, gs::Vector{Regularizer}, x0; x_opt = nothing)
+Problem(f, gs::Vector{Regularizer}, x0; meta = Dict{Symbol,Any}(), x_opt = nothing)
+
+# Full canonical constructor:
+Problem(f, gs::Vector{Regularizer}, x0, n, meta, x_opt)
 ```
 
 The total objective and gradient are framework-provided helpers — algorithms use
@@ -463,11 +469,9 @@ macro core_timed(state, expr)
         _t0 = time_ns()
         try
             $(esc(expr))
-        catch _e
+        finally
             $(esc(state)).timing.core_time_ns += time_ns() - _t0
-            rethrow(_e)
         end
-        $(esc(state)).timing.core_time_ns += time_ns() - _t0
     end
 end
 ```

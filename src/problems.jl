@@ -248,8 +248,8 @@ end
 
 Convenience constructor for an unregularized problem (g = ∅).
 """
-function Problem(f::Objective, x0::Vector{Float64}; x_opt::Union{Nothing,Vector{Float64}}=nothing)
-	Problem(f, Regularizer[], x0, length(x0), Dict{Symbol,Any}(), x_opt)
+function Problem(f::Objective, x0::Vector{Float64}; meta::Dict{Symbol,Any}=Dict{Symbol,Any}(), x_opt::Union{Nothing,Vector{Float64}}=nothing)
+	Problem(f, Regularizer[], x0, length(x0), meta, x_opt)
 end
 
 
@@ -258,8 +258,8 @@ end
 
 Convenience constructor for a single-regularizer problem.
 """
-function Problem(f::Objective, g::Regularizer, x0::Vector{Float64}; x_opt::Union{Nothing,Vector{Float64}}=nothing)
-	Problem(f, Regularizer[g], x0, length(x0), Dict{Symbol,Any}(), x_opt)
+function Problem(f::Objective, g::Regularizer, x0::Vector{Float64}; meta::Dict{Symbol,Any}=Dict{Symbol,Any}(), x_opt::Union{Nothing,Vector{Float64}}=nothing)
+	Problem(f, Regularizer[g], x0, length(x0), meta, x_opt)
 end
 
 
@@ -268,8 +268,8 @@ end
 
 Convenience constructor for multiple regularizers.
 """
-function Problem(f::Objective, gs::Vector{Regularizer}, x0::Vector{Float64}; x_opt::Union{Nothing,Vector{Float64}}=nothing)
-	Problem(f, gs, x0, length(x0), Dict{Symbol,Any}(), x_opt)
+function Problem(f::Objective, gs::Vector{Regularizer}, x0::Vector{Float64}; meta::Dict{Symbol,Any}=Dict{Symbol,Any}(), x_opt::Union{Nothing,Vector{Float64}}=nothing)
+	Problem(f, gs, x0, length(x0), meta, x_opt)
 end
 
 

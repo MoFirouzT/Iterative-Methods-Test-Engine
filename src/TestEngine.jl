@@ -43,6 +43,8 @@ export VariantAxis, VariantGrid, VariantSpec, expand
 
 export VerbosityLevel, VerbosityConfig, IterationLog, Logger
 export log_init!, log_iter!, log_event!, attach_sub_logs!, finalize!
+export SILENT, MILESTONE, SUMMARY, DETAILED, DEBUG
+export make_logger
 export elapsed_core_s, elapsed_wall_s
 
 export ExperimentConfig, MethodResult, RunResult, ExperimentResult
