@@ -58,6 +58,7 @@ so that extract_log_entry has a trivial default implementation.
 - `objective::Float64` — objective function value at current iterate
 - `gradient_norm::Float64` — gradient norm (or other convergence metric)
 - `step_norm::Float64` — norm of the step taken in this iteration
+- `dist_to_opt::Float64` — distance to known optimum (Inf if unavailable)
 - `extras::Dict{Symbol,Any}` — algorithm-specific fields and nested sub-logs
 """
 @kwdef mutable struct IterationLog
@@ -66,6 +67,7 @@ so that extract_log_entry has a trivial default implementation.
     objective      :: Float64
     gradient_norm  :: Float64
     step_norm      :: Float64
+    dist_to_opt    :: Float64 = Inf    # ‖x − x*‖; Inf when x_opt not provided
     extras         :: Dict{Symbol,Any} = Dict()  # algorithm-specific & sub-logs
 end
 

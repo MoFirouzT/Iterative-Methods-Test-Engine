@@ -61,6 +61,7 @@ Scalar convergence metrics. Mirrors the fixed fields of IterationLog.
 	objective :: Float64 = Inf
 	gradient_norm :: Float64 = Inf
 	step_norm :: Float64 = Inf
+	dist_to_opt :: Float64 = Inf
 end
 
 
@@ -88,10 +89,11 @@ function init_state end
 
 
 """
-	step!(method::IterativeMethod, state, problem, iter::Int)
+	step!(method::IterativeMethod, state, problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
 Advance one iteration by mutating state in place.
 Core mathematical kernels inside this function should use @core_timed.
+Logger and RNG are injected by the runner for use in nested sub-methods.
 """
 function step! end
 
@@ -110,8 +112,8 @@ function init_state(method::IterativeMethod, problem, rng::AbstractRNG)
 	throw(MethodError(init_state, (method, problem, rng)))
 end
 
-function step!(method::IterativeMethod, state, problem, iter::Int)
-	throw(MethodError(step!, (method, state, problem, iter)))
+function step!(method::IterativeMethod, state, problem, iter::Int, logger::Logger, rng::AbstractRNG)
+	throw(MethodError(step!, (method, state, problem, iter, logger, rng)))
 end
 
 
@@ -128,6 +130,7 @@ function extract_log_entry(method::IterativeMethod, state, iter::Int)
 		objective = state.metrics.objective,
 		gradient_norm = state.metrics.gradient_norm,
 		step_norm = state.metrics.step_norm,
+		dist_to_opt = state.metrics.dist_to_opt,
 		extras = Dict{Symbol,Any}(),
 	)
 end
@@ -238,7 +241,7 @@ function run_sub_method(config::SubRunConfig, problem, outer_logger::Logger)::Su
 		iter += 1
 
 		sub_state.timing.core_time_ns = 0
-		step!(config.method, sub_state, problem, iter)
+		step!(config.method, sub_state, problem, iter, sub_logger, rng)
 
 		entry = extract_log_entry(config.method, sub_state, iter)
 		log_iter!(sub_logger, entry)
@@ -296,7 +299,7 @@ function run_method(method::IterativeMethod, problem, criteria, logger, rng::Abs
 		iter += 1
 
 		state.timing.core_time_ns = 0
-		step!(method, state, problem, iter)
+		step!(method, state, problem, iter, logger, rng)
 
 		entry = extract_log_entry(method, state, iter)
 		log_iter!(logger, entry)

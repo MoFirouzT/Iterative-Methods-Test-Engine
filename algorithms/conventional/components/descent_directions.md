@@ -1,23 +1,26 @@
 # Descent Directions — Specification
 
-> This file specifies the `DescentDirection` abstraction and its concrete implementations.
-> It is shared across all gradient-based methods in the framework.
-> Add new directions here and reference this file when implementing algorithms that use pluggable descent directions.
+> This file specifies the `DescentDirection` abstraction and its concrete
+> implementations. It is shared across all gradient-based methods in the framework.
+> Add new directions here and reference this file when implementing algorithms
+> that use pluggable descent directions.
 
 ---
 
 ## 1. Abstraction
 
-A **descent direction** at iterate $x_k$ is any vector $d_k \in \mathbb{R}^n$ satisfying:
+A **descent direction** at iterate $x_k$ is any vector $d_k \in \mathbb{R}^n$
+satisfying:
 
 $$\nabla f(x_k)^T d_k < 0$$
 
-This inner product condition guarantees that moving from $x_k$ along $d_k$ decreases $f$ for sufficiently small step sizes.
+This inner product condition guarantees that moving from $x_k$ along $d_k$
+decreases $f$ for sufficiently small step sizes.
 
 ### Julia Type Hierarchy
 
 ```julia
-# In: algorithms/conventional/componenets/descent_directions.jl
+# In: algorithms/conventional/gradient_descent/components/descent_directions.jl
 
 abstract type DescentDirection end
 ```
@@ -31,12 +34,12 @@ Every concrete direction implements exactly one method:
     compute_direction(dir, state, problem) -> Vector{Float64}
 
 Returns the descent direction d_k at the current iterate.
-The returned vector is NOT normalized. 
+The returned vector is NOT normalized.
 Normalization, if desired, is the responsibility of the step-size rule.
 
-Preconditions (guaranteed by runner on entry to step!):
-  - state.iterate.x        holds the current iterate x_k
-  - state.iterate.gradient holds ∇f(x_k) (must be current — compute inside step!)
+Preconditions (guaranteed by step! on entry):
+  - state.iterate.x         holds the current iterate x_k
+  - state.iterate.gradient  holds ∇f(x_k) (must be current — compute inside step!)
   - state.metrics.objective holds f(x_k) (must be current — compute inside step!)
 """
 function compute_direction(dir::DescentDirection, state, problem)::Vector{Float64} end
@@ -71,7 +74,6 @@ $$d_k^{SD} = -\nabla f(x_k)$$
 | Descent guarantee | Yes (whenever $\nabla f(x_k) \neq 0$) |
 | Memory per iteration | None — stateless |
 | Extra problem calls | None (gradient already computed in `step!`) |
-
 
 ### 2.3 Julia Struct
 
@@ -109,8 +111,12 @@ To add a new direction (e.g. Newton, conjugate gradient, L-BFGS):
 
 1. Add a concrete struct subtyping `DescentDirection` in `descent_directions.jl`.
 2. Implement `compute_direction(::YourDirection, state, problem)`.
-3. The `GradientDescentNumerics` struct already holds `direction :: Vector{Float64}`;
-   no structural changes needed.
+3. The `GradientDescentNumerics` struct already holds
+   `direction :: Vector{Float64}`; no structural changes are needed for the
+   direction itself. If your direction maintains additional state (e.g. an
+   approximate Hessian for quasi-Newton, or a previous-direction buffer for CG),
+   add the corresponding field to `GradientDescentNumerics` and document the
+   update ordering — see `step_sizes.md` §5.6 for the BB pattern as a reference.
 4. Pass the new direction as the `direction` field in `GradientDescent(...)`.
 
 No changes to `step!`, the runner, logging, or stopping criteria are required.

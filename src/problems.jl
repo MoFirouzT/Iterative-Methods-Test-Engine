@@ -13,43 +13,43 @@ using LinearAlgebra: norm, mul!, Diagonal
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Data Fidelity Interface
+# Objective Interface
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	abstract type DataFidelity
+	abstract type Objective
 
-Base type for objective loss functions. Every concrete subtype must implement:
-- `value(f::DataFidelity, x::Vector) -> Float64`
-- `grad!(g::Vector, f::DataFidelity, x::Vector) -> Vector`
-- `hessian_vec(f::DataFidelity, x::Vector, d::Vector) -> Vector` (optional)
+Base type for objective functions. Every concrete subtype must implement:
+- `value(f::Objective, x::Vector) -> Float64`
+- `grad(f::Objective, x::Vector) -> Vector`
+- `hessian(f::Objective, x::Vector) -> Hessian` (optional)
 """
-abstract type DataFidelity end
+abstract type Objective end
 
 
 """
-	value(f::DataFidelity, x::Vector) -> Float64
+	value(f::Objective, x::Vector) -> Float64
 
-Evaluate the data fidelity (loss) at x.
+Evaluate the objective at x.
 """
 function value end
 
 
 """
-	grad!(g::Vector, f::DataFidelity, x::Vector) -> Vector
+	grad(f::Objective, x::Vector) -> Vector{Float64}
 
-Compute gradient of f at x in-place into g. Returns g.
+Compute gradient of f at x. Returns a new gradient vector.
 """
-function grad! end
+function grad end
 
 
 """
-	hessian_vec(f::DataFidelity, x::Vector, d::Vector) -> Vector
+	hessian(f::Objective, x::Vector) -> Hessian
 
-Compute Hessian-vector product H(x) · d (optional; default raises error).
+Compute Hessian of f at x. Returns a Hessian object (optional; default raises error).
 """
-function hessian_vec(f::DataFidelity, x::Vector, d::Vector)
-	throw(MethodError(hessian_vec, (f, x, d)))
+function hessian(f::Objective, x::Vector)
+	throw(MethodError(hessian, (f, x)))
 end
 
 
@@ -84,6 +84,126 @@ function prox end
 
 
 # ─────────────────────────────────────────────────────────────────────────
+# Hessian Interface
+# ─────────────────────────────────────────────────────────────────────────
+
+"""
+	abstract type Hessian
+
+Base type for Hessian representations. A Hessian can be:
+- An explicit matrix (MatrixHessian)
+- An implicit operator / closure (OperatorHessian)
+- A structured form like diagonal (DiagonalHessian)
+
+Required methods for every Hessian:
+- `apply(H::Hessian, d::Vector) -> Vector` — Hessian-vector product H·d
+
+Optional methods (implemented when feasible):
+- `materialize(H::Hessian) -> Matrix{Float64}` — full matrix
+- `diagonal(H::Hessian) -> Vector{Float64}` — diagonal
+"""
+abstract type Hessian end
+
+
+"""
+	apply(H::Hessian, d::Vector{Float64}) -> Vector{Float64}
+
+Compute Hessian-vector product: H · d
+"""
+function apply end
+
+
+"""
+	materialize(H::Hessian) -> Matrix{Float64}
+
+Return the full Hessian matrix (raises error if not available).
+"""
+function materialize(H::Hessian)
+	throw(MethodError(materialize, (H,)))
+end
+
+
+"""
+	diagonal(H::Hessian) -> Vector{Float64}
+
+Return the diagonal of the Hessian (raises error if not available).
+"""
+function diagonal(H::Hessian)
+	throw(MethodError(diagonal, (H,)))
+end
+
+
+"""
+	struct MatrixHessian <: Hessian
+
+Explicit dense matrix representation of the Hessian.
+
+# Fields
+- `H::Matrix{Float64}` — the Hessian matrix
+"""
+struct MatrixHessian <: Hessian
+	H::Matrix{Float64}
+end
+
+function apply(H::MatrixHessian, d::Vector{Float64})::Vector{Float64}
+	H.H * d
+end
+
+function materialize(H::MatrixHessian)::Matrix{Float64}
+	H.H
+end
+
+function diagonal(H::MatrixHessian)::Vector{Float64}
+	diag(H.H)
+end
+
+
+"""
+	struct OperatorHessian <: Hessian
+
+Closure-based Hessian for large-scale problems where forming the matrix is infeasible.
+Only Hessian-vector products are available.
+
+# Fields
+- `apply_fn::Function` — function computing H · d
+- `n::Int` — dimension of the problem
+"""
+struct OperatorHessian <: Hessian
+	apply_fn::Function
+	n::Int
+end
+
+function apply(H::OperatorHessian, d::Vector{Float64})::Vector{Float64}
+	H.apply_fn(d)
+end
+
+
+"""
+	struct DiagonalHessian <: Hessian
+
+Diagonal Hessian representation: H = diag(d).
+
+# Fields
+- `d::Vector{Float64}` — diagonal entries
+"""
+struct DiagonalHessian <: Hessian
+	d::Vector{Float64}
+end
+
+function apply(H::DiagonalHessian, d::Vector{Float64})::Vector{Float64}
+	H.d .* d
+end
+
+function materialize(H::DiagonalHessian)::Matrix{Float64}
+	Diagonal(H.d) |> Matrix
+end
+
+function diagonal(H::DiagonalHessian)::Vector{Float64}
+	H.d
+end
+
+
+# ─────────────────────────────────────────────────────────────────────────
 # Composite Problem
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -93,47 +213,49 @@ function prox end
 A composite optimization problem: minimize f(x) + g₁(x) + g₂(x) + …
 
 # Fields
-- `f::DataFidelity` — the data fidelity (loss) term
+- `f::Objective` — the objective (loss) term
 - `gs::Vector{Regularizer}` — vector of regularizers (may be empty)
 - `x0::Vector{Float64}` — initial point
 - `n::Int` — problem dimension
 - `meta::Dict{Symbol,Any}` — optional metadata (condition number, sparsity, etc.)
+- `x_opt::Union{Nothing,Vector{Float64}}` — known optimal point (nothing if unavailable)
 """
 struct Problem
-	f::DataFidelity
+	f::Objective
 	gs::Vector{Regularizer}
 	x0::Vector{Float64}
 	n::Int
 	meta::Dict{Symbol,Any}
+	x_opt::Union{Nothing,Vector{Float64}}
 end
 
 
 """
-	Problem(f::DataFidelity, x0::Vector)
+	Problem(f::Objective, x0::Vector; x_opt = nothing)
 
 Convenience constructor for an unregularized problem (g = ∅).
 """
-function Problem(f::DataFidelity, x0::Vector{Float64})
-	Problem(f, Regularizer[], x0, length(x0), Dict{Symbol,Any}())
+function Problem(f::Objective, x0::Vector{Float64}; x_opt::Union{Nothing,Vector{Float64}}=nothing)
+	Problem(f, Regularizer[], x0, length(x0), Dict{Symbol,Any}(), x_opt)
 end
 
 
 """
-	Problem(f::DataFidelity, g::Regularizer, x0::Vector)
+	Problem(f::Objective, g::Regularizer, x0::Vector; x_opt = nothing)
 
 Convenience constructor for a single-regularizer problem.
 """
-function Problem(f::DataFidelity, g::Regularizer, x0::Vector{Float64})
-	Problem(f, Regularizer[g], x0, length(x0), Dict{Symbol,Any}())
+function Problem(f::Objective, g::Regularizer, x0::Vector{Float64}; x_opt::Union{Nothing,Vector{Float64}}=nothing)
+	Problem(f, Regularizer[g], x0, length(x0), Dict{Symbol,Any}(), x_opt)
 end
 
 
 """
-	objective(p::Problem, x::Vector) -> Float64
+	total_objective(p::Problem, x::Vector) -> Float64
 
 Compute total objective: f(x) + Σᵢ gᵢ(x).
 """
-function objective(p::Problem, x::Vector{Float64})
+function total_objective(p::Problem, x::Vector{Float64})
 	val = value(p.f, x)
 	for g in p.gs
 		val += value(g, x)
@@ -141,9 +263,16 @@ function objective(p::Problem, x::Vector{Float64})
 	val
 end
 
+"""
+	objective(p::Problem, x::Vector) -> Float64
+
+Alias for total_objective; provided for backward compatibility.
+"""
+const objective = total_objective
+
 
 # ─────────────────────────────────────────────────────────────────────────
-# Concrete Data Fidelity: Least Squares
+# Concrete Objective: Least Squares
 # ─────────────────────────────────────────────────────────────────────────
 
 """
@@ -158,11 +287,11 @@ end
 
 
 """
-	LeastSquares <: DataFidelity
+	LeastSquares <: Objective
 
-Least-squares data fidelity: f(x) = 0.5 ‖Ax − b‖²
+Least-squares objective: f(x) = 0.5 ‖Ax − b‖²
 """
-struct LeastSquares <: DataFidelity
+struct LeastSquares <: Objective
 	kernel::LeastSquaresKernel
 end
 
@@ -173,15 +302,15 @@ function value(f::LeastSquares, x::Vector{Float64})
 end
 
 
-function grad!(g::Vector{Float64}, f::LeastSquares, x::Vector{Float64})
+function grad(f::LeastSquares, x::Vector{Float64})::Vector{Float64}
 	residual = f.kernel.A * x - f.kernel.b
-	mul!(g, f.kernel.A', residual)
-	g
+	return f.kernel.A' * residual
 end
 
 
-function hessian_vec(f::LeastSquares, x::Vector{Float64}, d::Vector{Float64})
-	f.kernel.A' * (f.kernel.A * d)
+function hessian(f::LeastSquares, x::Vector{Float64})::Hessian
+	H_matrix = f.kernel.A' * f.kernel.A
+	return MatrixHessian(H_matrix)
 end
 
 
