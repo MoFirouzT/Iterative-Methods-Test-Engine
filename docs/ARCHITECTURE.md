@@ -539,7 +539,7 @@ function run_method(method   :: IterativeMethod,
 
             entry = extract_log_entry(method, state, iter)
             log_iter!(logger, entry)
-            run_debug_checks!(debug, state, problem, entry, prev_entry, iter)
+            run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
 
         catch e
             log_event!(logger, :step_error, iter)
@@ -1461,17 +1461,19 @@ end
 
 ### `run_debug_checks!` and `debug_check!` Dispatch
 
-The runner calls `run_debug_checks!` after `log_iter!` on every iteration:
+The runner calls `run_debug_checks!` after `log_iter!` on every iteration and
+passes the logger explicitly so history-based checks do not need state mutation:
 
 ```julia
 function run_debug_checks!(cfg        :: DebugConfig,
+                           logger     :: Union{Nothing, Logger},
                            state, problem,
                            entry      :: IterationLog,
                            prev_entry :: Union{Nothing, IterationLog},
                            iter       :: Int)
     cfg.enabled || return
     for check in cfg.checks
-        debug_check!(check, cfg, state, problem, entry, prev_entry, iter)
+        debug_check!(check, cfg, logger, state, problem, entry, prev_entry, iter)
     end
 end
 ```

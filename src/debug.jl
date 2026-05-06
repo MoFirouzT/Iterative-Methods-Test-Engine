@@ -35,17 +35,18 @@ end
 end
 
 function run_debug_checks!(cfg::DebugConfig,
+                           logger::Union{Nothing,Logger},
                            state, problem,
                            entry::IterationLog,
                            prev_entry::Union{Nothing,IterationLog},
                            iter::Int)
     cfg.enabled || return
     for check in cfg.checks
-        debug_check!(check, cfg, state, problem, entry, prev_entry, iter)
+        debug_check!(check, cfg, logger, state, problem, entry, prev_entry, iter)
     end
 end
 
-function debug_check!(c::CheckObjectiveMonotonicity, cfg, state, problem,
+function debug_check!(c::CheckObjectiveMonotonicity, cfg, logger, state, problem,
                       entry::IterationLog, prev::Union{Nothing,IterationLog}, iter::Int)
     isnothing(prev) && return
     increase = entry.objective - prev.objective
@@ -56,7 +57,7 @@ function debug_check!(c::CheckObjectiveMonotonicity, cfg, state, problem,
     end
 end
 
-function debug_check!(c::CheckGradientNormBound, cfg, state, problem,
+function debug_check!(c::CheckGradientNormBound, cfg, logger, state, problem,
                       entry::IterationLog, prev::Union{Nothing,IterationLog}, iter::Int)
     if entry.gradient_norm > c.max_norm
         trigger_debug!(cfg, iter,
@@ -64,14 +65,9 @@ function debug_check!(c::CheckGradientNormBound, cfg, state, problem,
     end
 end
 
-function debug_check!(c::CheckStepDecay, cfg, state, problem,
+function debug_check!(c::CheckStepDecay, cfg, logger, state, problem,
                       entry::IterationLog, prev::Union{Nothing,IterationLog}, iter::Int)
-    # Requires access to historical iter_logs. Prefer logger on state if available.
-    if !hasproperty(state, :_logger)
-        # no logger available — cannot evaluate windowed decay
-        return
-    end
-    logger = getproperty(state, :_logger)
+    # Requires access to historical iter_logs; logger must be injected explicitly.
     if logger === nothing || length(logger.iter_logs) < c.window
         return
     end
@@ -85,7 +81,7 @@ function debug_check!(c::CheckStepDecay, cfg, state, problem,
     end
 end
 
-function debug_check!(c::CheckNumericalGradient, cfg, state, problem,
+function debug_check!(c::CheckNumericalGradient, cfg, logger, state, problem,
                       entry::IterationLog, prev::Union{Nothing,IterationLog}, iter::Int)
     # state.iterate.gradient is expected to exist on well-formed states
     g_analytical = getproperty(state.iterate, :gradient)

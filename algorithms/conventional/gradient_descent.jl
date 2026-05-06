@@ -52,11 +52,10 @@ end
 Complete mutable state for gradient descent.
 
 Composes:
-- IterateGroup (shared): current x, gradient, previous iterate
-- MetricsGroup (shared): objective, gradient_norm, step_norm
-- TimingGroup (shared): core_time_ns accumulator
-- GradientDescentNumerics (method-specific): working vectors
-- _logger (injected): reference to the logging system
+	- IterateGroup (shared): current x, gradient, previous iterate
+	- MetricsGroup (shared): objective, gradient_norm, step_norm
+	- TimingGroup (shared): core_time_ns accumulator
+	- GradientDescentNumerics (method-specific): working vectors
 """
 @kwdef mutable struct GradientDescentState
 	iterate::IterateGroup

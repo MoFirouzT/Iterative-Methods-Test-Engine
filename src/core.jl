@@ -232,10 +232,6 @@ function run_sub_method(config::SubRunConfig{M}, problem, outer_logger::Logger, 
 	sub_rng = Xoshiro(rand(outer_rng, UInt64))
 	sub_state = init_state(config.method, problem, sub_rng)
 
-	if hasproperty(sub_state, :_logger)
-		setproperty!(sub_state, :_logger, outer_logger)
-	end
-
 	sub_logger = make_sub_logger(config.method, outer_logger, config.verbosity)
 	log_init!(sub_logger, config.method, sub_state)
 
@@ -289,11 +285,6 @@ On stop, records event and returns finalize!(logger, method, state).
 """
 function run_method(method::IterativeMethod, problem, criteria, logger, rng::AbstractRNG)
 	state = init_state(method, problem, rng)
-
-	# Runner injects logger reference so nested routines can access it when needed.
-	if hasproperty(state, :_logger)
-		setproperty!(state, :_logger, logger)
-	end
 
 	log_init!(logger, method, state)
 	iter = 0
