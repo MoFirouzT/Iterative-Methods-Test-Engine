@@ -24,8 +24,7 @@ The framework distinguishes two kinds of step-size rules:
 - **Direct rules** compute $\alpha_k$ in closed form from current state — no
   trial points are tested. Examples: `FixedStep`, `CauchyStep`, `BarzilaiBorwein`.
 - **Line searches** test trial points along the ray $x_k + \alpha\, d_k$ until a
-  sufficient-decrease (or curvature) condition holds. Examples: `ArmijoLS`,
-  `WolfeLS`.
+  sufficient-decrease (or curvature) condition holds. Examples: `ArmijoLS`.
 
 Both are valid step-size strategies, so they share an umbrella abstract type
 `StepSize`. `LineSearch <: StepSize` is the sub-hierarchy of genuine 1D searches:

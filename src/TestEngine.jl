@@ -31,7 +31,7 @@ export StoppingCriterion, MaxIterations, TimeLimit, GradientTolerance
 export ObjectiveStagnation, StepTolerance, CompositeCriterion, stop_when_any, stop_when_all, should_stop
 
 export DescentDirection, SteepestDescent, StepSize, LineSearch
-export FixedStep, ArmijoLS, WolfeLS, CauchyStep, BarzilaiBorwein
+export FixedStep, ArmijoLS, CauchyStep, BarzilaiBorwein
 export GradientDescent, GradientDescentNumerics, GradientDescentState
 export compute_direction, compute_step_size
 

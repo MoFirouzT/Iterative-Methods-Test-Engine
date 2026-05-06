@@ -120,13 +120,6 @@ struct UnimplementedMethod <: IterativeMethod end
     @test state.timing.core_time_ns > 0
 
     state.timing.core_time_ns = 0
-    state.numerics.n_linesearch_evals = 0
-    α_wolfe = compute_step_size(WolfeLS(α₀ = 1.0, β = 0.5, c₁ = 1e-4, c₂ = 0.9, max_iter = 10), state, problem, direction)
-    @test α_wolfe ≈ 1.0
-    @test state.numerics.n_linesearch_evals == 1
-    @test state.timing.core_time_ns > 0
-
-    state.timing.core_time_ns = 0
     α_cauchy = compute_step_size(CauchyStep(), state, problem, direction)
     @test α_cauchy ≈ 1.0
     @test state.timing.core_time_ns > 0
@@ -217,7 +210,6 @@ end
 
     axis2 = VariantAxis(:linesearch,
         ArmijoLS() => "Armijo",
-        WolfeLS() => "Wolfe",
     )
 
     grid = VariantGrid(

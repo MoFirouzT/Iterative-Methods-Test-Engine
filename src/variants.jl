@@ -172,8 +172,6 @@ const ABBREVIATIONS = Dict{String,String}(
 	"CorrectionStep" => "Corr",
 	"Armijo" => "Arm",
 	"ArmijoLS" => "Arm",
-	"Wolfe" => "Wlf",
-	"WolfeLS" => "Wlf",
 )
 
 abbreviate(value) = get(ABBREVIATIONS, string(value), string(value))

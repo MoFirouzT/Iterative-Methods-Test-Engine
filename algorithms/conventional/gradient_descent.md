@@ -1,7 +1,7 @@
 # Gradient Descent — Implementation Specification
 
 > **Related specs** (read these first):
-> - `problems/rosenbrock/rosenbrock.md` — problem interface, `Objective`, `grad`, `hessian`
+> - `problems/rosenbrock/rosenbrock.md` — problem interface, `Objective`, `grad!`, `hessian`
 > - `algorithms/conventional/gradient_descent/components/descent_directions.md` — `DescentDirection` abstraction
 > - `algorithms/conventional/gradient_descent/components/step_sizes.md` — `StepSize` / `LineSearch` abstractions
 > - `src/architecture.md` — state groups, runner contract, `@core_timed`, logger injection
@@ -94,21 +94,28 @@ end
 
 ```julia
 @kwdef mutable struct GradientDescentNumerics
-    direction          :: Vector{Float64} = Float64[]  # d_k; computed by compute_direction
-    n_linesearch_evals :: Int             = 0          # cumulative line-search f() calls
-    grad_prev          :: Vector{Float64} = Float64[]  # ∇f(x_{k-1}); required by BB only
-    x_trial            :: Vector{Float64} = Float64[]  # scratch buffer for line-search trial points
+    direction          :: Vector{Float64} = Float64[]   # d_k; written by compute_direction
+    α_k                :: Float64         = 0.0         # last step size; written by step!
+    n_linesearch_evals :: Int             = 0           # cumulative line-search f() calls
+    grad_prev          :: Vector{Float64} = Float64[]   # ∇f(x_{k-1}); required by BB
+    x_trial            :: Vector{Float64} = Float64[]   # scratch buffer for line-search trials
 end
 ```
 
 > **Field ownership.**
 > - `direction` — written by `step!` via `compute_direction`; read by
 >   `compute_step_size`.
+> - `α_k` — written by `step!` immediately after `compute_step_size` returns;
+>   read by `extract_log_entry`.
 > - `n_linesearch_evals` — incremented by `compute_step_size` for line searches
 >   (currently `ArmijoLS`); exposed in `extras` for logging.
-> - `grad_prev` — written by `step!` *after* `compute_step_size` returns; read
->   by `BarzilaiBorwein` on the *next* call to `compute_step_size`. Ordering is
->   critical (see §5).
+> - `grad_prev` — written by `step!` *after* the iterate update and *before* the
+>   gradient refresh, using the empty-vector sentinel to detect the first
+>   iteration. Read by `BarzilaiBorwein` on the *next* call to
+>   `compute_step_size`. Ordering is critical (see §5).
+> - `x_trial` — scratch buffer for line-search trial points. Sized in
+>   `init_state` to `similar(problem.x0)`. Used by `ArmijoLS`; available to any
+>   rule that needs a per-iteration trial-point buffer without allocating.
 
 ---
 
@@ -126,17 +133,18 @@ function init_state(method::GradientDescent, problem,
 | Field | How to initialize | Notes |
 |-------|-------------------|-------|
 | `iterate.x` | `copy(problem.x0)` | copy — never alias the problem's vector |
-| `iterate.gradient` | `grad!(similar(problem.x0), problem.f, problem.x0)` | compute at $x_0$ in-place |
-| `iterate.x_prev` | `Float64[]` | empty; filled after first step! call |
+| `iterate.gradient` | `g0 = similar(x0); grad!(g0, problem.f, x0)` | compute at $x_0$, in place |
+| `iterate.x_prev` | `Float64[]` | empty; sentinel — filled in-place after first step! call |
 | `metrics.objective` | `total_objective(problem, problem.x0)` | reduces to `value(problem.f, x_0)` when `gs` is empty |
 | `metrics.gradient_norm` | `norm(iterate.gradient)` | from above |
 | `metrics.step_norm` | `0.0` | no step taken yet |
 | `metrics.dist_to_opt` | `isnothing(problem.x_opt) ? Inf : norm(problem.x0 .- problem.x_opt)` | runner will update each step |
 | `timing.core_time_ns` | `0` | reset by runner before each `step!` anyway |
 | `numerics.direction` | `Float64[]` | filled on first `step!` |
+| `numerics.α_k` | `0.0` | written by first `step!` |
 | `numerics.n_linesearch_evals` | `0` | cumulative counter |
-| `numerics.grad_prev` | `Float64[]` | empty; used only by BB from k≥2 |
-| `numerics.x_trial` | `similar(problem.x0)` | scratch buffer reused by line searches |
+| `numerics.grad_prev` | `Float64[]` | empty; sentinel — filled in-place after first step! |
+| `numerics.x_trial` | `similar(problem.x0)` | preallocated; required by `ArmijoLS` |
 
 **Implementation:**
 
@@ -144,7 +152,8 @@ function init_state(method::GradientDescent, problem,
 function init_state(method::GradientDescent, problem,
                     rng::AbstractRNG)::GradientDescentState
     x0 = copy(problem.x0)
-    g0 = grad!(similar(x0), problem.f, x0)
+    g0 = similar(x0)
+    grad!(g0, problem.f, x0)
     f0 = total_objective(problem, x0)
 
     GradientDescentState(
@@ -199,6 +208,7 @@ function step!(method::GradientDescent, state::GradientDescentState,
 - `state.metrics.gradient_norm` and `state.metrics.step_norm` are updated.
 - `state.metrics.dist_to_opt` is **not** set here (runner sets it).
 - `state.numerics.direction` holds the descent direction used for this step.
+- `state.numerics.α_k` holds the step size $\alpha_k$ used for this step.
 - `state.numerics.grad_prev` holds $\nabla f(x_k)$ (the gradient at the iterate
   *before* the step) — required for BB's next-iteration secant pair.
 
@@ -206,11 +216,12 @@ function step!(method::GradientDescent, state::GradientDescentState,
 
 | Operation | Inside `@core_timed`? | Reason |
 |-----------|----------------------|--------|
-| `grad!(state.iterate.gradient, problem.f, x_k)` | **Yes** | Core mathematical computation |
+| `grad!(state.iterate.gradient, ...)` | **Yes** | Core mathematical computation |
 | `compute_direction(...)` | **Yes** | Core mathematical computation |
 | `compute_step_size(...)` for any rule | **Inside the rule** | Each rule wraps its own kernel |
-| `x_{k+1} = x_k + α d_k` | **Yes** | Core update |
-| `total_objective(problem, x_{k+1})`, `grad!(state.iterate.gradient, problem.f, x_{k+1})` (refresh) | **Yes** | Core computation at new iterate |
+| `x_{k+1} = x_k + α_k d_k` (broadcast) | **Yes** | Core update |
+| `total_objective(problem, x_{k+1})`, `grad!(...)` (refresh) | **Yes** | Core computation at new iterate |
+| `copyto!(...)` for `x_prev` / `grad_prev` saves | **No** | Bookkeeping (state shuffling) |
 | `norm(...)`, metric updates | **No** | Bookkeeping |
 
 > **Step-size timing is owned by the rule.** Each `compute_step_size`
@@ -221,47 +232,68 @@ function step!(method::GradientDescent, state::GradientDescentState,
 > `state.numerics.n_linesearch_evals` records how many trial evaluations were
 > needed, which is logged in `extras` but is independent of the timing.
 
+**In-place state saves.** Both `state.iterate.x_prev` and
+`state.numerics.grad_prev` use the empty-vector sentinel (`Float64[]`) to mark
+"no previous data." On the first iteration the buffer is allocated via `copy`;
+on every subsequent iteration the existing buffer is reused via `copyto!`.
+This eliminates per-step allocation while preserving the sentinel that BB
+relies on (see `step_sizes.md` §5.5).
+
+**No `step_vec` temporary.** The displacement $\alpha_k d_k$ is applied
+directly to `state.iterate.x` via fused broadcast (`.+=`). The step norm is
+computed analytically as $|\alpha_k| \cdot \|d_k\|$, avoiding a per-step
+allocation.
+
 **Implementation:**
 
 ```julia
 function step!(method::GradientDescent, state::GradientDescentState,
                problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
-    # ── Save previous iterate ───────────────────────────────────────────────────
-    x_prev = copy(state.iterate.x)   # needed for x_prev field
+    # ── Save x_k into x_prev (allocate once on iter 1, then reuse) ──────────────
+    if isempty(state.iterate.x_prev)
+        state.iterate.x_prev = copy(state.iterate.x)
+    else
+        copyto!(state.iterate.x_prev, state.iterate.x)
+    end
 
     # ── Core: gradient and descent direction at x_k ─────────────────────────────
     @core_timed state begin
-      grad!(state.iterate.gradient, problem.f, state.iterate.x)  # ∇f(x_k)
-
-        d_k = compute_direction(method.direction, state, problem)  # e.g. -g_k
-        state.numerics.direction = d_k
+        grad!(state.iterate.gradient, problem.f, state.iterate.x)            # ∇f(x_k)
+        state.numerics.direction = compute_direction(method.direction,
+                                                    state, problem)          # d_k
     end
 
     # ── Step-size selection ─────────────────────────────────────────────────────
     # Each StepSize rule wraps its own core operations in @core_timed; do NOT
     # wrap this call here.
-    α_k = compute_step_size(method.step_size, state, problem, d_k)
+    α_k = compute_step_size(method.step_size, state, problem,
+                            state.numerics.direction)
+    state.numerics.α_k = α_k                                  # store for logging
 
-    # ── Core: iterate update ─────────────────────────────────────────────────────
-    local step_vec
+    # ── Core: iterate update (fused broadcast, no temporary) ────────────────────
     @core_timed state begin
-        step_vec         = α_k .* d_k
-        state.iterate.x .+= step_vec                         # x_{k+1} = x_k + α_k d_k
+        state.iterate.x .+= α_k .* state.numerics.direction   # x_{k+1} = x_k + α_k d_k
+    end
+
+    # ── Save ∇f(x_k) into grad_prev (allocate once on iter 1, then reuse) ───────
+    # MUST happen before the gradient refresh below — at this point
+    # state.iterate.gradient still holds ∇f(x_k).
+    if isempty(state.numerics.grad_prev)
+        state.numerics.grad_prev = copy(state.iterate.gradient)
+    else
+        copyto!(state.numerics.grad_prev, state.iterate.gradient)
+    end
+
+    # ── Core: refresh objective and gradient at x_{k+1} ─────────────────────────
+    @core_timed state begin
+        state.metrics.objective = total_objective(problem, state.iterate.x)
+        grad!(state.iterate.gradient, problem.f, state.iterate.x)
     end
 
     # ── Bookkeeping (outside @core_timed) ────────────────────────────────────────
-    state.iterate.x_prev          = x_prev                   # store x_k for BB and logging
-    state.numerics.grad_prev      = copy(state.iterate.gradient) # store ∇f(x_k) for BB (next iter)
-
-    # ── Core: refresh metrics at x_{k+1} ─────────────────────────────────────────
-    @core_timed state begin
-        state.metrics.objective = total_objective(problem, state.iterate.x)
-      grad!(state.iterate.gradient, problem.f, state.iterate.x)
-    end
-
     state.metrics.gradient_norm = norm(state.iterate.gradient)
-    state.metrics.step_norm     = norm(step_vec)
+    state.metrics.step_norm     = abs(α_k) * norm(state.numerics.direction)
     # dist_to_opt is computed and set by the runner — do not set here.
 end
 ```
@@ -278,13 +310,13 @@ function extract_log_entry(method::GradientDescent, state::GradientDescentState,
 ```
 
 The default framework fields are populated automatically from `state.metrics`.
-Override this function only to add algorithm-specific fields to `extras`:
+Override this function only to add algorithm-specific fields to `extras`. The
+step size is read directly from `state.numerics.α_k` — no reconstruction from
+norms is needed, since `step!` stores the value produced by `compute_step_size`.
 
 ```julia
 function extract_log_entry(method::GradientDescent, state::GradientDescentState,
                             iter::Int)::IterationLog
-    α_k_recovered = state.metrics.step_norm /
-                    max(norm(state.numerics.direction), 1e-16)
     IterationLog(
         iter           = iter,
         core_time_ns   = state.timing.core_time_ns,
@@ -294,8 +326,7 @@ function extract_log_entry(method::GradientDescent, state::GradientDescentState,
         dist_to_opt    = state.metrics.dist_to_opt,    # Inf when x_opt not set
         extras         = Dict{Symbol,Any}(
             :n_linesearch_evals => state.numerics.n_linesearch_evals,
-            :step_size          => α_k_recovered,
-            # α_k recovered from ‖α d‖ / ‖d‖ — exact when d is not rescaled
+            :step_size          => state.numerics.α_k,
         ),
     )
 end
@@ -308,18 +339,18 @@ end
 | Math symbol                  | Julia expression                              | Type                | Notes                              |
 |------------------------------|-----------------------------------------------|---------------------|------------------------------------|
 | $x_k$                        | `state.iterate.x`                             | `Vector{Float64}`   | current iterate                    |
-| $x_{k-1}$                   | `state.iterate.x_prev`                        | `Vector{Float64}`   | set in `step!` at end of each step |
+| $x_{k-1}$                    | `state.iterate.x_prev`                        | `Vector{Float64}`   | written in-place by `step!` at start of each step (allocated once, reused thereafter) |
 | $x^*$                        | `problem.x_opt`                               | `Vector{Float64}` or `nothing` | known minimizer        |
 | $f(x_k)$                     | `state.metrics.objective`                     | `Float64`           | refreshed at end of `step!`        |
-| $\nabla f(x_k)$ (fresh at $x_k$) | `grad!(state.iterate.gradient, problem.f, state.iterate.x)`       | `Vector{Float64}`   | computed inside `@core_timed`      |
+| $\nabla f(x_k)$ (fresh at $x_k$) | `grad!(state.iterate.gradient, problem.f, state.iterate.x)` | (writes `Vector{Float64}`) | computed inside `@core_timed`; in-place |
 | $\nabla f(x_k)$ (stored)    | `state.iterate.gradient`                      | `Vector{Float64}`   | refreshed at end of `step!`        |
-| $\nabla f(x_{k-1})$         | `state.numerics.grad_prev`                    | `Vector{Float64}`   | written before metric refresh      |
+| $\nabla f(x_{k-1})$         | `state.numerics.grad_prev`                    | `Vector{Float64}`   | written in-place before metric refresh (allocated once, reused thereafter) |
 | $\nabla^2 f(x_k)$           | `hessian(problem.f, state.iterate.x)`         | `Hessian` object    | used by `CauchyStep`               |
 | $d_k$                        | `state.numerics.direction`                    | `Vector{Float64}`   | from `compute_direction`           |
-| $\alpha_k$                   | local `α_k` in `step!`                        | `Float64`           | from `compute_step_size`           |
-| $\alpha_k d_k$               | local `step_vec`                              | `Vector{Float64}`   | actual displacement                |
+| $\alpha_k$                   | `state.numerics.α_k`                          | `Float64`           | written by `step!` from `compute_step_size`; read by `extract_log_entry` |
+| $\alpha_k d_k$ (displacement) | `α_k .* state.numerics.direction` (fused into update) | (no buffer)  | applied via `state.iterate.x .+=`; no temporary allocated |
 | $\|\nabla f(x_k)\|$         | `state.metrics.gradient_norm`                 | `Float64`           | used by `GradientTolerance`        |
-| $\|x_{k+1} - x_k\|$        | `state.metrics.step_norm`                     | `Float64`           | used by `StepTolerance`            |
+| $\|x_{k+1} - x_k\|$        | `state.metrics.step_norm`                     | `Float64`           | computed as `abs(α_k) * norm(d_k)`; used by `StepTolerance` |
 | $\|x_k - x^*\|$             | `state.metrics.dist_to_opt`                   | `Float64`           | set by runner, not `step!`         |
 
 ---
