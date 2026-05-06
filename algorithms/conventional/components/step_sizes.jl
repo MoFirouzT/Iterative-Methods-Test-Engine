@@ -104,6 +104,11 @@ end
 	end
 end
 
+@inline function _trial_buffer(state)
+	hasproperty(state, :numerics) && hasproperty(state.numerics, :x_trial) && return state.numerics.x_trial
+	return similar(state.iterate.x)
+end
+
 function compute_step_size(rule::ArmijoLS, state, problem, direction::Vector{Float64})::Float64
 	x_k = state.iterate.x
 	f_k = state.metrics.objective
@@ -111,7 +116,9 @@ function compute_step_size(rule::ArmijoLS, state, problem, direction::Vector{Flo
 
 	α = rule.α₀
 	for _ in 1:rule.max_iter
-		f_trial = _objective_eval(state, problem, x_k .+ α .* direction)
+		trial = _trial_buffer(state)
+		trial .= x_k .+ α .* direction
+		f_trial = _objective_eval(state, problem, trial)
 		_increment_linesearch_evals!(state)
 
 		f_trial <= f_k + rule.c₁ * α * slope && return α
@@ -130,8 +137,9 @@ function compute_step_size(rule::WolfeLS, state, problem, direction::Vector{Floa
 
 	α = rule.α₀
 	for _ in 1:rule.max_iter
-		x_trial = x_k .+ α .* direction
-		f_trial = _objective_eval(state, problem, x_trial)
+		trial = _trial_buffer(state)
+		trial .= x_k .+ α .* direction
+		f_trial = _objective_eval(state, problem, trial)
 		_increment_linesearch_evals!(state)
 
 		if f_trial > f_k + rule.c₁ * α * slope_0
@@ -140,7 +148,7 @@ function compute_step_size(rule::WolfeLS, state, problem, direction::Vector{Floa
 		end
 
 		@core_timed state begin
-			grad!(trial_gradient, problem.f, x_trial)
+			grad!(trial_gradient, problem.f, trial)
 		end
 		if abs(dot(trial_gradient, direction)) <= rule.c₂ * abs(slope_0)
 			return α

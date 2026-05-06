@@ -21,7 +21,7 @@ using LinearAlgebra: norm, mul!, Diagonal
 
 Base type for objective functions. Every concrete subtype must implement:
 - `value(f::Objective, x::Vector) -> Float64`
-- `grad(f::Objective, x::Vector) -> Vector`
+- `grad!(g::Vector, f::Objective, x::Vector) -> Vector{Float64}`
 - `hessian(f::Objective, x::Vector) -> Hessian` (optional)
 """
 abstract type Objective end
@@ -36,17 +36,17 @@ function value end
 
 
 """
-	grad(f::Objective, x::Vector) -> Vector{Float64}
+	grad!(g::Vector, f::Objective, x::Vector) -> Vector{Float64}
 
-Compute gradient of f at x. Returns a new gradient vector.
+Compute gradient of f at x in-place.
 """
-function grad end
-
-# Backwards-compatible mutating gradient: fill `g` with gradient values.
 function grad!(g::Vector{Float64}, f::Objective, x::Vector{Float64})
-	gbuf = grad(f, x)
-	copyto!(g, gbuf)
-	return g
+	throw(MethodError(grad!, (g, f, x)))
+end
+
+# Convenience allocating wrapper used by callers that want a fresh gradient.
+function grad(f::Objective, x::Vector{Float64})::Vector{Float64}
+	return grad!(similar(x), f, x)
 end
 
 """
@@ -325,9 +325,10 @@ function value(f::LeastSquares, x::Vector{Float64})
 end
 
 
-function grad(f::LeastSquares, x::Vector{Float64})::Vector{Float64}
+function grad!(g::Vector{Float64}, f::LeastSquares, x::Vector{Float64})::Vector{Float64}
 	residual = f.kernel.A * x - f.kernel.b
-	return f.kernel.A' * residual
+	mul!(g, adjoint(f.kernel.A), residual)
+	return g
 end
 
 

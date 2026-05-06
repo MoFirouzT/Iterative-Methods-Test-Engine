@@ -110,14 +110,13 @@ $$\nabla f(x) =
 \end{bmatrix}$$
 
 ```julia
-function grad(f::RosenbrockObjective, x::Vector{Float64})::Vector{Float64}
+function grad!(g::Vector{Float64}, f::RosenbrockObjective, x::Vector{Float64})::Vector{Float64}
     ρ      = f.kernel.ρ
     x₁, x₂ = x[1], x[2]
     v      = x₂ - x₁^2          # shared intermediate: x₂ - x₁²
-    return [
-        -2(1 - x₁) - 4ρ * x₁ * v,
-         2ρ * v
-    ]
+    g[1]   = -2(1 - x₁) - 4ρ * x₁ * v
+    g[2]   =  2ρ * v
+    return g
 end
 ```
 
@@ -200,12 +199,12 @@ problem_spec = AnalyticProblem(
 | $x^* = (1, 1)$        | `problem.x_opt`                   | `Vector{Float64}` | known minimizer               |
 | $f(x)$                | `value(problem.f, x)`             | `Float64`         | via `Objective` interface     |
 | total $f(x)$ (= $f$)  | `total_objective(problem, x)`     | `Float64`         | reduces to `value(problem.f,x)` since `gs` is empty |
-| $\nabla f(x)$         | `grad(problem.f, x)`              | `Vector{Float64}` | analytical gradient           |
+| $\nabla f(x)$         | `grad!(g, problem.f, x)`          | `Vector{Float64}` | analytical gradient into buffer `g` |
 | $\nabla^2 f(x)$       | `hessian(problem.f, x)`           | `MatrixHessian`   | 2×2 dense                     |
 | $\nabla^2 f(x)\,d$   | `apply(hessian(problem.f, x), d)`| `Vector{Float64}` | Hessian-vector product        |
 | full matrix           | `materialize(hessian(problem.f, x))` | `Matrix{Float64}` | full 2×2 matrix         |
 | $\rho$                | `problem.f.kernel.ρ`              | `Float64`         | curvature parameter           |
-| $v = x_2 - x_1^2$    | local `v` in `grad`/`value`       | `Float64`         | shared intermediate           |
+| $v = x_2 - x_1^2$    | local `v` in `grad!`/`value`      | `Float64`         | shared intermediate           |
 
 ---
 

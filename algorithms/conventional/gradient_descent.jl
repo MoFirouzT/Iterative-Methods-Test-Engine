@@ -39,6 +39,7 @@ Working storage for gradient descent: gradient vector and step direction.
 	direction::Vector{Float64} = Float64[]
 	n_linesearch_evals::Int = 0
 	grad_prev::Vector{Float64} = Float64[]
+	x_trial::Vector{Float64} = Float64[]
 end
 
 
@@ -77,7 +78,7 @@ pre-allocating working vectors, and computing the initial gradient.
 """
 function init_state(method::GradientDescent, problem, rng::AbstractRNG)
 	x0 = copy(problem.x0)
-	g0 = grad(problem.f, x0)
+	g0 = grad!(similar(x0), problem.f, x0)
 	f0 = total_objective(problem, x0)
 
 	return GradientDescentState(
@@ -96,7 +97,8 @@ function init_state(method::GradientDescent, problem, rng::AbstractRNG)
 		numerics = GradientDescentNumerics(
 			direction = Float64[],
 			n_linesearch_evals = 0,
-			grad_prev = Float64[]
+			grad_prev = Float64[],
+			x_trial = similar(problem.x0)
 		),
 	)
 end
@@ -116,13 +118,12 @@ Metrics update is not timed (bookkeeping).
 """
 function step!(method::GradientDescent, state::GradientDescentState, problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
-	# Save previous iterate for x_prev and BB s_{k-1}
+	# Save previous iterate
 	x_prev = copy(state.iterate.x)
 
 	# Core: compute gradient at x_k and descent direction
 	@core_timed state begin
-		g_k = grad(problem.f, state.iterate.x)
-		state.iterate.gradient = g_k
+		grad!(state.iterate.gradient, problem.f, state.iterate.x)
 
 		d_k = compute_direction(method.direction, state, problem)
 		state.numerics.direction = d_k
@@ -145,7 +146,7 @@ function step!(method::GradientDescent, state::GradientDescentState, problem::Pr
 	# Core: refresh objective and gradient at new iterate
 	@core_timed state begin
 		state.metrics.objective = total_objective(problem, state.iterate.x)
-		state.iterate.gradient = grad(problem.f, state.iterate.x)
+		grad!(state.iterate.gradient, problem.f, state.iterate.x)
 	end
 
 	# Bookkeeping (outside timed region)

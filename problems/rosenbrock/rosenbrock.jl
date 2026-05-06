@@ -64,27 +64,25 @@ end
 
 
 """
-    grad(f::RosenbrockObjective, x::Vector{Float64}) -> Vector{Float64}
+    grad!(g::Vector{Float64}, f::RosenbrockObjective, x::Vector{Float64}) -> Vector{Float64}
 
-Compute the gradient of the Rosenbrock function:
+Compute the gradient of the Rosenbrock function in-place:
 
     ∇f(x) = [
         -2(1 - x₁) - 4ρ·x₁·(x₂ - x₁²)
         2ρ·(x₂ - x₁²)
     ]
-
-Returns a new gradient vector.
 """
-function grad(f::RosenbrockObjective, x::Vector{Float64})::Vector{Float64}
+function grad!(g::Vector{Float64}, f::RosenbrockObjective, x::Vector{Float64})::Vector{Float64}
     ρ  = f.kernel.ρ
     x₁ = x[1]
     x₂ = x[2]
     v  = x₂ - x₁^2    # shared intermediate: x₂ - x₁²
-    
-    return [
-        -2(1 - x₁) - 4ρ * x₁ * v,
-         2ρ * v
-    ]
+
+    g[1] = -2(1 - x₁) - 4ρ * x₁ * v
+    g[2] =  2ρ * v
+
+    return g
 end
 
 

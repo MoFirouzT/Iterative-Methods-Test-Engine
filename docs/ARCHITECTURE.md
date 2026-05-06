@@ -110,10 +110,15 @@ Algorithms interact with the problem exclusively through this interface.
 abstract type Objective end
 
 # Required dispatch for every concrete subtype:
+#   grad!(g, f, x)  → write gradient into preallocated buffer g
 #   value(f, x)    → scalar objective value of f at x
-#   grad(f, x)     → gradient vector ∇f(x)
 #   hessian(f, x)  → a Hessian object representing ∇²f(x); see below
 ```
+
+The bang form `grad!` is the required method because the framework prefers
+in-place work buffers for core numerical kernels. A convenience wrapper
+`grad(f, x) = grad!(similar(x), f, x)` may be defined once, in `problems.jl`,
+for call sites that want an allocating helper.
 
 `Objective` was previously called `DataFidelity`. The rename reflects that not every
 problem has data — the abstraction is about which mathematical operations are
@@ -481,8 +486,7 @@ Usage inside `step!` — the algorithm author controls exactly what counts:
 ```julia
 function step!(m::GradientDescent, state, problem, iter, logger, rng)
     @core_timed state begin
-        g = grad(problem.f, state.iterate.x)
-        state.iterate.gradient = g
+        grad!(state.iterate.gradient, problem.f, state.iterate.x)
         d = compute_direction(m.direction, state, problem)
         state.numerics.direction = d
     end

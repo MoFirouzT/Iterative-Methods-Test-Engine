@@ -57,7 +57,7 @@ Arguments:
   rule      — the concrete StepSize instance (carries hyperparameters)
   state     — current algorithm state; provides x_k, ∇f(x_k), f(x_k),
               x_{k-1}, ∇f(x_{k-1}) and the timing accumulator
-  problem   — the Problem struct; search-based rules may call value() and grad()
+  problem   — the Problem struct; search-based rules may call value() and grad!()
   direction — the descent direction d_k (already stored in state.numerics.direction)
 
 Preconditions (guaranteed by step! before calling compute_step_size):
@@ -236,7 +236,9 @@ end
 Armijo performs function evaluations, and those evaluations are part of the core
 mathematical computation in the sense of the framework. `@core_timed` is used
 around the trial evaluations; `state.numerics.n_linesearch_evals` tracks how many
-trial evaluations were needed.
+trial evaluations were needed. The accepted/rejected trial point is stored in
+`state.numerics.x_trial`, which lets backtracking reuse a scratch buffer instead
+of allocating a fresh vector on every reduction.
 
 ```julia
 function compute_step_size(rule::ArmijoLS, state, problem,
@@ -248,8 +250,8 @@ function compute_step_size(rule::ArmijoLS, state, problem,
 
     @core_timed state begin
         for _ in 1:rule.max_iter
-            x_trial = state.iterate.x .+ α .* direction
-            f_trial = total_objective(problem, x_trial)
+            state.numerics.x_trial .= state.iterate.x .+ α .* direction
+            f_trial = total_objective(problem, state.numerics.x_trial)
             state.numerics.n_linesearch_evals += 1
             if f_trial <= f_xk + α * rhs_coef
                 return α
@@ -276,7 +278,7 @@ end
 | $c_1$                    | `rule.c₁`                                        | `Float64`          | sufficient decrease const  |
 | $f(x_k)$                 | `state.metrics.objective`                        | `Float64`          | reused; not recomputed     |
 | $\nabla f(x_k)^T d_k$   | `dot(state.iterate.gradient, direction)`         | `Float64`          | slope; must be < 0         |
-| $f(x_k + \alpha d_k)$   | `total_objective(problem, x_k + α .* direction)` | `Float64`          | one eval per backtrack     |
+| $f(x_k + \alpha d_k)$   | `total_objective(problem, state.numerics.x_trial)` | `Float64`          | one eval per backtrack; `x_trial` reused |
 | $\alpha_k$               | return value                                     | `Float64`          | accepted step size         |
 
 ### 4.5 Cost
@@ -438,7 +440,7 @@ state.numerics.grad_prev = copy(state.iterate.gradient)
    | Dot products, norms, linear algebra on $O(n)$ vectors | Yes |
    | `apply(H, d)` calls on a `Hessian` object | Yes |
    | `hessian(problem.f, x)` construction | Yes |
-   | Calls to `total_objective(problem, ...)`, `value(problem.f, ...)`, or `grad(problem.f, ...)` | Yes |
+  | Calls to `total_objective(problem, ...)`, `value(problem.f, ...)`, or `grad!(..., problem.f, ...)` | Yes |
    | Guard checks, fallback returns, counter increments | No — bookkeeping |
 
 5. If the rule requires additional per-iteration state (as BB requires
