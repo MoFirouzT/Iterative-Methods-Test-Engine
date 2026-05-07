@@ -178,16 +178,20 @@ Build IterationLog. `α_k` is read directly from `state.numerics.α_k` —
 no reconstruction from norms.
 """
 function extract_log_entry(method::GradientDescent, state::GradientDescentState, iter::Int)
-	IterationLog(
-		iter          = iter,
-		core_time_ns  = state.timing.core_time_ns,
-		objective     = state.metrics.objective,
-		gradient_norm = state.metrics.gradient_norm,
-		step_norm     = state.metrics.step_norm,
-		dist_to_opt   = state.metrics.dist_to_opt,
-		extras = Dict{Symbol,Any}(
-			:n_linesearch_evals => state.numerics.n_linesearch_evals,
-			:step_size          => state.numerics.α_k,
-		),
+	entry = IterationLog(
+			iter          = iter,
+			core_time_ns  = state.timing.core_time_ns,
+			objective     = state.metrics.objective,
+			gradient_norm = state.metrics.gradient_norm,
+			step_norm     = state.metrics.step_norm,
+			dist_to_opt   = state.metrics.dist_to_opt,
+			extras = Dict{Symbol,Any}(
+				:n_linesearch_evals => state.numerics.n_linesearch_evals,
+				:step_size          => state.numerics.α_k,
+			),
 	)
+	if length(state.iterate.x) <= 2               # for trajectory plots
+		entry.extras[:x_iter] = copy(state.iterate.x)
+	end
+	return entry
 end
