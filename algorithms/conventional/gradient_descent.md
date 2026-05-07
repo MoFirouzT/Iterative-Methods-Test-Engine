@@ -189,8 +189,11 @@ function step!(method::GradientDescent, state::GradientDescentState,
 
 - `state.timing.core_time_ns == 0` — reset by runner immediately before this call.
 - `state.iterate.x` holds the current $x_k$.
-- `state.iterate.gradient` holds $\nabla f(x_k)$ from the *previous* step (stale —
-  must be recomputed at the new $x_k$).
+- `state.iterate.gradient` holds $\nabla f(x_k)$ from the *previous* step.
+    The runner / `init_state` is responsible for providing this fresh gradient at
+    entry so that `step!` can avoid recomputing it. If the runner does not
+    provide a fresh gradient, `step!` must compute it before calling
+    `compute_direction`.
 - `state.metrics.objective` holds $f(x_k)$ from the *previous* step (stale — must
   be recomputed).
 - `logger` is the injected logger for this method+run — forward to
@@ -257,9 +260,8 @@ function step!(method::GradientDescent, state::GradientDescentState,
         copyto!(state.iterate.x_prev, state.iterate.x)
     end
 
-    # ── Core: gradient and descent direction at x_k ─────────────────────────────
+    # ── Core: descent direction at x_k (∇f(x_k) already computed in init/last step) ───
     @core_timed state begin
-        grad!(state.iterate.gradient, problem.f, state.iterate.x)            # ∇f(x_k)
         state.numerics.direction = compute_direction(method.direction,
                                                     state, problem)          # d_k
     end

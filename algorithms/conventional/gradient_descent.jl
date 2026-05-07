@@ -132,8 +132,8 @@ function step!(method::GradientDescent, state::GradientDescentState,
 	end
 
 	# ── Core: gradient and descent direction at x_k ───────────────────────────
+	# 	 ∇f(x_k) already computed in init/last step
 	@core_timed state begin
-		grad!(state.iterate.gradient, problem.f, state.iterate.x)
 		state.numerics.direction = compute_direction(method.direction, state, problem)
 	end
 

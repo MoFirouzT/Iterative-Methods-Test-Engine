@@ -423,7 +423,6 @@ A pre-defined analytic problem looked up by name.
 @kwdef struct AnalyticProblem <: ProblemSpec
 	name::Symbol
 	params::NamedTuple = (;)
-	dim::Int = 2
 end
 
 

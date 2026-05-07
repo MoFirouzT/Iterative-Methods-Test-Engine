@@ -256,7 +256,6 @@ make_problem(spec::ProblemSpec, rng::AbstractRNG) :: Problem
 @kwdef struct AnalyticProblem <: ProblemSpec
     name   :: Symbol
     params :: NamedTuple = (;)
-    dim    :: Int = 2
 end
 
 const ANALYTIC_PROBLEMS = Dict{Symbol, Function}()

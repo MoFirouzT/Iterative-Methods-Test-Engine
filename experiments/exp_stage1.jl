@@ -57,8 +57,7 @@ end
 function run_stage1(; seed::Int = SEED, run_id::Int = RUN_ID)
     problem_spec = AnalyticProblem(
         name   = :rosenbrock,
-        params = (rho = 100.0,),
-        dim    = 2,
+        params = (rho = 100.0, dim = 2),
     )
 
     criteria = stop_when_any(
