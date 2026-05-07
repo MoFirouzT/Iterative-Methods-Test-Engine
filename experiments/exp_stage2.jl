@@ -251,18 +251,3 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     main()
 end
-
-# ---------------------------------------------------------------------------
-# Validation criteria (from the staged plan)
-# ---------------------------------------------------------------------------
-# Visually:
-#   • All five trajectories should hug the parabolic valley y = x² near the
-#     bottom of the contour funnel.
-#   • Armijo crawls along the valley floor — short, dense steps.
-#   • BB1/BB2 visibly cut across the valley with longer, irregular jumps and
-#     overshoot the parabola before settling near (1, 1).
-#   • Cauchy makes smooth, progressively larger steps along the valley.
-#   • Fixed (α=8e-4) makes microscopic, monotone steps and may not reach (1,1)
-#     within 2000 iters — its trajectory stays close to x₀.
-# If you don't see this qualitative ordering, suspect the BB grad_prev
-# bookkeeping in step! before suspecting the plot.

@@ -1384,6 +1384,16 @@ logs/
         └── ...
 ```
 
+CSV sidecar contract:
+The CSV writer records the fixed IterationLog fields plus all extras whose values are CSV-scalar: 
+numbers (incl. Bool), strings, symbols, missing, nothing. 
+Vector-valued and composite extras (e.g. :x_iter, :sub_logs, custom dicts) are intentionally omitted — 
+they have no stable text representation and inflating them inline would defeat the CSV's purpose as a grep-able artifact. 
+The full payload remains in result.jld2 and is recovered transparently by load_experiment.
+The set of skipped keys is recorded in manifest.json under csv_skipped_extras, with a human-readable note pointing to JLD2 for the full payload. 
+The classifier rule is all-or-nothing per key: a single non-scalar occurrence demotes the whole column to JLD2-only, so the CSV never contains half a column.
+Adding a new CSV-scalar type is one method: _is_csv_scalar(::DateTime) = true in persistence.jl.
+
 ### API
 
 ```julia
@@ -1982,6 +1992,7 @@ TestEngine.jl/
 | `aggregate_runs` modes `:all`, `:mean`, `:median` | `:all` preserves every run for full distribution; `:mean`/`:median` reduce to a representative curve; `:best` omitted — cherry-picking runs has no sound benchmarking interpretation |
 | `FigureLayout` as `Matrix{Union{PlotSpec,Nothing}}` | Any grid formation expressible as a Julia matrix literal; blank cells are `nothing`; arbitrary sizes |
 | Transforms as `DataFrame -> DataFrame` | No DSL to learn; composable with DataFramesMeta; independently unit-testable |
+| CSV sidecar holds scalar extras only; vector / composite extras are JLD2-only | CSV is for grep-able tabular data; vectors and composites have no stable text encoding. JLD2 captures everything; the manifest records which keys were dropped so the omission is auditable without loading the binary. |
 
 ---
 
