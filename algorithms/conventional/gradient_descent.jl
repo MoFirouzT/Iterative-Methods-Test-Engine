@@ -163,7 +163,7 @@ function step!(method::GradientDescent, state::GradientDescentState,
 	# ── Bookkeeping (untimed) ─────────────────────────────────────────────────
 	state.metrics.gradient_norm = norm(state.iterate.gradient)
 	state.metrics.step_norm     = abs(α_k) * norm(state.numerics.direction)
-	# dist_to_opt is set by the runner — do not set here.
+	state.metrics.dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(state.iterate.x .- problem.x_opt)
 end
 
 
