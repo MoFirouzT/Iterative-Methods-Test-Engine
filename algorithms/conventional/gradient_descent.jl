@@ -117,19 +117,31 @@ end
 
 One iteration: x_{k+1} = x_k + α_k · d_k.
 
-Order is critical for BB: `grad_prev ← ∇f(x_k)` is written **after** the
-update and **before** the gradient refresh at x_{k+1}, so the next call's
-secant pair uses (x_{k-1}, ∇f(x_{k-1})) correctly.
+Order is critical for BB. The secant pair used at iter k is
+(s, y) = (x_k − x_{k−1}, ∇f(x_k) − ∇f(x_{k−1})), so at the moment
+`compute_step_size` runs we must have:
+
+- `state.iterate.x`          = x_k
+- `state.iterate.x_prev`     = x_{k−1}
+- `state.iterate.gradient`   = ∇f(x_k)
+- `state.numerics.grad_prev` = ∇f(x_{k−1})
+
+That dictates the order below:
+
+  1. compute direction at x_k         (reads ∇f(x_k))
+  2. compute α_k                       (BB reads the secant pair above)
+  3. x_prev ← x_k                      (now stale for current iter; ready for k+1)
+  4. x ← x_k + α_k · d_k               (x becomes x_{k+1})
+  5. grad_prev ← ∇f(x_k)              (still the OLD gradient before refresh)
+  6. gradient ← ∇f(x_{k+1})           (refresh)
+
+Saving `x_prev` at the **start** of `step!` (as an earlier version did) is a
+bug: it overwrites x_{k−1} with x_k before BB can read it, so `s` is always
+zero and the curvature guard `sᵀy ≤ ε_denom` fires every iter, collapsing BB
+to its `fallback_α`.
 """
 function step!(method::GradientDescent, state::GradientDescentState,
                problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
-
-	# ── Save x_k into x_prev (allocate once on iter 1, then reuse) ────────────
-	if isempty(state.iterate.x_prev)
-		state.iterate.x_prev = copy(state.iterate.x)
-	else
-		copyto!(state.iterate.x_prev, state.iterate.x)
-	end
 
 	# ── Core: gradient and descent direction at x_k ───────────────────────────
 	# 	 ∇f(x_k) already computed in init/last step
@@ -137,9 +149,19 @@ function step!(method::GradientDescent, state::GradientDescentState,
 		state.numerics.direction = compute_direction(method.direction, state, problem)
 	end
 
-	# ── Step-size selection (rule wraps its own kernel in @core_timed) ────────
+	# ── Step-size selection ──────────────────────────────────────────────────
+	#    BB reads (x_prev, grad_prev) here, which still hold (x_{k-1}, ∇f(x_{k-1})).
+	#    Don't move the x_prev save above this line — see docstring.
 	α_k = compute_step_size(method.step_size, state, problem, state.numerics.direction)
 	state.numerics.α_k = α_k
+
+	# ── Save x_k into x_prev (allocate once on iter 1, then reuse) ────────────
+	#    Must happen AFTER compute_step_size and BEFORE the iterate update.
+	if isempty(state.iterate.x_prev)
+		state.iterate.x_prev = copy(state.iterate.x)
+	else
+		copyto!(state.iterate.x_prev, state.iterate.x)
+	end
 
 	# ── Core: iterate update (no temporary; broadcast fuses into x in place) ──
 	@core_timed state begin

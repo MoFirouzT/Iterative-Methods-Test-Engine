@@ -30,24 +30,19 @@ end-to-end.
 - objective monotone (`FixedStep` at α = 8e-4 on Rosenbrock is monotone);
 - f decreases.
 
-**Note on timing.** Stage 0 deliberately does *not* assert on
-`core_time / wall_time`. At 100 iters on 2D Rosenbrock the kernel is below
-the per-iter scaffolding noise floor, so the ratio is dominated by logger
-I/O, dispatch, and (without warm-up) one-shot JIT. The `@core_timed`
-scope-correctness check lives in Stage 4, where 20_000 iters amortize the
-scaffolding enough for the comparison to be a real signal.
-
 ---
 
 ## Stage 1 — Convergence panels
 
-**Status:** done. **File:** `exp_stage1.jl`.
+**Status:** done.
+**File:** `exp_stage1.jl`.
 
 Five `GradientDescent` variants (Fixed, Armijo, Cauchy, BB1, BB2) on Rosenbrock,
 each stopped on `stop_when_any(MaxIterations(2000), GradientTolerance(1e-9))`.
 Renders a 2×2 panel: `f(x)`, `‖∇f(x)‖`, `‖x − x*‖`, `αₖ` — all on log y-axis.
 
 **Exercises:**
+
 - the full hand-rolled run loop with manual per-method rng derivation
   (`Xoshiro(hash((seed, run_id, name)))`) — mirrors what `run_experiment` will use
   at Stage 5, so iter logs stay byte-comparable across stages for any
@@ -59,13 +54,14 @@ Renders a 2×2 panel: `f(x)`, `‖∇f(x)‖`, `‖x − x*‖`, `αₖ` — all
 - `Logger` at `MILESTONE` verbosity.
 
 **Validates:**
+
 - all five methods complete;
 - BB1/BB2 converge fastest (expected ordering on Rosenbrock);
 - Armijo's step-size panel shows discrete `β^j` values;
 - Fixed's step-size panel is constant.
 
-**Note on the rng key.** Uses short names (`"Armijo"`) for rng derivation. Stage 5
-will use the long form (`"GradientDescent[step_size=Armijo]"`) — this changes the
+**Note on the rng key.** Uses short names (`"Armijo"`) for rng derivation.
+Stage 5 will use the long form (`"GradientDescent[step_size=Armijo]"`) — this changes the
 per-method rng stream but does not change deterministic-`step!` results.
 
 ---
