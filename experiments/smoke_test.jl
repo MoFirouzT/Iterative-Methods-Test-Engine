@@ -1,7 +1,9 @@
 # experiments/smoke_test.jl
 #
-# smoke test: confirm the runner contract works end-to-end and
-# that @core_timed measures roughly what wall-clock measures.
+# smoke test: confirm the runner contract works end-to-end on 2D Rosenbrock.
+# The @core_timed-vs-wall-clock ratio check lives in Stage 4, where 20_000
+# iters amortize per-iter scaffolding enough for the comparison to be a real
+# signal. At Stage 0's 100 iters the kernel is below the noise floor.
 
 using Random, LinearAlgebra, Printf
 
@@ -29,14 +31,9 @@ verbosity = VerbosityConfig(
 
 logger = make_logger("GD[Fixed]", 1, "", verbosity)
 
-# ── Run, with a wall-clock measurement around it for comparison ────────────────
-wall_t0 = time_ns()
 result  = run_method(method, problem, criteria, logger, Xoshiro(42))
-wall_ns = time_ns() - wall_t0
 
 # ── Report ──────────────────────────────────────────────────────────────────────
-core_ns      = sum(e.core_time_ns for e in result.iter_logs)
-ratio        = core_ns / wall_ns
 final_x      = result.final_state.iterate.x
 final_f      = result.iter_logs[end].objective
 final_gnorm  = result.iter_logs[end].gradient_norm
@@ -55,9 +52,6 @@ println("───────────────────────�
 @printf("  final ‖∇f(x)‖        : %.6e\n",         final_gnorm)
 @printf("  monotone? (n_inc=0)  : %s   (n_increases = %d)\n",
         n_increases == 0 ? "YES" : "NO",  n_increases)
-@printf("  core time            : %.3f ms\n",      core_ns / 1e6)
-@printf("  wall time            : %.3f ms\n",      wall_ns / 1e6)
-@printf("  core / wall          : %.2f%%\n",       100 * ratio)
 println()
 @printf("  PASS criteria:\n")
 @printf("    no exceptions          : ✓ (we got here)\n")
@@ -65,6 +59,4 @@ println()
 @printf("    f decreased            : %s   (f₀=%.4e, f_end=%.4e)\n",
         final_f < result.iter_logs[1].objective ? "✓" : "✗",
         result.iter_logs[1].objective, final_f)
-@printf("    core ≈ wall (50%%–110%%) : %s\n",
-        0.50 ≤ ratio ≤ 1.10 ? "✓" : "✗")
 println("────────────────────────────────────────────────────────────────")

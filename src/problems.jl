@@ -28,9 +28,11 @@ abstract type Objective end
 
 
 """
-	value(f::Objective, x::Vector) -> Float64
+	value(f, x) -> Float64
 
-Evaluate the objective at x.
+Evaluate `f` at `x`. Implemented for both `Objective` and `Regularizer` subtypes:
+- `value(f::Objective, x::Vector) -> Float64` — objective value
+- `value(g::Regularizer, x::Vector) -> Float64` — regularizer value
 """
 function value end
 
@@ -78,14 +80,6 @@ Base type for regularization penalties. Every concrete subtype must implement:
 - `prox(g::Regularizer, x::Vector, γ::Float64) -> Vector` (proximal operator)
 """
 abstract type Regularizer end
-
-
-"""
-	value(g::Regularizer, x::Vector) -> Float64
-
-Evaluate the regularizer at x.
-"""
-function value end
 
 
 """
