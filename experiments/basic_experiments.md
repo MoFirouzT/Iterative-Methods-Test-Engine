@@ -122,14 +122,8 @@ If `assert_roundtrip` fails on `:x_iter` specifically, the JLD2 writer is droppi
 
 ## Stage 4 — Stopping criteria coverage
 
-**Status:** in progress.
+**Status:** done.
 **File:** `exp_stage4.jl`.
-Blocker: `DistanceToOptimal` is referenced here but not yet defined in
-`src/stopping.jl` (only `MaxIterations`, `TimeLimit`, `GradientTolerance`,
-`ObjectiveStagnation`, `StepTolerance`, `CompositeCriterion` exist). The
-runner-side `dist_to_opt` update also still needs wiring. Once those land,
-the script runs end-to-end and the new `print_timing_table` block (added
-in preparation for the assertion move from Stage 0) becomes executable.
 
 Same five methods, now stopping on `stop_when_any(MaxIterations(20_000), DistanceToOptimal(1e-8), GradientTolerance(1e-10))`.
 Produces a bar chart of *iterations to milestone* (first time `‖x − x*‖ ≤ 1e-6`)
@@ -171,27 +165,23 @@ the stopping check.
 **Status:** new.
 
 First experiment that drives the framework through its actual user-facing entry
-point — `run_experiment` — rather than a hand-rolled loop. Defines the same five
-methods via a `VariantAxis(:step_size, ...)` grid, runs through the orchestrator,
+point — `run_experiment` — rather than a hand-rolled loop.
+Defines the same five methods via a `VariantAxis(:step_size, ...)` grid, runs through the orchestrator,
 then layers fair-comparison plots on top.
 
 **Exercises:**
 
-- `VariantAxis`, `VariantGrid`, `expand`, `VariantSpec` (Cartesian expansion and
-  auto-naming);
+- `VariantAxis`, `VariantGrid`, `expand`, `VariantSpec` (Cartesian expansion and auto-naming);
 - `ABBREVIATIONS` registry and `register_abbreviation!`;
-- `resolve_methods` — routes each produced variant into the conventional bucket
-  based on its concrete type;
-- `run_experiment` orchestration loop, including its own deterministic
-  per-`(seed, run_id, name)` rng derivation;
+- `resolve_methods` — routes each produced variant into the conventional bucket based on its concrete type;
+- `run_experiment` orchestration loop, including its own deterministic per-`(seed, run_id, name)` rng derivation;
 - `n_linesearch_evals` accounting inside Armijo's backtracking loop;
 - per-iteration `core_time_ns` accumulation in `Logger.total_core_ns`.
 
 **Plots.** Stage 1's four panels reproduced *three times*:
 
 1. x-axis = iter (baseline, identical to Stage 1's figure);
-2. x-axis = cumulative function evaluations (per-iter base cost plus
-   `n_linesearch_evals` where applicable);
+2. x-axis = cumulative function evaluations (per-iter base cost plus `n_linesearch_evals` where applicable);
 3. x-axis = cumulative `core_time_ns`, annotated with a noise-floor warning —
    the kernel is tens of nanoseconds on 2D Rosenbrock, OS jitter shifts
    cumulative time by 5–10%, so this plot is sanity-check only, not for
@@ -199,22 +189,19 @@ then layers fair-comparison plots on top.
 
 **Validates:**
 
-- **Byte-identical iter logs vs Stage 1.** Programmatic check: load both
-  experiments, build their DataFrames, assert equality on `:iter`, `:objective`,
-  `:gradient_norm`, `:dist_to_opt` for every method. If they drift, something in
-  the orchestrator's setup path differs from the hand-rolled version — and that
-  bug needs to surface here, not in Stage 7 when debug mode is also being
-  exercised.
-- Armijo's curve stretches ~3–6× horizontally on the eval-count axis (visible
-  per-iter cost difference);
+- **Byte-identical iter logs vs Stage 1.** Programmatic check:
+  load both experiments, build their DataFrames, assert equality on `:iter`, `:objective`,
+  `:gradient_norm`, `:dist_to_opt` for every method.
+  If they drift, something in the orchestrator's setup path differs from the hand-rolled version — and that
+  bug needs to surface here, not in Stage 7 when debug mode is also being exercised.
+- Armijo's curve stretches ~3–6× horizontally on the eval-count axis (visible per-iter cost difference);
 - BB and Fixed barely move between iter and eval axes (1 eval per iter);
-- the BB vs Armijo gap *widens* on the eval-count axis — the whole point of the
-  fair-comparison plot.
+- the BB vs Armijo gap *widens* on the eval-count axis — the whole point of the fair-comparison plot.
 
 **Caveat on the byte-identical assertion.** Stage 1 used short names (`"Armijo"`)
-for the per-method rng key; Stage 5 uses the long form
-(`"GradientDescent[step_size=Armijo]"`). The hashes differ, so the rng streams
-differ. The assertion passes only because no `step!` in this grid draws from rng.
+for the per-method rng key; Stage 5 uses the long form (`"GradientDescent[step_size=Armijo]"`).
+The hashes differ, so the rng streams differ.
+The assertion passes only because no `step!` in this grid draws from rng.
 Add a comment in the file: introduce any stochastic step-size component and the
 assertion silently becomes vacuous.
 

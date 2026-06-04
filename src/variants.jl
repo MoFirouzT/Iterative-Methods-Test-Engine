@@ -145,12 +145,18 @@ end
 	VariantSpec
 
 Concrete expanded variant ready to run.
+
+The `method` field is typed `IterativeMethod` (not `ExperimentalMethod`) so a
+`VariantGrid` can produce either `ConventionalMethod` or `ExperimentalMethod`
+variants — Stage 5's GradientDescent step-size grid produces the former.
+`resolve_methods` routes each spec into the correct bucket based on the
+concrete type.
 """
 struct VariantSpec
 	name::String
 	short_name::String
 	params::NamedTuple
-	method::ExperimentalMethod
+	method::IterativeMethod
 end
 
 
@@ -175,6 +181,28 @@ const ABBREVIATIONS = Dict{String,String}(
 )
 
 abbreviate(value) = get(ABBREVIATIONS, string(value), string(value))
+
+
+"""
+    register_abbreviation!(full::AbstractString, short::AbstractString) -> short
+
+Register `full` ↦ `short` in the [`ABBREVIATIONS`](@ref) lookup so subsequent
+calls to `abbreviate(full)` (used by `VariantSpec` short_name generation,
+plot legends, etc.) return `short`. Overwrites any existing entry for `full`.
+
+Call this *before* expanding a `VariantGrid` so the generated `short_name`
+of each spec uses the friendly form rather than the long type name.
+
+# Example
+```julia
+register_abbreviation!("GradientDescent", "GD")
+register_abbreviation!("BarzilaiBorwein", "BB")
+```
+"""
+function register_abbreviation!(full::AbstractString, short::AbstractString)
+    ABBREVIATIONS[String(full)] = String(short)
+    return short
+end
 
 _format_full_piece(param::Symbol, label::AbstractString) = string(param, "=", label)
 _format_short_piece(label::AbstractString) = abbreviate(label)

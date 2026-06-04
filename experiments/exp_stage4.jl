@@ -303,16 +303,17 @@ function plot_milestone_bars(milestone_iters::Dict, summary::Dict;
                               budget::Int)
     fig = Figure(size = (1100, 700))
     ax  = Axis(fig[1, 1],
-        ylabel = "iterations  (log scale)",
-        title  = "Stage 4 — iterations to ‖x − x*‖ ≤ $(milestone)" *
-                 "  (budget = $(budget))",
-        yscale = log10,
+        ylabel   = "iterations  (log scale)",
+        title    = "Stage 4 — iterations to reach ‖x − x*‖ ≤ $(milestone)",
+        subtitle = "budget: $(budget) iters  •  DNF = method never crossed the threshold within budget",
+        yscale   = log10,
     )
 
     n = length(PLOT_ORDER)
     heights     = Float64[]
     bar_colors  = Tuple{String, Float64}[]   # (color, alpha)
     annotations = String[]
+    is_dnf      = Bool[]
 
     for name in PLOT_ORDER
         iters = milestone_iters[name]
@@ -324,48 +325,70 @@ function plot_milestone_bars(milestone_iters::Dict, summary::Dict;
             push!(heights,     Float64(s.n_iters))
             push!(bar_colors,  (COLORS[name], 0.35))
             push!(annotations, "DNF\n:$(s.stop_reason)\nn=$(s.n_iters)")
+            push!(is_dnf,      true)
         else
             push!(heights,     Float64(iters))
             push!(bar_colors,  (COLORS[name], 1.0))
             push!(annotations, "$(iters) iters\n:$(s.stop_reason)")
+            push!(is_dnf,      false)
         end
     end
 
+    # `fillto = 1` is critical on log y: without it, Makie picks an arbitrary
+    # log-scale baseline (around y ≈ min(heights)/2) and bar lengths are no
+    # longer proportional to log10(height) — BB1 looks ~1/3 of BB2 when it
+    # should be ~57% by log decades. Forcing the floor to 1 restores honesty.
     barplot!(ax, 1:n, heights;
         color       = bar_colors,
         strokewidth = 0.8,
         strokecolor = :black,
+        fillto      = 1.0,
     )
 
     ax.xticks       = (1:n, PLOT_ORDER)
     ax.ygridvisible = true
 
-    # Budget reference line — disambiguates "this bar hit the ceiling" (DNF
-    # ran the full budget) from "this bar happened to stop at iter == budget".
+    # Budget reference line — distinct color from the gray-faded DNF bars so
+    # the line doesn't visually merge with Fixed's bar top.
     hlines!(ax, [Float64(budget)];
-        color     = (:gray, 0.6),
-        linewidth = 1.0,
+        color     = :firebrick,
+        linewidth = 1.2,
         linestyle = :dash,
     )
-    text!(ax, n + 0.35, Float64(budget);
-        text     = " budget",
-        align    = (:left, :center),
+    # Budget label sits *above* the line, centered over the methods, so it
+    # never collides with bar-top annotations.
+    text!(ax, (n + 1) / 2, Float64(budget) * 1.15;
+        text     = "budget = $(budget)",
+        align    = (:center, :bottom),
         fontsize = 10,
-        color    = :gray,
+        color    = :firebrick,
+        font     = :bold,
     )
 
-    # Annotation above each bar (multiplicative offset works on log scale).
+    # Annotations: place *inside* tall DNF bars to avoid colliding with the
+    # budget line / label; place *above* short bars for room.
     for i in 1:n
-        text!(ax, i, heights[i] * 1.18;
-            text     = annotations[i],
-            align    = (:center, :bottom),
-            fontsize = 10,
-        )
+        if is_dnf[i] && heights[i] > 0.5 * budget
+            # Inside-bar placement, anchored at the bar top.
+            text!(ax, i, heights[i] / 1.18;
+                text     = annotations[i],
+                align    = (:center, :top),
+                fontsize = 10,
+                color    = :black,
+                font     = :bold,
+            )
+        else
+            text!(ax, i, heights[i] * 1.18;
+                text     = annotations[i],
+                align    = (:center, :bottom),
+                fontsize = 10,
+            )
+        end
     end
 
-    # Headroom for annotations + the budget label sitting to the right.
+    # Headroom for the budget label sitting above the budget line.
     ylims!(ax, 1, budget * 6)
-    xlims!(ax, 0.4, n + 1.1)
+    xlims!(ax, 0.4, n + 0.6)
 
     save(outpath, fig)
     @info "Saved bar chart" path = outpath

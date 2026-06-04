@@ -37,10 +37,10 @@
 #                                   plot is not authoritative for ordering.
 # =============================================================================
 
-import Pkg
-Pkg.activate(dirname(@__DIR__))
-
-using TestEngine
+# Match the Stages 1–4 include pattern. TestEngine is a local module under
+# src/, not a registered package; `using TestEngine` would fail.
+include("../src/TestEngine.jl")
+using .TestEngine
 using DataFrames, DataFramesMeta
 using CairoMakie
 using Statistics
@@ -163,10 +163,13 @@ end
 df = to_dataframe(result)
 sort!(df, [:method_name, :iter])
 
-# Per iter, function evaluations count = 1 base eval (the gradient/value
-# call inside the kernel) + n_linesearch_evals from any backtracking search.
-# Direct step-size rules (Fixed, Cauchy, BB) keep n_linesearch_evals at 0,
-# so cum_n_evals == iter for them.
+# Cumulative function evaluations at iter k =
+#   k            (one base gradient/value call per iter)
+# + ls[k]        (cumulative line-search trial count up to and including iter k)
+# where ls[k] is read directly from :n_linesearch_evals — the framework already
+# stores the running total per docstring in gradient_descent.jl. Summing it
+# again per row (as an earlier draft did) double-counts catastrophically and
+# inflates Armijo's reported Σevals to ~20M instead of ~20k.
 function _attach_cumulative!(df)
     has_ls = :n_linesearch_evals in propertynames(df)
     df.cum_core_time_ns = Vector{Float64}(undef, nrow(df))
@@ -175,7 +178,7 @@ function _attach_cumulative!(df)
         idx = parentindices(sub)[1]
         df.cum_core_time_ns[idx] = cumsum(Float64.(sub.core_time_ns))
         ls = has_ls ? coalesce.(sub.n_linesearch_evals, 0) : zeros(Int, nrow(sub))
-        df.cum_n_evals[idx]      = cumsum(1 .+ ls)
+        df.cum_n_evals[idx]      = sub.iter .+ ls
     end
     df.cum_core_time_ms = df.cum_core_time_ns ./ 1e6
     return df
@@ -187,11 +190,12 @@ _attach_cumulative!(df)
 println("\n=== Per-method final state ===")
 for sub in groupby(df, :method_name)
     last_row = sub[end, :]
+    # n_linesearch_evals is cumulative — last row already has the grand total.
     nls = :n_linesearch_evals in propertynames(sub) ?
-            sum(coalesce.(sub.n_linesearch_evals, 0)) : 0
+            Int(coalesce(last(sub.n_linesearch_evals), 0)) : 0
     @printf("  %-50s iter=%5d  f=%.3e  ‖∇f‖=%.3e  ‖x-x*‖=%.3e  Σevals=%d\n",
             sub.method_name[1], last_row.iter, last_row.objective,
-            last_row.gradient_norm, last_row.dist_to_opt, nrow(sub) + nls)
+            last_row.gradient_norm, last_row.dist_to_opt, last_row.iter + nls)
 end
 
 # Sanity check on Armijo's line-search accounting: total evals should be
@@ -201,10 +205,11 @@ let armijo_name = "GradientDescent[step_size=Armijo]"
     sub = @subset(df, :method_name .== armijo_name)
     if nrow(sub) > 0 && :n_linesearch_evals in propertynames(sub)
         n_iter  = nrow(sub)
-        n_extra = sum(coalesce.(sub.n_linesearch_evals, 0))
+        # Last row carries the cumulative line-search trial count.
+        n_extra = Int(coalesce(last(sub.n_linesearch_evals), 0))
         ratio   = (n_iter + n_extra) / max(n_iter, 1)
-        @printf("\n  Armijo eval/iter ratio = %.2f " *
-                "(≈1 ⇒ line-search accounting is broken)\n", ratio)
+        @printf("\n  Armijo eval/iter ratio = %.2f (≈1 ⇒ line-search accounting is broken)\n",
+                ratio)
         ratio > 1.05 || @warn "Armijo's eval/iter ratio looks suspiciously low"
     else
         @warn ":n_linesearch_evals not present in DataFrame — Armijo " *
@@ -232,19 +237,19 @@ Armijo it is discrete β^j values; for BB it varies continuously.
 """
 function four_panel(df, xcol::Symbol, xlabel::String;
                     xscale::Symbol=:linear, title::String="")
-    p_obj  = PlotSpec(data=df, x=xcol, y=:objective,     yscale=:log10, xscale=xscale,
+    p_obj  = TestEngine.PlotSpec(data=df, x=xcol, y=:objective,     yscale=:log10, xscale=xscale,
                       title="f(x)",     xlabel=xlabel, ylabel="f(x)",
                       method_styles=styles)
-    p_grad = PlotSpec(data=df, x=xcol, y=:gradient_norm, yscale=:log10, xscale=xscale,
+    p_grad = TestEngine.PlotSpec(data=df, x=xcol, y=:gradient_norm, yscale=:log10, xscale=xscale,
                       title="‖∇f(x)‖",  xlabel=xlabel, ylabel="‖∇f(x)‖",
                       method_styles=styles)
-    p_dist = PlotSpec(data=df, x=xcol, y=:dist_to_opt,   yscale=:log10, xscale=xscale,
+    p_dist = TestEngine.PlotSpec(data=df, x=xcol, y=:dist_to_opt,   yscale=:log10, xscale=xscale,
                       title="‖x − x*‖", xlabel=xlabel, ylabel="‖x − x*‖",
                       method_styles=styles)
-    p_step = PlotSpec(data=df, x=xcol, y=:step_size,     yscale=:log10, xscale=xscale,
+    p_step = TestEngine.PlotSpec(data=df, x=xcol, y=:step_size,     yscale=:log10, xscale=xscale,
                       title="αₖ",       xlabel=xlabel, ylabel="αₖ",
                       method_styles=styles)
-    plots = Union{PlotSpec,Nothing}[p_obj p_grad ; p_dist p_step]
+    plots = Union{TestEngine.PlotSpec,Nothing}[p_obj p_grad ; p_dist p_step]
     return render_figure(FigureLayout(
         figure_size = (1400, 1000),
         title       = title,

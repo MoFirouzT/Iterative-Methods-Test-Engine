@@ -18,7 +18,11 @@ Declarative experiment definition.
 @kwdef struct ExperimentConfig
 	name::String
 	problem_spec::ProblemSpec
-	conventional_methods::Vector{ConventionalMethod}
+	# Either `conventional_methods` (the Stages 1–4 imperative path) or
+	# `variant_grids` (Stage 5+'s VariantGrid orchestrator path) — at least one
+	# must produce a non-empty method list, but neither is individually
+	# required, so both default to empty.
+	conventional_methods::Vector{ConventionalMethod} = ConventionalMethod[]
 	experimental_methods::Vector{ExperimentalMethod} = ExperimentalMethod[]
 	variant_grids::Vector{VariantGrid} = VariantGrid[]
 	stopping_criteria::StoppingCriterion = stop_when_any(
@@ -78,8 +82,11 @@ _method_name(method::IterativeMethod) = string(typeof(method))
 	resolve_methods(config::ExperimentConfig)
 
 Returns `(conventional, experimental)` where each element is a vector of
-`(name, method)` pairs. Variant grids are expanded and appended to
-`experimental`.
+`(name, method)` pairs. Variant grids are expanded and each produced
+`VariantSpec` is routed into the conventional or experimental bucket based
+on its concrete `method` type — a `VariantGrid` over `GradientDescent`
+step-size variants produces conventional methods; a grid over an
+`ExperimentalMethod` produces experimental ones.
 """
 function resolve_methods(config::ExperimentConfig)
 	conventional = Tuple{String,ConventionalMethod}[
@@ -91,8 +98,16 @@ function resolve_methods(config::ExperimentConfig)
 	]
 
 	for grid in config.variant_grids
-		specs = expand(grid)
-		append!(experimental, [(spec.name, spec.method) for spec in specs])
+		for spec in expand(grid)
+			if spec.method isa ConventionalMethod
+				push!(conventional, (spec.name, spec.method))
+			elseif spec.method isa ExperimentalMethod
+				push!(experimental, (spec.name, spec.method))
+			else
+				throw(ArgumentError("VariantSpec method must be a ConventionalMethod " *
+					"or ExperimentalMethod; got $(typeof(spec.method))"))
+			end
+		end
 	end
 
 	return conventional, experimental

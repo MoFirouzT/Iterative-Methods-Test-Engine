@@ -40,6 +40,7 @@ export RosenbrockKernel, RosenbrockObjective
 export HessianApprox, FullHessian, BFGS, SR1, LBFGS, DiagBFGS
 export MinorUpdate, NoMinorUpdate, MomentumStep, NesterovStep, CorrectionStep
 export VariantAxis, VariantGrid, VariantSpec, expand
+export ABBREVIATIONS, abbreviate, register_abbreviation!
 
 export VerbosityLevel, VerbosityConfig, IterationLog, Logger
 export log_init!, log_iter!, log_event!, attach_sub_logs!, finalize!
