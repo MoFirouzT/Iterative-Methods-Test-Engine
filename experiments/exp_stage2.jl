@@ -2,8 +2,7 @@
 #
 # Stage 2 — the Rosenbrock-iconic plot.
 # Same five GradientDescent variants as Stage 1, but instead of convergence
-# curves we render the (x₁, x₂) trajectories overlaid on log-spaced contours
-# of f.  This is the "wow" plot.
+# curves we render the (x₁, x₂) trajectories overlaid on log-spaced contours of f.
 #
 # Exercises:
 #   • extras plumbing all the way through to a DataFrame (here: :x_iter), and
@@ -67,7 +66,7 @@ function run_stage2(; seed::Int = SEED, run_id::Int = RUN_ID)
     )
 
     criteria = stop_when_any(
-        MaxIterations(n   = 2000),
+        MaxIterations(n   = 700),
         GradientTolerance(tol = 1e-9),
     )
 
@@ -150,13 +149,26 @@ end
 # ---------------------------------------------------------------------------
 
 function plot_stage2(results, problem; outpath::String = "stage2_trajectories.pdf")
-    fig = Figure(size = (1000, 900))
+    fig = Figure(size = (1100, 950))
     ax  = Axis(fig[1, 1],
         xlabel = "x₁",
         ylabel = "x₂",
         title  = "Stage 2 — GradientDescent on Rosenbrock(ρ=100): trajectories from x₀=(−1.2, 1)",
         aspect = DataAspect(),
     )
+
+    # Iteration counts → legend labels (e.g. "BB1 (n=47)").
+    iter_counts = Dict(name => res.n_iters for (name, res) in results)
+
+    trajectories = extract_trajectories(results, problem)
+
+    # ── Main-plot extent ───────────────────────────────────────────────────
+    # BB1's worst spikes go very far off; capturing all of them shrinks the
+    # interesting valley behavior to nothing. Fix the window instead — wide
+    # enough to show most of the BB wandering, tight enough to keep the
+    # valley legible.
+    x_min, x_max = -3.0, 3.0
+    y_min, y_max = -3.0,  4.0
 
     # ── Contour grid ────────────────────────────────────────────────────────
     # Hardcoded Rosenbrock — the contour is reference geometry, not a result of
@@ -167,8 +179,8 @@ function plot_stage2(results, problem; outpath::String = "stage2_trajectories.pd
     ρ = Float64(get(problem.meta, :rho, 100.0))
     rosen(x, y) = (1.0 - x)^2 + ρ * (y - x^2)^2
 
-    xs = range(-2.0, 2.0, length = 400)
-    ys = range(-1.0, 3.0, length = 400)
+    xs = range(x_min, x_max, length = 500)
+    ys = range(y_min, y_max, length = 500)
     zs = [rosen(x, y) for x in xs, y in ys]
 
     # Log-spaced contour levels: f ranges from 0 (at x*) to ~2.5×10³ on this box.
@@ -176,18 +188,44 @@ function plot_stage2(results, problem; outpath::String = "stage2_trajectories.pd
     # narrow valley and sparse on the flatlands.
     levels = 10.0 .^ range(-1.0, 3.5, length = 15)
 
+    # Low-chroma reversed bone — light in the valley (trajectories pop), darker
+    # on the cliffs. Avoids competing with any of the five trajectory hues.
+    heatmap!(ax, xs, ys, log10.(max.(zs, 1e-2));
+        colormap = Reverse(:bone),
+        alpha    = 0.35,
+    )
     contour!(ax, xs, ys, zs;
         levels    = levels,
-        color     = (:gray, 0.55),    # uniform gray, no colormap → trajectories pop
+        color     = (:gray, 0.55),
         linewidth = 0.6,
     )
 
-    # ── Trajectories ────────────────────────────────────────────────────────
-    for (name, traj_x, traj_y) in extract_trajectories(results, problem)
+    # ── Trajectories (alpha 0.7 so valley overlaps shade rather than overwrite) ─
+    for (name, traj_x, traj_y) in trajectories
         lines!(ax, traj_x, traj_y;
-            color     = COLORS[name],
+            color     = (COLORS[name], 0.7),
             linewidth = 1.8,
-            label     = name,
+            label     = "$name (n=$(iter_counts[name]))",
+        )
+        # Cadence dots — ~12 per trajectory, regardless of length.
+        # Lets you see Fixed's slow march vs. BB1's few violent steps at a glance.
+        stride = max(1, length(traj_x) ÷ 12)
+        idx    = 1:stride:length(traj_x)
+        scatter!(ax, traj_x[idx], traj_y[idx];
+            color       = COLORS[name],
+            marker      = :circle,
+            markersize  = 7,
+            strokecolor = :white,
+            strokewidth = 0.7,
+        )
+        # Endpoint marker — diamond at the terminal iterate, with strong stroke
+        # so it pops out of the trajectory's own line color.
+        scatter!(ax, [traj_x[end]], [traj_y[end]];
+            color       = COLORS[name],
+            marker      = :diamond,
+            markersize  = 13,
+            strokecolor = :black,
+            strokewidth = 1.2,
         )
     end
 
@@ -195,24 +233,46 @@ function plot_stage2(results, problem; outpath::String = "stage2_trajectories.pd
     scatter!(ax, [problem.x0[1]], [problem.x0[2]];
         color        = :black,
         marker       = :circle,
-        markersize   = 14,
+        markersize   = 18,
         strokecolor  = :white,
-        strokewidth  = 1.5,
+        strokewidth  = 2,
         label        = "x₀",
+    )
+    text!(ax, problem.x0[1], problem.x0[2];
+        text     = "  x₀",
+        align    = (:left, :center),
+        fontsize = 14,
+        font     = :bold,
     )
     if !isnothing(problem.x_opt)
         scatter!(ax, [problem.x_opt[1]], [problem.x_opt[2]];
             color        = :red,
             marker       = :star5,
-            markersize   = 20,
+            markersize   = 22,
             strokecolor  = :white,
-            strokewidth  = 1.5,
+            strokewidth  = 2,
             label        = "x*",
         )
     end
 
-    xlims!(ax, -2.0, 2.0)
-    ylims!(ax, -1.0, 3.0)
+    # ── Inset-region indicator (dashed box on main plot) ────────────────────
+    # Tight window around x* — shows the "convergence dance" of the methods
+    # that actually arrived. Methods whose endpoints fall outside the box
+    # (notably Fixed, which is far from x*) are already legible on the main
+    # plot via their endpoint diamonds; the inset is dedicated to the close-in
+    # landing comparison.
+    ins_xlo, ins_xhi = 0.85, 1.10
+    ins_ylo, ins_yhi = 0.85, 1.10
+    lines!(ax,
+        [ins_xlo, ins_xhi, ins_xhi, ins_xlo, ins_xlo],
+        [ins_ylo, ins_ylo, ins_yhi, ins_yhi, ins_ylo];
+        color     = :red,
+        linewidth = 2.0,
+        linestyle = :dash,
+    )
+
+    xlims!(ax, x_min, x_max)
+    ylims!(ax, y_min, y_max)
 
     axislegend(ax;
         position        = :rt,
@@ -220,6 +280,71 @@ function plot_stage2(results, problem; outpath::String = "stage2_trajectories.pd
         backgroundcolor = (:white, 0.85),
         nbanks          = 1,
     )
+
+    # ── Inset axis: zoom near x* ────────────────────────────────────────────
+    # Anchor the inset to the main axis's viewport (not its GridLayout cell),
+    # so it sits inside the axis frame rather than overlapping the margin/labels.
+    inset_bbox = lift(ax.scene.viewport) do vp
+        w   = 0.32 * vp.widths[1]
+        h   = 0.32 * vp.widths[2]
+        pad = 0.025 * min(vp.widths[1], vp.widths[2])
+        x   = vp.origin[1] + pad
+        y   = vp.origin[2] + pad
+        Rect2f(Vec2f(x, y), Vec2f(w, h))
+    end
+    ax_inset = Axis(fig.scene,
+        bbox                = inset_bbox,
+        aspect              = DataAspect(),
+        backgroundcolor     = (:white, 0.95),
+        title               = "zoom near x*",
+        titlesize           = 11,
+        xlabelvisible       = false,
+        ylabelvisible       = false,
+        xticklabelsvisible  = false,
+        yticklabelsvisible  = false,
+        xticksvisible       = false,
+        yticksvisible       = false,
+        # Red frame matches the inset-region box on the main plot.
+        leftspinecolor      = :red,
+        rightspinecolor     = :red,
+        topspinecolor       = :red,
+        bottomspinecolor    = :red,
+        spinewidth          = 1.5,
+    )
+    translate!(ax_inset.blockscene, 0, 0, 1000)  # ensure inset sits above main
+
+    xs_i = range(ins_xlo, ins_xhi, length = 250)
+    ys_i = range(ins_ylo, ins_yhi, length = 250)
+    zs_i = [rosen(x, y) for x in xs_i, y in ys_i]
+    contour!(ax_inset, xs_i, ys_i, zs_i;
+        levels    = levels,
+        color     = (:gray, 0.55),
+        linewidth = 0.6,
+    )
+    for (name, traj_x, traj_y) in trajectories
+        lines!(ax_inset, traj_x, traj_y;
+            color     = (COLORS[name], 0.85),
+            linewidth = 1.6,
+        )
+        scatter!(ax_inset, [traj_x[end]], [traj_y[end]];
+            color       = COLORS[name],
+            marker      = :diamond,
+            markersize  = 11,
+            strokecolor = :black,
+            strokewidth = 1.0,
+        )
+    end
+    if !isnothing(problem.x_opt)
+        scatter!(ax_inset, [problem.x_opt[1]], [problem.x_opt[2]];
+            color       = :red,
+            marker      = :star5,
+            markersize  = 14,
+            strokecolor = :white,
+            strokewidth = 1.5,
+        )
+    end
+    xlims!(ax_inset, ins_xlo, ins_xhi)
+    ylims!(ax_inset, ins_ylo, ins_yhi)
 
     save(outpath, fig)
     @info "Saved figure" path = outpath
