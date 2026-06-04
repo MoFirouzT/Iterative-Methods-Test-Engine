@@ -11,6 +11,109 @@ using Sockets: gethostname
 
 
 """
+	WarmupStrategy
+
+Abstract type for optional, **shared** per-run warm-up steps. A warm-up runs
+once per run before any method starts; its output is a new initial point
+`x0_warm` that replaces `problem.x0` for every method in that run. Methods
+cannot distinguish a warm-up start from a cold start.
+
+Concrete strategies: [`NoWarmup`](@ref), [`IterativeWarmup`](@ref),
+[`FunctionWarmup`](@ref).
+"""
+abstract type WarmupStrategy end
+
+
+"""
+	NoWarmup <: WarmupStrategy
+
+Default — leaves `problem.x0` untouched.
+"""
+struct NoWarmup <: WarmupStrategy end
+
+
+"""
+	IterativeWarmup <: WarmupStrategy
+
+Run an iterative method as warm-up; the final iterate becomes the shared `x0`.
+Uses the universal `result.final_state.iterate.x` convention.
+"""
+@kwdef struct IterativeWarmup <: WarmupStrategy
+	method::IterativeMethod
+	criteria::StoppingCriterion
+	verbosity::VerbosityConfig = VerbosityConfig(level = MILESTONE)
+end
+
+
+"""
+	FunctionWarmup <: WarmupStrategy
+
+Apply a registered pure function `(problem, rng) -> Vector{Float64}` to
+produce `x0`. The function lives in [`WARMUP_FUNCTIONS`](@ref); the strategy
+itself only holds the `name` so it stays serialization-safe.
+"""
+struct FunctionWarmup <: WarmupStrategy
+	name::Symbol
+end
+
+
+"""
+	WARMUP_FUNCTIONS
+
+Registry of `FunctionWarmup` generators. Maps `Symbol` → `(problem, rng) -> Vector{Float64}`.
+"""
+const WARMUP_FUNCTIONS = Dict{Symbol,Function}()
+
+
+"""
+	register_warmup!(name::Symbol, gen::Function)
+
+Register a function-warmup generator with signature
+`(problem::Problem, rng::AbstractRNG) -> Vector{Float64}`.
+"""
+function register_warmup!(name::Symbol, gen::Function)
+	WARMUP_FUNCTIONS[name] = gen
+	return nothing
+end
+
+
+"""
+	run_warmup(strategy, problem, rng) -> Vector{Float64}
+
+Returns the warm-started initial point. Dispatches on the strategy.
+"""
+function run_warmup(::NoWarmup, problem, ::AbstractRNG)
+	return copy(problem.x0)
+end
+
+function run_warmup(w::IterativeWarmup, problem, rng::AbstractRNG)
+	warmup_logger = _make_logger("__warmup__", 0, "", w.verbosity)
+	result = run_method(w.method, problem, w.criteria, warmup_logger, rng)
+	return copy(result.final_state.iterate.x)
+end
+
+function run_warmup(w::FunctionWarmup, problem, rng::AbstractRNG)
+	haskey(WARMUP_FUNCTIONS, w.name) ||
+		throw(KeyError("FunctionWarmup :$(w.name) not registered"))
+	return copy(WARMUP_FUNCTIONS[w.name](problem, rng))
+end
+
+
+"""
+	_with_x0(problem, x0_new) -> Problem
+
+Return a copy of `problem` whose `x0` is `x0_new` (and whose `n` is updated to
+match). All other fields are preserved by reference. Used by `run_experiment`
+to plumb the warm-up output back into the Problem record without mutating the
+caller's `problem_spec`.
+"""
+function _with_x0(problem::Problem, x0_new::Vector{Float64})
+	return Problem(problem.f, problem.gs, x0_new, length(x0_new),
+		problem.meta, problem.x_opt)
+end
+
+
+"""
 	ExperimentConfig
 
 Declarative experiment definition.
@@ -30,6 +133,7 @@ Declarative experiment definition.
 		GradientTolerance(tol = 1e-6),
 	)
 	method_criteria::Dict{String,StoppingCriterion} = Dict{String,StoppingCriterion}()
+	warmup::WarmupStrategy = NoWarmup()
 	n_runs::Int = 1
 	seed::Union{Int,Nothing} = 42
 	tags::Dict{String,Any} = Dict{String,Any}()
@@ -202,6 +306,14 @@ function run_experiment(config::ExperimentConfig,
 		# Per-role deterministic RNGs derived from the root seed
 		rng_problem = Xoshiro(hash((root_seed, run_id, :data)))
 		problem = make_problem(config.problem_spec, rng_problem)
+
+		# Shared per-run warm-up: a single call whose output replaces problem.x0
+		# for every method in this run. Skipped (no-op) when warmup is NoWarmup.
+		if !(config.warmup isa NoWarmup)
+			rng_warmup = Xoshiro(hash((root_seed, run_id, :warmup)))
+			x0_warm = run_warmup(config.warmup, problem, rng_warmup)
+			problem = _with_x0(problem, x0_warm)
+		end
 
 		method_results = Dict{String,MethodResult}()
 		for (name, method) in all_methods

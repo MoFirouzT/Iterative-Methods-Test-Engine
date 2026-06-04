@@ -253,7 +253,9 @@ end
 
 
 function render_figure(layout::FigureLayout)::Makie.Figure
-	fig = Figure(resolution = layout.figure_size)
+	# `resolution` is deprecated in Makie ≥0.20 — use `size` (still pixels;
+	# the rename signals "this is a unitless canvas size, not a DPI").
+	fig = Figure(size = layout.figure_size)
 
 	for row in 1:size(layout.plots, 1), col in 1:size(layout.plots, 2)
 		spec = layout.plots[row, col]

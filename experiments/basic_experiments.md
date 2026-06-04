@@ -162,12 +162,35 @@ the stopping check.
 
 ## Stage 5 — Orchestrator debut: `run_experiment` + `VariantGrid` + fair-comparison plots
 
-**Status:** new.
+**Status:** done.
+**File:** `exp_stage5.jl`.
 
 First experiment that drives the framework through its actual user-facing entry
 point — `run_experiment` — rather than a hand-rolled loop.
 Defines the same five methods via a `VariantAxis(:step_size, ...)` grid, runs through the orchestrator,
 then layers fair-comparison plots on top.
+
+**Framework gaps filled during this stage (landed):**
+
+- `register_abbreviation!(full, short)` added to [src/variants.jl](../src/variants.jl)
+  + exported. Stage 5 needs it to register `"GradientDescent" => "GD"`,
+  `"BarzilaiBorwein" => "BB"`, etc., before `expand(grid)` runs, so that the
+  generated `short_name` of each `VariantSpec` uses the friendly form rather
+  than the long type name.
+- `VariantSpec.method` field widened from `ExperimentalMethod` to `IterativeMethod`.
+  The original type was too narrow — the docstring/Stage 5 intent says a
+  `VariantGrid` can produce either `Conventional` or `Experimental` methods,
+  and Stage 5's `GradientDescent` step-size grid produces the former. With
+  the old type, `VariantSpec(...; method = GradientDescent(...))` raised a
+  `MethodError: Cannot convert ... to ExperimentalMethod` at expand time.
+- `ExperimentConfig.conventional_methods` now defaults to `ConventionalMethod[]`.
+  Stage 5 drives the orchestrator entirely through `variant_grids`; the
+  previous required-kwarg signature forced every experiment to pass an empty
+  `conventional_methods=[]` boilerplate.
+- `resolve_methods` now routes each expanded `VariantSpec` into the
+  conventional vs experimental bucket based on `spec.method`'s concrete
+  type, instead of unconditionally appending to `experimental` (which would
+  have wrongly classified Stage 5's `GradientDescent` variants).
 
 **Exercises:**
 
@@ -218,45 +241,61 @@ assertion silently becomes vacuous.
 
 ## Stage 6 — Multi-run with randomized x₀ + warm-up
 
-**Status:** new.
+**Status:** in progress.
+**File:** `exp_stage6.jl`.
 
-Sample x₀ uniformly in [−2, 2]² (registered as a new
-`RandomProblem(:rosenbrock_random_x0)`). Set `n_runs = 20`. Plot median curves
-with shaded 25–75% IQR via `aggregate_runs(df, :median)`. Add one configuration
-with `IterativeWarmup(GradientDescent(FixedStep(α=1e-3)), MaxIterations(50))`.
+Sample x₀ uniformly in [−2, 2]² (registered as a new `RandomProblem(:rosenbrock_random_x0)`). Set `n_runs = 20`. 
+Plot median curves with shaded 25–75% IQR via `aggregate_runs(df, :median)`.
+Add one configuration with `IterativeWarmup(GradientDescent(FixedStep(α=1e-3)), MaxIterations(50))`.
+
+**Framework gaps filled during this stage (landed):**
+
+- `WarmupStrategy` hierarchy — `NoWarmup`, `IterativeWarmup`, `FunctionWarmup`
+  — plus the `run_warmup` dispatch added to [src/experiment.jl](../src/experiment.jl).
+  `ExperimentConfig` gains a `warmup::WarmupStrategy` field defaulting to
+  `NoWarmup()`. The orchestrator derives a per-run warm-up rng
+  `Xoshiro(hash((seed, run_id, :warmup)))`, calls `run_warmup` once, and
+  rebuilds the `Problem` with the returned x₀ so every method in that run
+  sees the same starting point.
+- `register_warmup!(name, gen)` + `WARMUP_FUNCTIONS` registry exported
+  alongside, so `FunctionWarmup(:name)` strategies are serialisation-safe
+  (the strategy carries only the registered symbol).
+- `log_init!` now emits an `iter == 0` entry via `extract_log_entry`,
+  capturing the initial state (`x_iter`, objective, gradient_norm, …) in
+  `iter_logs[1]`. Without this, the warm-up-x₀-shared invariant could not
+  be checked at the data level — the smallest available iter was 1, which
+  is already post-first-step where methods diverge by step rule. Stages 1
+  and 3 already filter `iter == 0` from the step-size panel because α₀ = 0,
+  and the Stage-5 byte-identity check still passes since both experiments
+  now carry the extra row identically.
 
 **Exercises:**
 
 - `RandomProblem` and `register_random_problem!`;
-- per-run rng derivation inside `run_experiment`
-  (`Xoshiro(hash((seed, run_id, :data)))`);
+- per-run rng derivation inside `run_experiment` (`Xoshiro(hash((seed, run_id, :data)))`);
 - `aggregate_runs(df, :median)` and `:all`;
 - `NoWarmup` and `IterativeWarmup` dispatch in `run_warmup`;
-- the universal `result.final_state.iterate.x` convention used by
-  `IterativeWarmup` to read off the warm-started x₀.
+- the universal `result.final_state.iterate.x` convention used by `IterativeWarmup` to read off the warm-started x₀.
 
 **Validates:**
 
-- same seed → byte-identical DataFrames across two invocations of
-  `run_experiment` (assert by running twice and diffing);
+- same seed → byte-identical DataFrames across two invocations of `run_experiment` (assert by running twice and diffing);
 - different seed → distribution that visibly tightens for stable methods
   (Armijo) and is wider for sensitive ones (BB at small starting distances);
 - **warm-up x₀ is shared.** Concrete invariant: `extras[:x_iter]` at `iter = 0`
-  is identical across all five methods within any single `run_id` when warm-up
-  is active. This is the only test that actually proves the warm-up output is
-  shared rather than each method running its own.
+  is identical across all five methods within any single `run_id` when warm-up is active.
+  This is the only test that actually proves the warm-up output is shared rather than each method running its own.
 
 **Watch out for:**
 
 - the IQR shading should *contain* the median curve at every iter — if it
   doesn't, the quantile computation is off-by-one;
 - `aggregate_runs` on the `:step_size` column produces nonsense for Armijo
-  (median of discrete `β^j` values) and meaningless smoothing for Fixed
-  (constant). Drop the step-size panel from the multi-run figure, or replace it
-  with an unaggregated overlay of the 20 individual curves;
+  (median of discrete `β^j` values) and meaningless smoothing for Fixed (constant).
+  Drop the step-size panel from the multi-run figure, or replace it with an unaggregated overlay of the 20 individual curves;
 - Rosenbrock from x₁ < 0 wanders for a long time before finding the valley;
-  the IQR will be wide for BB methods specifically. This is correct behavior,
-  not a bug. Worth flagging in the figure caption.
+  the IQR will be wide for BB methods specifically.
+  This is correct behavior, not a bug. Worth flagging in the figure caption.
 
 ---
 

@@ -46,6 +46,10 @@ using CairoMakie
 using Statistics
 using Printf
 
+# COLORS / PLOT_ORDER live here; Stage 5 reuses them so legend colors stay
+# consistent across Stages 1–5.
+include("_shared.jl")
+
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
 # Abbreviations must be registered BEFORE expand() runs so that the
@@ -185,6 +189,46 @@ function _attach_cumulative!(df)
 end
 _attach_cumulative!(df)
 
+# ─── Display name rename + COLORS lookup ─────────────────────────────────────
+#
+# The orchestrator stores method_name as e.g. "GradientDescent[step_size=Armijo]"
+# — that's the canonical full name and it's what disk artifacts and the
+# byte-identity check above use. For figures/legends/tables it's just noise:
+# every entry says "GradientDescent[step_size=…]" and the only thing that
+# varies is the label after `=`. We rename to the compact `GD[ss=Armijo]` form
+# here for everything *downstream of the byte-identity check*. The on-disk
+# manifest/CSVs/JLD2 keep the canonical name.
+#
+# The label inside the brackets ("Armijo", "BB1", ...) is exactly the key used
+# by COLORS / PLOT_ORDER in _shared.jl, so palette lookup is a direct match.
+
+const _LONG_NAME_RE = r"^GradientDescent\[step_size=(.+)\]$"
+
+function _short_label(long_name::AbstractString)
+    m = match(_LONG_NAME_RE, long_name)
+    isnothing(m) ? String(long_name) : String(m.captures[1])
+end
+
+_display_name(long_name::AbstractString) = "GD[ss=$(_short_label(long_name))]"
+
+# Build the per-method MethodStyle dict keyed by the *display* name, using the
+# Stages-1–4 _shared.jl COLORS palette so every figure across the stages
+# assigns each method the same hue. The framework's default
+# `get_method_color` hashes the method name, which would produce *different*
+# colors here than in Stages 1–4. Bypassing it keeps the cross-stage color
+# promise.
+original_long_names = sort(unique(df.method_name))
+styles = Dict(
+    _display_name(long) => MethodStyle(
+        color     = get(COLORS, _short_label(long), :gray),
+        linewidth = 2.0,
+    )
+    for long in original_long_names
+)
+
+# Rename in place, after the byte-identity check is done.
+df.method_name = _display_name.(df.method_name)
+
 # ─── Validation prints ───────────────────────────────────────────────────────
 
 println("\n=== Per-method final state ===")
@@ -193,7 +237,7 @@ for sub in groupby(df, :method_name)
     # n_linesearch_evals is cumulative — last row already has the grand total.
     nls = :n_linesearch_evals in propertynames(sub) ?
             Int(coalesce(last(sub.n_linesearch_evals), 0)) : 0
-    @printf("  %-50s iter=%5d  f=%.3e  ‖∇f‖=%.3e  ‖x-x*‖=%.3e  Σevals=%d\n",
+    @printf("  %-18s iter=%5d  f=%.3e  ‖∇f‖=%.3e  ‖x-x*‖=%.3e  Σevals=%d\n",
             sub.method_name[1], last_row.iter, last_row.objective,
             last_row.gradient_norm, last_row.dist_to_opt, last_row.iter + nls)
 end
@@ -201,7 +245,7 @@ end
 # Sanity check on Armijo's line-search accounting: total evals should be
 # meaningfully larger than the iter count. If they're ≈ equal,
 # n_linesearch_evals is not being incremented inside the backtracking loop.
-let armijo_name = "GradientDescent[step_size=Armijo]"
+let armijo_name = "GD[ss=Armijo]"
     sub = @subset(df, :method_name .== armijo_name)
     if nrow(sub) > 0 && :n_linesearch_evals in propertynames(sub)
         n_iter  = nrow(sub)
@@ -217,13 +261,7 @@ let armijo_name = "GradientDescent[step_size=Armijo]"
     end
 end
 
-# Same-method-color promise (analysis.jl): every method always maps to the
-# same color via the deterministic hash. We materialise styles once and reuse
-# them across all three figures so legends stay consistent.
 method_names = sort(unique(df.method_name))
-styles = Dict(name => MethodStyle(color = get_method_color(name),
-                                  linewidth = 2.0)
-              for name in method_names)
 
 # ─── Plotting ────────────────────────────────────────────────────────────────
 
@@ -261,12 +299,24 @@ fig_iter = four_panel(df, :iter, "iteration";
                       title = "Stage 5 — convergence vs iter")
 save_figure(fig_iter, joinpath(result.experiment_path, "stage5_vs_iter.pdf"))
 
-fig_evals = four_panel(df, :cum_n_evals, "cumulative function evaluations";
-                       title = "Stage 5 — convergence vs cumulative function evaluations")
+# vs_evals and vs_coretime: x-axis on log10 so the ~10⁰…~10⁴ range
+# (BB1 ~76 evals up to Fixed ~20 000) shows every method with comparable
+# resolution. On a linear x-axis the entire BB1/BB2/Cauchy story collapses to
+# the first few pixels and one outlier method dominates.
+#
+# Filter iter ≥ 1 so cum_n_evals > 0 and cum_core_time_ms > 0 — the iter=0
+# init entry has both at zero, which would be log10(0) = -Inf and break the
+# axis transform.
+df_pos = @subset(df, :iter .>= 1)
+
+fig_evals = four_panel(df_pos, :cum_n_evals, "cumulative function evaluations";
+                       xscale = :log10,
+                       title  = "Stage 5 — convergence vs cumulative function evaluations")
 save_figure(fig_evals, joinpath(result.experiment_path, "stage5_vs_evals.pdf"))
 
-fig_time = four_panel(df, :cum_core_time_ms, "cumulative core time (ms)";
-                      title = "Stage 5 — convergence vs cumulative core time " *
+fig_time = four_panel(df_pos, :cum_core_time_ms, "cumulative core time (ms)";
+                      xscale = :log10,
+                      title  = "Stage 5 — convergence vs cumulative core time " *
                               "[SANITY-CHECK ONLY; OS jitter dominates on 2D Rosenbrock]")
 save_figure(fig_time, joinpath(result.experiment_path, "stage5_vs_coretime.pdf"))
 

@@ -50,6 +50,8 @@ export elapsed_core_s, elapsed_wall_s
 
 export ExperimentConfig, MethodResult, RunResult, ExperimentResult
 export resolve_methods, next_experiment_path, run_experiment
+export WarmupStrategy, NoWarmup, IterativeWarmup, FunctionWarmup
+export register_warmup!, run_warmup, WARMUP_FUNCTIONS
 
 export DebugConfig, DebugCheck
 export CheckObjectiveMonotonicity, CheckGradientNormBound, CheckStepDecay, CheckNumericalGradient

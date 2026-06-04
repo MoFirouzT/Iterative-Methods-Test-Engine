@@ -15,6 +15,44 @@ using JLD2
 using JSON3
 
 
+# ── JLD2 serialization shim for VariantGrid ────────────────────────────────
+# `VariantGrid.builder` is `Function` and is most often supplied as a closure
+# (see exp_stage5.jl: `(; step_size, kwargs...) -> GradientDescent(...)`).
+# JLD2 cannot reliably round-trip closures (`#14#15` etc.) and emits a
+# warning during `save_experiment`. Round-tripped closures would also be
+# unsafe to call — the captured environment is gone.
+#
+# The fix: serialize a stripped-down record that drops `builder` and
+# `filters` (both `Function`-typed). The expanded `VariantSpec`s inside the
+# `ExperimentResult` already carry concrete `IterativeMethod` instances, so
+# nothing downstream of `expand(grid)` needs the closure. On load, the grid
+# is reconstructed with a sentinel builder that errors loudly if anyone
+# tries to re-expand it post-mortem.
+struct _SerializedVariantGrid
+	base_name::String
+	axes::Vector{VariantAxis}
+	shared_params::NamedTuple
+end
+
+JLD2.writeas(::Type{VariantGrid}) = _SerializedVariantGrid
+
+Base.convert(::Type{_SerializedVariantGrid}, g::VariantGrid) =
+	_SerializedVariantGrid(g.base_name, g.axes, g.shared_params)
+
+_deserialized_grid_builder(args...; kwargs...) = error(
+	"VariantGrid.builder was not serialized — re-construct the grid " *
+	"in-process if you need to re-expand it. The expanded VariantSpecs " *
+	"inside ExperimentResult already carry concrete methods; consume those " *
+	"instead.")
+
+Base.convert(::Type{VariantGrid}, s::_SerializedVariantGrid) = VariantGrid(
+	base_name     = s.base_name,
+	axes          = s.axes,
+	builder       = _deserialized_grid_builder,
+	shared_params = s.shared_params,
+)
+
+
 # ── CSV scalar predicate and classifier ────────────────────────────────────
 # A value is "CSV-friendly" if CSV.write can render it as a single cell
 # without information loss. Composite values (Vector, Tuple, Dict, sub-logs,

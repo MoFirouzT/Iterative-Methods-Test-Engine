@@ -225,7 +225,15 @@ function log_init!(logger::Logger, method, state)
     logger.events = NamedTuple[]
     logger.pending_sub_logs = IterationLog[]
     _print_milestone(logger, "start")
-    # Subclasses or extensions can override to capture method-specific metadata
+    # Capture the initial state as an iter=0 entry so downstream tooling can
+    # reason about the starting point — trajectory plots (Stage 2), warm-up x₀
+    # invariants (Stage 6), and so on. `extract_log_entry` is dispatched on the
+    # concrete method type; if a method doesn't define one, fall back silently.
+    try
+        push!(logger.iter_logs, extract_log_entry(method, state, 0))
+    catch err
+        err isa MethodError || rethrow(err)
+    end
 end
 
 
