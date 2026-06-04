@@ -91,11 +91,11 @@ more than it helps).
 
 ## Stage 3 — Persistence roundtrip
 
-**Status:** done. **File:** `exp_stage3.jl`.
+**Status:** done.
+**File:** `exp_stage3.jl`.
 
-Same five methods, but now everything goes through `save_experiment` →
-`load_experiment` → `to_dataframe` → plot. Plotting from the in-memory result is
-forbidden — all figures are produced from the loaded copy.
+Same five methods, but now everything goes through `save_experiment` → `load_experiment` → `to_dataframe` → plot.
+Plotting from the in-memory result is forbidden — all figures are produced from the loaded copy.
 
 **Exercises:**
 
@@ -114,15 +114,16 @@ forbidden — all figures are produced from the loaded copy.
 - cold restart produces visually identical figures and line-for-line identical
   CSVs.
 
-**Bug surface to watch.** If `assert_roundtrip` fails on `:x_iter` specifically,
-the JLD2 writer is dropping or corrupting vector extras — the most common
-persistence bug at this stage.
+**Bug surface to watch.**
+If `assert_roundtrip` fails on `:x_iter` specifically, the JLD2 writer is dropping or corrupting vector extras
+— the most common persistence bug at this stage.
 
 ---
 
 ## Stage 4 — Stopping criteria coverage
 
-**Status:** in progress. **File:** `exp_stage4.jl`.
+**Status:** in progress.
+**File:** `exp_stage4.jl`.
 Blocker: `DistanceToOptimal` is referenced here but not yet defined in
 `src/stopping.jl` (only `MaxIterations`, `TimeLimit`, `GradientTolerance`,
 `ObjectiveStagnation`, `StepTolerance`, `CompositeCriterion` exist). The

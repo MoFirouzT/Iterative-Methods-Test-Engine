@@ -78,11 +78,12 @@ function run_stage1(; seed::Int = SEED, run_id::Int = RUN_ID)
         push!(results, name => result)
 
         last_entry = result.iter_logs[end]
-        @info "[$name] done" iters       = result.n_iters
-                              stop_reason = result.stop_reason
-                              f_final     = last_entry.objective
-                              grad_norm   = last_entry.gradient_norm
-                              dist_to_opt = last_entry.dist_to_opt
+        @info("[$name] done",
+              iters       = result.n_iters,
+              stop_reason = result.stop_reason,
+              f_final     = last_entry.objective,
+              grad_norm   = last_entry.gradient_norm,
+              dist_to_opt = last_entry.dist_to_opt)
     end
     return results
 end

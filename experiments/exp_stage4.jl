@@ -134,10 +134,11 @@ function run_and_save(; log_root::String = "logs")
         method_results[name] = result
 
         last_entry = result.iter_logs[end]
-        @info "[$name] done" iters       = result.n_iters
-                              stop_reason = result.stop_reason
-                              dist_final  = last_entry.dist_to_opt
-                              grad_final  = last_entry.gradient_norm
+        @info("[$name] done",
+              iters       = result.n_iters,
+              stop_reason = result.stop_reason,
+              dist_final  = last_entry.dist_to_opt,
+              grad_final  = last_entry.gradient_norm)
     end
 
     run_result = RunResult(RUN_ID, method_results)

@@ -4,8 +4,8 @@
 #
 # Goal: prove that an ExperimentResult survives a save_experiment →
 # load_experiment cycle byte-for-byte (in JLD2; the CSV sidecar is best-effort
-# for vector-valued extras — see the note below). Plotting now goes
-# *exclusively* through the persistence layer:
+# for vector-valued extras — see the note below).
+# Plotting now goes *exclusively* through the persistence layer:
 #     run → save → load → to_dataframe → plot
 # never directly from the in-memory result.
 #
@@ -25,8 +25,9 @@
 #
 # CSV vector-extras decision (the staged plan flags this explicitly)
 # ------------------------------------------------------------------
-# extras[:x_iter] is Vector{Float64} per row. CSV doesn't represent that
-# cleanly. Two reasonable choices in your CSV writer:
+# extras[:x_iter] is Vector{Float64} per row.
+# CSV doesn't represent that cleanly.
+# Two reasonable choices in your CSV writer:
 #   (a) skip vector-valued extras, note their omission in manifest.json;
 #   (b) JSON-encode them as strings.
 # JLD2 handles vectors natively either way, so the load-and-replot path
@@ -42,6 +43,9 @@ using Random
 using Dates
 using DataFrames
 using CairoMakie
+
+# Canonical trajectory-plot recipe, shared with Stage 2.
+include("_shared.jl")
 
 # ---------------------------------------------------------------------------
 # Configuration — same problem, methods, seed, and stopping rule as Stages 1+2.
@@ -124,10 +128,11 @@ function run_and_save(; log_root::String = "logs")
         method_results[name] = result
 
         last_entry = result.iter_logs[end]
-        @info "[$name] done" iters       = result.n_iters
-                              stop_reason = result.stop_reason
-                              f_final     = last_entry.objective
-                              dist_to_opt = last_entry.dist_to_opt
+        @info("[$name] done",
+              iters       = result.n_iters,
+              stop_reason = result.stop_reason,
+              f_final     = last_entry.objective,
+              dist_to_opt = last_entry.dist_to_opt)
     end
 
     run_result = RunResult(RUN_ID, method_results)
@@ -141,6 +146,22 @@ function run_and_save(; log_root::String = "logs")
 
     save_experiment(exp_result)
     @info "Saved experiment" path = exp_path
+
+    # Document the CSV vector-extras policy at runtime — so any Stage 3 log
+    # directory is self-describing without anyone having to inspect a CSV.
+    # The decision (omit vector extras / JSON-encode / etc.) is made inside
+    # save_experiment; we just observe and record what actually ended up on
+    # disk.
+    csv_files = filter(f -> startswith(f, "run") && endswith(f, ".csv"),
+                       readdir(exp_path))
+    if !isempty(csv_files)
+        header = split(readline(joinpath(exp_path, first(csv_files))), ',')
+        @info("CSV vector-extras policy",
+              sample_csv     = first(csv_files),
+              has_x_iter_col = "x_iter" in header,
+              csv_columns    = header)
+    end
+
     return exp_result, exp_path
 end
 
@@ -174,13 +195,25 @@ function plot_convergence_panel(df::DataFrame;
             # iter=0 has α=0 by default — invalid on log scale.
             ycol === :step_size && (sub = filter(:iter => >(0), sub))
             ys = max.(sub[!, ycol], 1e-16)
-            lines!(ax, sub.iter, ys; color = COLORS[name], linewidth = 2.0)
+            if ycol === :step_size
+                # αₖ is per-iter discrete (Armijo: βʲ rungs; Fixed: a constant
+                # line; BB: a continuous sequence). Drawing markers + thin line
+                # is more honest than plain lines, which smear the discrete
+                # rungs into diagonals on log-y.
+                scatterlines!(ax, sub.iter, ys;
+                    color      = COLORS[name],
+                    linewidth  = 0.8,
+                    markersize = 3,
+                )
+            else
+                lines!(ax, sub.iter, ys; color = COLORS[name], linewidth = 2.0)
+            end
         end
     end
 
     legend_elems = [LineElement(color = COLORS[name], linewidth = 2.5)
                     for name in PLOT_ORDER]
-    Legend(fig[1:2, 3], legend_elems, PLOT_ORDER, "step size";
+    Legend(fig[1:2, 3], legend_elems, PLOT_ORDER, "method";
            framevisible = true, tellwidth = true)
 
     Label(fig[0, :],
@@ -192,64 +225,10 @@ function plot_convergence_panel(df::DataFrame;
     return fig
 end
 
-function plot_trajectories(df::DataFrame, problem;
-                           outpath::String,
-                           title_suffix::String = "")
-    fig = Figure(size = (1000, 900))
-    ax  = Axis(fig[1, 1],
-        xlabel = "x₁",
-        ylabel = "x₂",
-        title  = "Stage 3 — Rosenbrock(ρ=100): trajectories" * title_suffix,
-        aspect = DataAspect(),
-    )
-
-    # Contour grid (closed-form Rosenbrock; ρ from problem.meta with fallback).
-    ρ = Float64(get(problem.meta, :rho, 100.0))
-    rosen(x, y) = (1.0 - x)^2 + ρ * (y - x^2)^2
-
-    xs = range(-2.0, 2.0, length = 400)
-    ys = range(-1.0, 3.0, length = 400)
-    zs = [rosen(x, y) for x in xs, y in ys]
-    levels = 10.0 .^ range(-1.0, 3.5, length = 15)
-    contour!(ax, xs, ys, zs;
-        levels    = levels,
-        color     = (:gray, 0.55),
-        linewidth = 0.6,
-    )
-
-    # Trajectories from the DataFrame's :x_iter column.
-    for name in PLOT_ORDER
-        sub = filter(:method_name => ==(name), df)
-        sub = filter(:x_iter => v -> !ismissing(v) && length(v) == 2, sub)
-        isempty(sub) && continue
-        traj_x = [v[1] for v in sub.x_iter]
-        traj_y = [v[2] for v in sub.x_iter]
-        lines!(ax, traj_x, traj_y;
-            color     = COLORS[name],
-            linewidth = 1.8,
-            label     = name,
-        )
-    end
-
-    scatter!(ax, [problem.x0[1]], [problem.x0[2]];
-        color = :black, marker = :circle, markersize = 14,
-        strokecolor = :white, strokewidth = 1.5, label = "x₀")
-    if !isnothing(problem.x_opt)
-        scatter!(ax, [problem.x_opt[1]], [problem.x_opt[2]];
-            color = :red, marker = :star5, markersize = 20,
-            strokecolor = :white, strokewidth = 1.5, label = "x*")
-    end
-
-    xlims!(ax, -2.0, 2.0)
-    ylims!(ax, -1.0, 3.0)
-    axislegend(ax;
-        position = :rt, framevisible = true,
-        backgroundcolor = (:white, 0.85), nbanks = 1)
-
-    save(outpath, fig)
-    @info "Saved figure" path = outpath
-    return fig
-end
+# Trajectory plot is rendered by the shared recipe in experiments/_shared.jl
+# (`plot_trajectories(df, problem; outpath, plot_order, colors, title, ...)`),
+# the same one Stage 2 uses. Keeping the recipe in one place stops the two
+# stages from drifting and means improvements ship to both at once.
 
 # ---------------------------------------------------------------------------
 # Roundtrip integrity check — the actual Stage 3 validator.
@@ -267,10 +246,22 @@ function assert_roundtrip(df_mem::DataFrame, df_disk::DataFrame)
     for name in PLOT_ORDER
         sub_mem  = filter(:method_name => ==(name), df_mem)
         sub_disk = filter(:method_name => ==(name), df_disk)
-        @assert sub_mem.iter      == sub_disk.iter      "iter mismatch for $name"
-        @assert sub_mem.objective == sub_disk.objective "objective mismatch for $name"
+
+        # Base columns — every method should have these.
+        @assert sub_mem.iter          == sub_disk.iter          "iter mismatch for $name"
+        @assert sub_mem.objective     == sub_disk.objective     "objective mismatch for $name"
         @assert sub_mem.gradient_norm == sub_disk.gradient_norm "‖∇f‖ mismatch for $name"
+        @assert sub_mem.step_norm     == sub_disk.step_norm     "step_norm mismatch for $name"
         @assert sub_mem.dist_to_opt   == sub_disk.dist_to_opt   "dist_to_opt mismatch for $name"
+        @assert sub_mem.core_time_ns  == sub_disk.core_time_ns  "core_time_ns mismatch for $name"
+
+        # step_size from extras — may carry NaN at iter=0; use isequal so NaN
+        # compares equal to NaN. (== on NaN is false, which would falsely
+        # fail every roundtrip.)
+        if hasproperty(sub_mem, :step_size) && hasproperty(sub_disk, :step_size)
+            @assert all(isequal.(sub_mem.step_size, sub_disk.step_size)) (
+                "step_size mismatch for $name")
+        end
 
         # Vector-valued extras are the most likely place for a serializer to go
         # wrong. Compare element-wise, tolerating Missing on either side.
@@ -284,7 +275,9 @@ function assert_roundtrip(df_mem::DataFrame, df_disk::DataFrame)
             end
         end
     end
-    @info "Roundtrip integrity ✓" rows = nrow(df_disk)
+    @info("Roundtrip integrity ✓",
+          rows    = nrow(df_disk),
+          columns = collect(propertynames(df_disk)))
 end
 
 # ---------------------------------------------------------------------------
@@ -310,8 +303,11 @@ function main()
         outpath      = joinpath(exp_path, "convergence.pdf"),
         title_suffix = " — replotted from disk")
     plot_trajectories(df_disk, problem;
-        outpath      = joinpath(exp_path, "trajectories.pdf"),
-        title_suffix = " — replotted from disk")
+        outpath    = joinpath(exp_path, "trajectories.pdf"),
+        plot_order = PLOT_ORDER,
+        colors     = COLORS,
+        title      = "Stage 3 — Rosenbrock(ρ=100): trajectories — replotted from disk",
+    )
 
     println()
     println("Experiment saved to: ", exp_path)
@@ -327,10 +323,36 @@ end
 function replot(path::String)
     exp_result = load_experiment(path)
     df         = to_dataframe(exp_result)
-    @info "Loaded" path                = path
-                   n_methods           = length(unique(df.method_name))
-                   n_rows              = nrow(df)
-                   has_x_iter_column   = hasproperty(df, :x_iter)
+    @info("Loaded",
+          path              = path,
+          n_methods         = length(unique(df.method_name)),
+          n_rows            = nrow(df),
+          has_x_iter_column = hasproperty(df, :x_iter))
+
+    # Cold-restart byte-equality: re-save the loaded experiment to a tmp
+    # directory and diff each per-method CSV against the original. This
+    # actually tests the load → save round trip across a fresh process, not
+    # just "load → plot doesn't crash" (which is what previous replot did).
+    # Only CSVs are diffed; result.jld2 + manifest.json embed timestamps and
+    # would always differ.
+    tmp = mktempdir(; cleanup = true)
+    exp_replay = ExperimentResult(
+        exp_result.config,
+        tmp,
+        now(),
+        gethostname(),
+        exp_result.run_results,
+    )
+    save_experiment(exp_replay)
+    csv_files = filter(f -> startswith(f, "run") && endswith(f, ".csv"),
+                       readdir(path))
+    for fname in csv_files
+        @assert read(joinpath(path, fname)) == read(joinpath(tmp, fname)) (
+            "CSV byte-mismatch across cold restart: $fname")
+    end
+    @info("Cold-restart CSV byte equality ✓",
+          n_csvs = length(csv_files),
+          tmp    = tmp)
 
     rng_data = Xoshiro(hash((exp_result.config.seed, RUN_ID, :data)))
     problem  = make_problem(exp_result.config.problem_spec, rng_data)
@@ -339,8 +361,11 @@ function replot(path::String)
         outpath      = joinpath(path, "convergence.pdf"),
         title_suffix = " — cold-restart replot")
     plot_trajectories(df, problem;
-        outpath      = joinpath(path, "trajectories.pdf"),
-        title_suffix = " — cold-restart replot")
+        outpath    = joinpath(path, "trajectories.pdf"),
+        plot_order = PLOT_ORDER,
+        colors     = COLORS,
+        title      = "Stage 3 — Rosenbrock(ρ=100): trajectories — cold-restart replot",
+    )
     return df
 end
 
@@ -352,11 +377,13 @@ end
 # Validation criteria
 # ---------------------------------------------------------------------------
 # After running main() once, then restarting Julia and calling replot(path):
-#   • assert_roundtrip passes inside main() — DataFrames identical mem ↔ disk.
-#   • The two replot()s produce visually identical figures across the cold
-#     restart. Diff the per-method CSVs for line-for-line equality if you want
-#     a hard test (PDF byte-equality is fragile because PDFs embed a
-#     timestamp; CSVs do not).
+#   • assert_roundtrip passes inside main() — DataFrames identical mem ↔ disk,
+#     across :iter, :objective, :gradient_norm, :step_norm, :dist_to_opt,
+#     :core_time_ns, :step_size, and the vector-valued :x_iter.
+#   • replot() automates the cold-restart CSV byte-equality test — it
+#     re-saves the loaded experiment to a tmp dir and diffs each per-method
+#     CSV against the original. (JLD2 + manifest.json embed timestamps and
+#     would always differ; that's intentional.)
 #   • If assert_roundtrip fails on :x_iter specifically, the JLD2 writer is
 #     dropping or corrupting vector-valued extras — likely the most common
 #     persistence bug at this stage.
