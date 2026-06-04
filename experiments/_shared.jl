@@ -25,6 +25,45 @@ using DataFrames
 using CairoMakie
 
 # ---------------------------------------------------------------------------
+# Shared constants — used by Stages 1–4 (Stages 5+ use the long
+# "GradientDescent[step_size=Armijo]" form via the VariantGrid orchestrator,
+# so they keep their own naming).
+# ---------------------------------------------------------------------------
+
+const PLOT_ORDER = ["Fixed", "Armijo", "Cauchy", "BB1", "BB2"]
+
+# Wong colorblind-safe palette, consistent with METHOD_PALETTE in analysis.jl.
+const COLORS = Dict(
+    "Fixed"  => "#000000",
+    "Armijo" => "#0072B2",
+    "Cauchy" => "#009E73",
+    "BB1"    => "#E69F00",
+    "BB2"    => "#D55E00",
+)
+
+"""
+    build_standard_methods()
+
+The five-method baseline used across Stages 1–4: SteepestDescent with
+FixedStep / ArmijoLS / CauchyStep / BB1 / BB2 step-size rules. Returned
+as a `Vector{Pair{String, GradientDescent}}` in `PLOT_ORDER`.
+"""
+function build_standard_methods()
+    [
+        "Fixed"  => GradientDescent(direction = SteepestDescent(),
+                                    step_size = FixedStep(α = 8e-4)),
+        "Armijo" => GradientDescent(direction = SteepestDescent(),
+                                    step_size = ArmijoLS()),
+        "Cauchy" => GradientDescent(direction = SteepestDescent(),
+                                    step_size = CauchyStep()),
+        "BB1"    => GradientDescent(direction = SteepestDescent(),
+                                    step_size = BarzilaiBorwein(variant = :BB1)),
+        "BB2"    => GradientDescent(direction = SteepestDescent(),
+                                    step_size = BarzilaiBorwein(variant = :BB2)),
+    ]
+end
+
+# ---------------------------------------------------------------------------
 # Trajectory extraction from DataFrame
 # ---------------------------------------------------------------------------
 

@@ -1397,8 +1397,14 @@ Adding a new CSV-scalar type is one method: _is_csv_scalar(::DateTime) = true in
 ### API
 
 ```julia
-# Save — called automatically at the end of run_experiment
-save_experiment(result::ExperimentResult)
+# Save — called automatically at the end of run_experiment.
+# `compress = true` (default) writes the JLD2 binary with on-the-fly compression.
+# `extra_manifest` merges its keys into manifest.json after the framework's own
+# fields, so an experiment can record stage-specific results (milestone iters,
+# tolerances, ...) for later `jq` access without loading the JLD2.
+save_experiment(result::ExperimentResult;
+                compress::Bool = true,
+                extra_manifest::Dict{String,Any} = Dict{String,Any}())
 
 # Reload for analysis — one call restores everything
 result = load_experiment("logs/20260417/001/")
@@ -1410,6 +1416,74 @@ manifest = load_manifest("logs/20260417/001/manifest.json")
 list_experiments(log_root="logs") :: Vector{NamedTuple}
 # Returns [{path, date, number, name, timestamp, n_methods, n_runs}, ...]
 ```
+
+### Manifest schema — base fields
+
+Every `manifest.json` carries:
+
+- `name`, `timestamp`, `host`, `tags` — from `ExperimentConfig`.
+- `n_runs`, `n_methods`, `methods` — derived from `result.run_results`.
+- `method_results` — per-method, per-run termination summary:
+  `n_iters`, `stop_reason`, `f_final`, `grad_final`, `dist_final`.
+  This is derived from `MethodResult.n_iters` / `.stop_reason` and the
+  final `IterationLog` entry. It makes `jq '.method_results.BB1[0]'`
+  enough to know how a method terminated without loading the JLD2.
+- `csv_skipped_extras` (only present when non-empty) — keys whose values
+  were non-scalar and therefore omitted from the CSV sidecar.
+
+Stage-specific summary data (e.g. Stage 4's iters-to-milestone and the
+distance/gradient tolerances used) is delivered via `extra_manifest` and
+merged after the base fields. Stage 4 uses this to record the milestone
+threshold and per-method iters-to-milestone so cold-restart `jq` queries
+can answer "did BB1 cross 1e-6 here?" without recomputing from the CSVs.
+
+### JLD2 compression
+
+`save_experiment` accepts a `compress` kwarg that is passed verbatim to
+`JLD2.save`. Default is **`compress = false`** — the choice is empirical,
+not stylistic.
+
+**Why default off.** Measured on a single-method 20 000-iter Rosenbrock
+iter-log payload, JLD2's built-in codec is a net loss:
+
+| variant | size |
+|---|---|
+| `compress = false` | 19.3 MB |
+| `compress = true`  | 20.2 MB (**104.8%** — overhead exceeds savings) |
+
+The MethodResult payload is dominated by `extras::Dict{Symbol,Any}` per
+`IterationLog`, whose typing/dispatch overhead doesn't compress and adds
+codec block headers. The scalar numeric columns (objective, gradient norm,
+step norm, dist-to-opt, core time) are too thinly slotted across the
+Dict-per-row structure for the codec to find repeated patterns.
+
+**When to override.**
+
+- Pass `compress = true` if you're storing problem families where the
+  iter-log payload is denser numeric arrays (e.g. high-dim x_iter
+  snapshots stored directly, not via Dict extras), where compression
+  may actually pay off.
+- Pass a specific `TranscodingStreams` codec (e.g. `ZstdCompressor()`
+  from CodecZstd.jl) if you've benchmarked it against your payload and
+  it wins.
+- The kwarg exists precisely to keep that escape hatch available; the
+  default just reflects what wins on the routine path *today*.
+
+**What's NOT compressed.**
+
+CSV sidecars and `manifest.json` are plain text — they exist precisely
+to be `grep`-able / `jq`-able and compressing them would defeat that.
+
+**Loading.** `load_experiment` reads either form transparently — JLD2
+detects the codec from the file header, no matching kwarg needed. Old
+files written under either default load without change.
+
+**Future work.** The realistic path to shrinking `result.jld2` is to
+change the on-disk layout, not the codec — pack the dense scalar
+columns into struct-of-arrays form per method rather than the current
+array-of-structs (one IterationLog per iter, each with its own
+Dict-typed extras). That's a persistence-schema migration, tracked in
+[experiments/Experiment_TODOs.md](../experiments/Experiment_TODOs.md).
 
 ---
 

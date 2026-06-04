@@ -196,7 +196,8 @@ end
 Classifies stop reasons that indicate successful convergence.
 """
 function is_converged_reason(reason::Symbol)
-	reason in (:gradient_converged, :step_converged, :objective_stagnated, :all_criteria_met)
+	reason in (:gradient_converged, :step_converged, :objective_stagnated,
+	           :optimal_reached, :all_criteria_met)
 end
 
 

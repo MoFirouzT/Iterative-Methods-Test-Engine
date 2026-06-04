@@ -13,6 +13,9 @@ using Random
 using DataFrames
 using CairoMakie
 
+# PLOT_ORDER / COLORS / build_standard_methods come from here.
+include("_shared.jl")
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -22,33 +25,10 @@ using CairoMakie
 const SEED   = 42
 const RUN_ID = 1
 
-# Short labels for Stage 1. Stage 6's variant grid will produce full names like
-# "GradientDescent[step_size=Fixed]"; that switch is intentional and isolated.
-const PLOT_ORDER = ["Fixed", "Armijo", "Cauchy", "BB1", "BB2"]
-
-# Wong colorblind-safe palette (consistent with METHOD_PALETTE in analysis.jl).
-const COLORS = Dict(
-    "Fixed"  => "#000000",
-    "Armijo" => "#0072B2",
-    "Cauchy" => "#009E73",
-    "BB1"    => "#E69F00",
-    "BB2"    => "#D55E00",
-)
-
-function build_methods()
-    [
-        "Fixed"  => GradientDescent(direction = SteepestDescent(),
-                                    step_size = FixedStep(α = 8e-4)),
-        "Armijo" => GradientDescent(direction = SteepestDescent(),
-                                    step_size = ArmijoLS()),
-        "Cauchy" => GradientDescent(direction = SteepestDescent(),
-                                    step_size = CauchyStep()),
-        "BB1"    => GradientDescent(direction = SteepestDescent(),
-                                    step_size = BarzilaiBorwein(variant = :BB1)),
-        "BB2"    => GradientDescent(direction = SteepestDescent(),
-                                    step_size = BarzilaiBorwein(variant = :BB2)),
-    ]
-end
+# Stages 1–4 use the short labels in _shared.jl's PLOT_ORDER. Stage 6's
+# variant grid produces full names like "GradientDescent[step_size=Fixed]";
+# that switch is intentional and isolated to Stage 5+.
+const build_methods = build_standard_methods
 
 # ---------------------------------------------------------------------------
 # Driver — runs each method, returns Vector{Pair{String, MethodResult}}

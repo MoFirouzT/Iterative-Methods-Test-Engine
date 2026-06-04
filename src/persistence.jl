@@ -124,6 +124,34 @@ function _write_csv_sidecars(result::ExperimentResult)
 end
 
 
+# Per-method, per-run termination summary derived from MethodResult and the
+# final IterationLog entry. Embedded in every manifest so `jq '.method_results.BB1[0]'`
+# is enough to know how a method terminated without loading result.jld2.
+function _method_results_summary(result::ExperimentResult)
+	out = Dict{String, Vector{Dict{String, Any}}}()
+	for run_result in result.run_results
+		for (name, mres) in run_result.method_results
+			isempty(mres.iter_logs) && continue
+			last_entry = mres.iter_logs[end]
+			entry = Dict{String, Any}(
+				"run_id"       => run_result.run_id,
+				"n_iters"      => mres.n_iters,
+				"stop_reason"  => string(mres.stop_reason),
+				"f_final"      => last_entry.objective,
+				"grad_final"   => last_entry.gradient_norm,
+				"dist_final"   => last_entry.dist_to_opt,
+			)
+			push!(get!(out, name, Dict{String, Any}[]), entry)
+		end
+	end
+	# Stable ordering inside each method's vector.
+	for v in values(out)
+		sort!(v, by = e -> e["run_id"])
+	end
+	return out
+end
+
+
 function _manifest_payload(result::ExperimentResult, skipped_extras::Vector{Symbol})
 	methods = String[]
 	if !isempty(result.run_results)
@@ -138,6 +166,7 @@ function _manifest_payload(result::ExperimentResult, skipped_extras::Vector{Symb
 		"n_methods" => length(methods),
 		"methods" => methods,
 		"tags" => result.config.tags,
+		"method_results" => _method_results_summary(result),
 	)
 
 	if !isempty(skipped_extras)
@@ -154,25 +183,49 @@ end
 
 
 """
-	save_experiment(result::ExperimentResult)
+	save_experiment(result::ExperimentResult;
+	                compress = false,
+	                extra_manifest = Dict{String,Any}())
 
 Writes:
-- `result.jld2`  (full binary)
+- `result.jld2`  (full binary; uncompressed by default — see `compress`)
 - `run{N}_{method}.csv`  (scalar extras only)
-- `manifest.json`  (metadata + list of CSV-skipped extras keys)
+- `manifest.json`  (metadata, base `method_results`, CSV-skipped extras keys,
+   and any keys from `extra_manifest`)
 
 CSVs are written before the manifest so the manifest can record which
 extras were dropped.
+
+# Keyword arguments
+- `compress` — controls JLD2 compression for `result.jld2`. `false`
+  (default) writes uncompressed; `true` uses JLD2's built-in codec; a
+  specific `TranscodingStreams` codec value is also accepted and passed
+  through verbatim. **Default is `false`** because on the Rosenbrock
+  iter-log payload the built-in codec is a net loss (~5% overhead — the
+  Dict{Symbol,Any} extras dominate and don't compress); see
+  [docs/architecture.md §10 JLD2 compression] for measurements and the
+  scenarios where opting in pays off. `load_experiment` reads either form
+  transparently — no matching kwarg required.
+- `extra_manifest::Dict{String,Any}` — keys merged into `manifest.json`
+  after the framework's own fields. Use this to record stage-specific
+  results (e.g. iters-to-milestone, tolerances used) so cold-restart
+  queries can answer questions without recomputing from CSVs. Keys in
+  `extra_manifest` override the base fields if they collide — caller's
+  problem if that's not intended.
 """
-function save_experiment(result::ExperimentResult)
+function save_experiment(result::ExperimentResult;
+                         compress = false,
+                         extra_manifest::Dict{String,Any} = Dict{String,Any}())
 	mkpath(result.experiment_path)
 
 	jld_path = joinpath(result.experiment_path, "result.jld2")
-	JLD2.save(jld_path, Dict("result" => result))
+	JLD2.save(jld_path, Dict("result" => result); compress = compress)
 
 	skipped = _write_csv_sidecars(result)
 
 	manifest = _manifest_payload(result, skipped)
+	merge!(manifest, extra_manifest)
+
 	manifest_path = joinpath(result.experiment_path, "manifest.json")
 	open(manifest_path, "w") do io
 		JSON3.pretty(io, manifest)

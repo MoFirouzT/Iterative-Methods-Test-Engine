@@ -28,7 +28,7 @@ export init_state, step!, extract_log_entry, run_method, run_sub_method
 export SubRunConfig, SubResult, @core_timed
 
 export StoppingCriterion, MaxIterations, TimeLimit, GradientTolerance
-export ObjectiveStagnation, StepTolerance, CompositeCriterion, stop_when_any, stop_when_all, should_stop
+export ObjectiveStagnation, StepTolerance, DistanceToOptimal, CompositeCriterion, stop_when_any, stop_when_all, should_stop
 
 export DescentDirection, SteepestDescent, StepSize, LineSearch
 export FixedStep, ArmijoLS, CauchyStep, BarzilaiBorwein

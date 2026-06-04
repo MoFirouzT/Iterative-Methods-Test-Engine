@@ -54,29 +54,8 @@ include("_shared.jl")
 const SEED   = 42
 const RUN_ID = 1
 
-const PLOT_ORDER = ["Fixed", "Armijo", "Cauchy", "BB1", "BB2"]
-const COLORS = Dict(
-    "Fixed"  => "#000000",
-    "Armijo" => "#0072B2",
-    "Cauchy" => "#009E73",
-    "BB1"    => "#E69F00",
-    "BB2"    => "#D55E00",
-)
-
-function build_methods()
-    [
-        "Fixed"  => GradientDescent(direction = SteepestDescent(),
-                                    step_size = FixedStep(α = 8e-4)),
-        "Armijo" => GradientDescent(direction = SteepestDescent(),
-                                    step_size = ArmijoLS()),
-        "Cauchy" => GradientDescent(direction = SteepestDescent(),
-                                    step_size = CauchyStep()),
-        "BB1"    => GradientDescent(direction = SteepestDescent(),
-                                    step_size = BarzilaiBorwein(variant = :BB1)),
-        "BB2"    => GradientDescent(direction = SteepestDescent(),
-                                    step_size = BarzilaiBorwein(variant = :BB2)),
-    ]
-end
+# PLOT_ORDER, COLORS, build_standard_methods live in _shared.jl.
+const build_methods = build_standard_methods
 
 # Compact ExperimentConfig used as the manifest record. We do *not* drive the
 # orchestrator with this — Stage 6 introduces VariantGrid + run_experiment.

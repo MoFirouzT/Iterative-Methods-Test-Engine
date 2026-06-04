@@ -23,36 +23,53 @@ gaps themselves are real either way.
 
 ## Immediate blockers
 
-### Stage 4 — `DistanceToOptimal` is referenced but undefined
+### Stage 4 — `DistanceToOptimal` is referenced but undefined  ✓ RESOLVED
 
-**Tag:** (framework). **Blocks:** Stage 4 end-to-end run; the
-`@core_timed`-vs-wall ratio assertion in `print_timing_table` (added in
-`exp_stage4.jl`) cannot fire until this lands.
+**Status:** Landed. `DistanceToOptimal` is now in
+[src/stopping.jl](../src/stopping.jl) with `should_stop` returning
+`(true, :optimal_reached)` when `state.metrics.dist_to_opt ≤ tol`, exported
+from `TestEngine`, and recognised as a convergence symbol by
+`is_converged_reason`. No runner-side wiring was needed —
+`GradientDescent.init_state` and `step!` already update
+`state.metrics.dist_to_opt` from `problem.x_opt` (defaulting to `Inf` when
+the problem has no known optimum, which makes the criterion automatically
+inert).
 
-[exp_stage4.jl](exp_stage4.jl) and [basic_experiments.md](basic_experiments.md)
-reference a `DistanceToOptimal` stopping criterion that doesn't exist in
-[src/stopping.jl](../src/stopping.jl) (only `MaxIterations`, `TimeLimit`,
-`GradientTolerance`, `ObjectiveStagnation`, `StepTolerance`,
-`CompositeCriterion` are defined). The runner also needs to update
-`state.metrics.dist_to_opt` from `problem.x_opt` before each stopping check —
-[basic_experiments.md](basic_experiments.md) calls this out as the bug surface
-for Stage 4 already.
+Stage 4 now runs end-to-end and BB1/BB2/Cauchy hit `:optimal_reached` as
+expected.
 
-**Sketch:**
+### Persistence — JLD2 size on multi-run experiments
 
-```julia
-@kwdef struct DistanceToOptimal <: StoppingCriterion
-    tol::Float64 = 1e-8
-end
+**Tag:** (framework). **Symptom:** A single 5-method × 20 000-iter
+Rosenbrock run produces a 47 MB `result.jld2`. Stage 6's `n_runs = 20`
+projection puts that near 1 GB per experiment directory.
 
-function should_stop(c::DistanceToOptimal, state, iter, logger)
-    return state.metrics.dist_to_opt ≤ c.tol ? :optimal_reached : nothing
-end
-```
+**Status:** `save_experiment(...; compress = …)` is now exposed in
+[src/persistence.jl](../src/persistence.jl) and forwards the kwarg to
+`JLD2.save`. *But:* compression with the default codec is empirically a
+net loss on this payload (104.8% of the uncompressed size — see
+[docs/architecture.md §10 JLD2 compression](../docs/architecture.md#jld2-compression)
+for measurements). The dominant cost is `IterationLog.extras::Dict{Symbol,Any}`
+typing/dispatch overhead, which doesn't compress and adds codec block
+headers. So the default is `compress = false`; the kwarg exists for
+opt-in when a different problem family or codec wins.
 
-Plus a one-liner in `run_method` to refresh `state.metrics.dist_to_opt`
-between `step!` and `should_stop`. Without this, every existing reference is
-dead and the Stage 4 timing report stays unverifiable.
+**Remaining work — schema migration.** Realistic JLD2 shrinkage requires
+changing the on-disk layout, not the codec:
+
+- Current layout (array-of-structs): one `IterationLog` per iter, each
+  carrying its own `Dict{Symbol,Any}` extras. JLD2 stores the dict's
+  type machinery per row.
+- Proposed (struct-of-arrays per method): one column-major struct per
+  method holding `iter::Vector{Int}`, `objective::Vector{Float64}`,
+  `gradient_norm::Vector{Float64}`, ... plus a `extras::Dict{Symbol,
+  Vector{Any}}` keyed by extras name with one cell per iter (missing
+  where absent).
+
+Estimated payoff: 5–10× on Rosenbrock-style payloads where the columns
+are uniformly typed and densely populated. Cost: a persistence-schema
+migration with a versioned manifest, and `to_dataframe` / `iter_logs`
+rewrites. Not Stage-4 blocking; queue under "framework gaps."
 
 ---
 

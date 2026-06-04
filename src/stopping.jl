@@ -80,6 +80,22 @@ end
 
 
 """
+    DistanceToOptimal(; tol::Float64 = 1e-6)
+
+Terminate when `‖x − x*‖` falls below threshold. Requires the problem to
+have a known optimum (`problem.x_opt !== nothing`); otherwise the runner
+keeps `state.metrics.dist_to_opt == Inf` and this criterion never fires.
+
+Useful primarily for benchmarking and validation experiments (Stages 4–7),
+where the optimum is known by construction. For production solves, prefer
+`GradientTolerance` or `ObjectiveStagnation`.
+"""
+@kwdef struct DistanceToOptimal <: StoppingCriterion
+    tol :: Float64 = 1e-6
+end
+
+
+"""
     CompositeCriterion(; criteria::Vector{StoppingCriterion}, mode::Symbol = :any)
 
 Combine multiple criteria: :any (first satisfied wins) or :all (all must hold).
@@ -168,6 +184,14 @@ end
 # StepTolerance dispatch
 function should_stop(c::StepTolerance, state, iter::Int, logger)
     state.metrics.step_norm <= c.tol ? (true, :step_converged) : (false, :none)
+end
+
+
+# DistanceToOptimal dispatch
+# state.metrics.dist_to_opt is `Inf` when the problem has no known optimum,
+# so this criterion is automatically inert in that case.
+function should_stop(c::DistanceToOptimal, state, iter::Int, logger)
+    state.metrics.dist_to_opt <= c.tol ? (true, :optimal_reached) : (false, :none)
 end
 
 

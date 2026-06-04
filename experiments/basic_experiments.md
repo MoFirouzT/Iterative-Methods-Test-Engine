@@ -131,8 +131,7 @@ runner-side `dist_to_opt` update also still needs wiring. Once those land,
 the script runs end-to-end and the new `print_timing_table` block (added
 in preparation for the assertion move from Stage 0) becomes executable.
 
-Same five methods, now stopping on
-`stop_when_any(MaxIterations(20_000), DistanceToOptimal(1e-8), GradientTolerance(1e-10))`.
+Same five methods, now stopping on `stop_when_any(MaxIterations(20_000), DistanceToOptimal(1e-8), GradientTolerance(1e-10))`.
 Produces a bar chart of *iterations to milestone* (first time `‖x − x*‖ ≤ 1e-6`)
 with DNF handling for methods that never reach the milestone.
 
@@ -155,11 +154,11 @@ with DNF handling for methods that never reach the milestone.
 - **`@core_timed` scope correctness:** aggregate `core_time / wall_time` lands
   in `[50%, 110%]`. 20_000 iters / method (post-warm-up) amortize per-iter
   scaffolding (`extract_log_entry`, `should_stop`, dispatch) enough for this
-  to be a real signal — unlike Stage 0, where the kernel is below the noise
-  floor. If the ratio is too low, either widen `@core_timed`'s scope in
+  to be a real signal — unlike Stage 0, where the kernel is below the noise floor.
+  If the ratio is too low, either widen `@core_timed`'s scope in
   `step!` to include the norm/copy bookkeeping currently outside it, or the
-  problem is too small to make the kernel dominate. If too high, `@core_timed`
-  is sweeping in non-kernel work (logger, stopping check).
+  problem is too small to make the kernel dominate.
+  If too high, `@core_timed` is sweeping in non-kernel work (logger, stopping check).
 
 **Bug surface to watch.** If `dist_final` is large for a method that stopped with
 `:optimal_reached`, the runner is not updating `state.metrics.dist_to_opt` before
