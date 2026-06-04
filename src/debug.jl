@@ -6,16 +6,14 @@ Provides `DebugConfig`, the `DebugCheck` hierarchy, `run_debug_checks!`,
 central-difference numerical gradient helper.
 """
 
+abstract type DebugCheck end
+
 @kwdef struct DebugConfig
     enabled    :: Bool               = false
-    checks     :: Vector{Any} = Any[
-                      nothing,
-                  ]
+    checks     :: Vector{DebugCheck} = DebugCheck[]
     on_trigger :: Symbol             = :warn   # :warn | :error | :log
     io         :: IO                 = stderr
 end
-
-abstract type DebugCheck end
 
 @kwdef struct CheckObjectiveMonotonicity <: DebugCheck
     tolerance :: Float64 = 1e-10
@@ -53,7 +51,8 @@ function debug_check!(c::CheckObjectiveMonotonicity, cfg, logger, state, problem
     if increase > c.tolerance
         trigger_debug!(cfg, iter,
             "Objective increased by $(increase) " *
-            "(prev=$(prev.objective), curr=$(entry.objective))")
+            "(prev=$(prev.objective), curr=$(entry.objective));"
+            ; logger=logger)
     end
 end
 
@@ -61,7 +60,8 @@ function debug_check!(c::CheckGradientNormBound, cfg, logger, state, problem,
                       entry::IterationLog, prev::Union{Nothing,IterationLog}, iter::Int)
     if entry.gradient_norm > c.max_norm
         trigger_debug!(cfg, iter,
-            "Gradient norm $(entry.gradient_norm) exceeds bound $(c.max_norm)")
+            "Gradient norm $(entry.gradient_norm) exceeds bound $(c.max_norm)"
+            ; logger=logger)
     end
 end
 
@@ -91,7 +91,8 @@ function debug_check!(c::CheckNumericalGradient, cfg, logger, state, problem,
     if rel_error > c.max_error
         trigger_debug!(cfg, iter,
             "Gradient check failed: relative error = $(rel_error) " *
-            "(threshold=$(c.max_error))")
+            "(threshold=$(c.max_error))"
+            ; logger=logger)
     end
 end
 

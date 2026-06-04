@@ -284,11 +284,13 @@ Flow per iteration:
 
 On stop, records event and returns finalize!(logger, method, state).
 """
-function run_method(method::IterativeMethod, problem, criteria, logger, rng::AbstractRNG)
+function run_method(method::IterativeMethod, problem, criteria, logger, rng::AbstractRNG;
+                    debug = nothing)
 	state = init_state(method, problem, rng)
 
 	log_init!(logger, method, state)
 	iter = 0
+	prev_entry = nothing
 
 	while true
 		iter += 1
@@ -298,6 +300,16 @@ function run_method(method::IterativeMethod, problem, criteria, logger, rng::Abs
 
 		entry = extract_log_entry(method, state, iter)
 		log_iter!(logger, entry)
+
+		# Debug checks fire after the log entry is recorded so the check has
+		# access to a consistent (entry, prev_entry, state) triple. `debug`
+		# is left untyped here to avoid a hard dependency from src/core.jl
+		# on src/debug.jl; the orchestrator passes a `DebugConfig` when it
+		# wants checks to run, `nothing` otherwise.
+		if debug !== nothing && debug.enabled
+			run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
+		end
+		prev_entry = entry
 
 		stop, reason = should_stop(criteria, state, iter, logger)
 		if stop

@@ -241,7 +241,7 @@ assertion silently becomes vacuous.
 
 ## Stage 6 — Multi-run with randomized x₀ + warm-up
 
-**Status:** in progress.
+**Status:** done.
 **File:** `exp_stage6.jl`.
 
 Sample x₀ uniformly in [−2, 2]² (registered as a new `RandomProblem(:rosenbrock_random_x0)`). Set `n_runs = 20`. 
@@ -301,12 +301,41 @@ Add one configuration with `IterativeWarmup(GradientDescent(FixedStep(α=1e-3)),
 
 ## Stage 7 — Debug mode + extended stopping criteria + range-gated verbosity
 
-**Status:** new.
+**Status:** done.
+**File:** `exp_stage7.jl`.
 
-The "research tooling" stage. Three orthogonal but related observability blocks
-bundled into one experiment, since they're all auxiliary verification machinery.
+The "research tooling" stage.
+Three orthogonal but related observability blocks bundled into one experiment, since they're all auxiliary verification machinery.
 Together they validate everything in `debug.jl`, the remaining `StoppingCriteria`
 subtypes, the `:all` composite mode, and the `iter_range` verbosity gate.
+
+**Framework gaps filled during this stage (landed):**
+
+- `DebugConfig.checks` default in [src/debug.jl](../src/debug.jl) was
+  `Any[nothing]`, which made `run_debug_checks!` iterate a single `nothing`
+  and `MethodError` on the first call. Now defaults to `DebugCheck[]`,
+  and the abstract `DebugCheck` type is declared before `DebugConfig` so
+  the type annotation resolves.
+- `ExperimentConfig` gains a `debug::DebugConfig` field (default
+  `DebugConfig()` — disabled). The orchestrator forwards it to
+  `run_method` as a keyword.
+- `run_method` ([src/core.jl](../src/core.jl)) accepts a `debug` keyword
+  (untyped to avoid a hard dep on `src/debug.jl`). After each `log_iter!`,
+  when `debug !== nothing && debug.enabled`, it calls
+  `run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)`
+  with the previous `IterationLog` so monotonicity and step-decay checks
+  have a window to compare against. Stages 1–6's positional callers stay
+  byte-compatible (the keyword defaults to `nothing`).
+- TestEngine include order: `debug.jl` now precedes `experiment.jl` so
+  `ExperimentConfig`'s `debug::DebugConfig` field resolves at parse time.
+
+**A note on Stage 7.a.2's gradient-norm bound.** The plan suggested a bound
+of 1e8 with ρ = 1e6 (or x₀ = (10, 10)). At x₀ = (−1.2, 1) with ρ = 1e6 the
+empirical ‖∇f‖ peaks around 2.3e6 — below 1e8, so the check never fires
+under that configuration. The experiment uses `max_norm = 1e6` with the
+same ρ to make the bound a binding signal. An equivalent fix would be to
+move x₀ further from the valley (e.g. (10, 10) with ρ = 1e6 gives
+‖∇f‖ ≈ 3.6e9, which clears 1e8 comfortably).
 
 ### 7.a — Debug mode
 
@@ -371,6 +400,93 @@ both `:any` and `:all` composite modes; `method_criteria` dispatch; the
 
 ---
 
-After Stage 7, every Rosenbrock-meaningful architectural block has been
-validated. Remaining untested blocks need different problem types — see
-`Experiment_TODOs.md`.
+## Stage 8 — Cross-cutting validations
+
+**Status:** done.
+**File:** `exp_stage8.jl`.
+
+The four "doesn't fit a single earlier stage" checks called out in
+`Experiment_TODOs.md` § "Cross-cutting validations not yet covered". All
+Rosenbrock-only; no new problem family is needed. Bundled into one script
+because each is small.
+
+**Framework gaps filled during this stage (landed):**
+
+- `MethodResult` gains an `events::Vector{NamedTuple}` field
+  ([src/experiment.jl](../src/experiment.jl)) populated by `finalize!` from
+  `logger.events` ([src/logging.jl](../src/logging.jl)). Before this, every
+  event recorded during a run — the stopping event from `log_event!`, debug
+  events emitted by `:log`-mode checks — was dropped at `finalize!` and
+  never reached the persistence layer. A backward-compatible 5-arg
+  constructor preserves the previous call sites. `ExperimentResult`
+  roundtrips events through JLD2 automatically.
+- `debug_check!` for `CheckObjectiveMonotonicity`, `CheckGradientNormBound`,
+  and `CheckNumericalGradient` ([src/debug.jl](../src/debug.jl)) now
+  forwards the `logger` keyword to `trigger_debug!`. Previously these
+  invoked `trigger_debug!(cfg, iter, msg)` positionally, so on
+  `on_trigger = :log` they fell through `trigger_debug!`'s "no logger
+  available" branch and printed to console anyway — i.e. Stage 7.a.5 was
+  *not* actually silent before this fix, and Stage 8.a's events would have
+  been empty. Only `CheckStepDecay` had been forwarding the logger.
+
+### 8.a — `logger.events` roundtrip
+
+`save_experiment` → `load_experiment` on an experiment whose
+`DebugConfig.on_trigger = :log`. Asserts that the loaded `MethodResult`
+carries a non-empty `events` vector, that the stopping event is present,
+and that at least one `:debug` event survived the trip on BB1 (where
+`CheckObjectiveMonotonicity` is guaranteed to fire).
+
+### 8.b — `aggregate_runs(df, :all)`
+
+Run 3 runs of the five-method grid, build the DataFrame, call
+`aggregate_runs(df, :all)`, and assert shape + content equality with the
+input. Sanity-checks `:median` against `:all` (the median frame collapses
+the `run_id` dimension; the row-count drop is part of the assertion).
+
+### 8.c — `method_color` registry in-session contract
+
+`METHOD_COLOR_REGISTRY` is a process-global `Dict` — intentionally not
+persisted into the experiment manifest. The validation asserts the
+in-session contract: after `register_method_color!`, `get_method_color`
+returns the registered value, and that value is unaffected by an
+intervening `load_experiment` of an unrelated run. Tidies up the test
+fixture (`delete!(METHOD_COLOR_REGISTRY, name)`) so re-runs see a clean
+slate.
+
+### 8.d — `run_sub_method` invocation shape
+
+The sub-method machinery (`run_sub_method` / `SubResult` /
+`attach_sub_logs!`) is exported and covered by `test/runtests.jl` but no
+stage was using it. Invokes `run_sub_method` once against a manually
+constructed outer logger and asserts:
+
+- `SubResult.n_iters == 1`, `stop_reason == :max_iterations`
+  (`MaxIterations(n=1)` was the criterion);
+- `SubResult.iter_logs` has length 2 (`iter == 0` init + `iter == 1` step;
+  matches the Stage-6 log-init invariant);
+- the outer logger's `pending_sub_logs` is populated (`attach_sub_logs!`
+  fired because `log_sub_iters = true`);
+- the final iterate has actually moved off `x₀`.
+
+Does not rework `IterativeWarmup` to ride on top of `run_sub_method` — the
+TODOs file lists that as an option, but the warm-up runs *before* any
+outer method exists, so the natural "outer logger" for `attach_sub_logs!`
+would have to be invented. Out of scope for Stage 8.
+
+### Watch out for
+
+- if 8.a's BB1 debug count is 0, a `debug_check!` method is invoking
+  `trigger_debug!` without the `logger` keyword again — fix in
+  [src/debug.jl](../src/debug.jl);
+- if 8.c says the registry was wiped after `load_experiment`, persistence
+  is silently mutating global state — the registry should remain entirely
+  in-memory;
+- if 8.d's `pending_sub_logs` is empty, `attach_sub_logs!` is not being
+  called from inside `run_sub_method`, or `log_sub_iters = true` isn't
+  flowing through.
+
+---
+
+After Stage 8, every Rosenbrock-meaningful architectural block has been validated.
+Remaining untested blocks need different problem types — see `Experiment_TODOs.md`.

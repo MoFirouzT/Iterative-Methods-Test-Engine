@@ -137,6 +137,7 @@ Declarative experiment definition.
 	n_runs::Int = 1
 	seed::Union{Int,Nothing} = 42
 	tags::Dict{String,Any} = Dict{String,Any}()
+	debug::DebugConfig = DebugConfig()
 end
 
 
@@ -144,6 +145,11 @@ end
 	MethodResult
 
 Outcome of running one method on one problem instance.
+
+`events` carries any named events the logger recorded — typically the
+stopping reason emitted by `log_event!`, plus any debug events captured via
+`on_trigger = :log`. Without this field, the debug `:log` payload would be
+dropped at `finalize!` (Stage 8 covers the roundtrip explicitly).
 """
 struct MethodResult
 	method_name::String
@@ -151,7 +157,11 @@ struct MethodResult
 	final_state::Any
 	stop_reason::Symbol
 	n_iters::Int
+	events::Vector{NamedTuple}
 end
+
+MethodResult(name, iter_logs, final_state, stop_reason, n_iters) =
+	MethodResult(name, iter_logs, final_state, stop_reason, n_iters, NamedTuple[])
 
 
 """
@@ -268,6 +278,7 @@ function _to_method_result(name::String, result)
 		result.final_state,
 		result.stop_reason,
 		result.n_iters,
+		hasproperty(result, :events) ? result.events : NamedTuple[],
 	)
 end
 
@@ -320,7 +331,8 @@ function run_experiment(config::ExperimentConfig,
 			criteria = get(config.method_criteria, name, config.stopping_criteria)
 			logger = _make_logger(name, run_id, exp_path, verbosity)
 			method_rng = Xoshiro(hash((root_seed, run_id, name)))
-			raw_result = run_method(method, problem, criteria, logger, method_rng)
+			raw_result = run_method(method, problem, criteria, logger, method_rng;
+									debug = config.debug)
 			method_results[name] = _to_method_result(name, raw_result)
 		end
 

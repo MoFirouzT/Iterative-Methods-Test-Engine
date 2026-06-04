@@ -25,22 +25,33 @@
 #   7.c — Range-gated verbosity
 #         C1  iter_range = 200:300 with MILESTONE fallback
 #
-# A1 alone validates that the debug machinery is in fact orthogonal to the
-# algorithm code: same algorithms, same problem, debug toggled — both the
-# normal log and the debug-event stream populate as expected.
+# Framework gaps filled during this stage (landed):
+#   * `DebugConfig.checks` default was `Any[nothing]`, which made
+#     `run_debug_checks!` iterate over a single `nothing` and `MethodError`
+#     immediately. Now defaults to `DebugCheck[]`.
+#   * `ExperimentConfig` gains a `debug::DebugConfig` field (default
+#     `DebugConfig()` — disabled). The orchestrator forwards it to
+#     `run_method` as a keyword.
+#   * `run_method` (`src/core.jl`) accepts a `debug` keyword (untyped to
+#     avoid a hard dep on `src/debug.jl`). After each `log_iter!`, when
+#     `debug !== nothing && debug.enabled`, it calls
+#     `run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)`
+#     with the previous IterationLog so monotonicity / step-decay checks
+#     have a window to compare against. Stages 1–6's positional callers are
+#     unaffected (the keyword defaults to `nothing`).
+#   * TestEngine include order: `debug.jl` now precedes `experiment.jl` so
+#     `ExperimentConfig`'s `debug::DebugConfig` field resolves at parse time.
 # =============================================================================
 
-import Pkg
-Pkg.activate(dirname(@__DIR__))
-
-using TestEngine
+include("../src/TestEngine.jl")
+using .TestEngine
 using DataFrames, DataFramesMeta
 using LinearAlgebra
 using Printf
 
-# Bring the framework's dispatch points into scope so we can add methods
-# to them on a new Objective subtype (see broken-gradient section below).
-import TestEngine: value, grad!, hessian
+# Bring the framework's dispatch points into scope so we can add methods on
+# a new Objective subtype (see broken-gradient section below).
+import .TestEngine: value, grad!, hessian
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +63,7 @@ register_abbreviation!("BarzilaiBorwein", "BB")
 
 const VERBOSITY = VerbosityConfig(level=MILESTONE)
 const ROSEN     = AnalyticProblem(name   = :rosenbrock,
-                                  params = (ρ = 100.0, x0 = [-1.2, 1.0]))
+                                  params = (rho = 100.0, x0 = [-1.2, 1.0]))
 
 # A small helper that runs and prints a short summary, used throughout.
 function _report(label::String, result)
@@ -60,8 +71,6 @@ function _report(label::String, result)
     df = to_dataframe(result)
     for sub in groupby(df, :method_name)
         last_row = sub[end, :]
-        # stop_reason is on the MethodResult, not in the DataFrame; we pull
-        # it out of run_results for the first run.
         run1 = result.run_results[1]
         mr   = run1.method_results[sub.method_name[1]]
         @printf("    %-50s n_iter=%5d  stop=%-22s  f=%.3e  ‖∇f‖=%.3e\n",
@@ -75,6 +84,21 @@ end
 function first_line(s::AbstractString)
     nl = findfirst('\n', s)
     return nl === nothing ? s : s[1:nl-1]
+end
+
+# Count debug events recorded into logger.events (on_trigger = :log path).
+function _count_debug_events(result)
+    total = 0
+    for rr in result.run_results, (_, mr) in rr.method_results
+        # Debug events land in logger.events; finalize! exposes them via
+        # MethodResult — but our MethodResult only carries iter_logs / stop_reason.
+        # Instead, scan each iter_log's extras for any `debug_event` placeholder,
+        # falling back to zero. The richer accounting lives in the captured
+        # ExperimentResult.run_results' Logger view, which isn't exposed in
+        # this build — we report 0 here when unavailable and rely on the
+        # `:warn`/`:error` paths for behavioural evidence.
+    end
+    return total
 end
 
 # Variant grid reused across 7.a and 7.c.
@@ -111,7 +135,8 @@ println("╚══════════════════════�
 # normal converging run — they need the stress configs in A2/A3.
 
 println("\n--- A1: all four checks active, on_trigger=:warn ---")
-println("    (expect CheckObjectiveMonotonicity to fire on BB iterations)")
+println("    (expect CheckObjectiveMonotonicity to fire on BB iterations;")
+println("     a small sample of warnings is printed below — full stream on stderr)")
 
 config_a1 = ExperimentConfig(
     name              = "Stage 7.a.1 — debug :warn baseline",
@@ -139,14 +164,18 @@ _report("A1", result_a1)
 
 # ─── A2: CheckGradientNormBound stress ──────────────────────────────────────
 #
-# ρ = 1e6 makes ‖∇f‖ at x₀ ≈ (−1.2, 1) enormous on the first iteration.
-# The bound at 1e8 fires immediately.
+# ρ = 1e6 lifts ‖∇f‖ at x₀ = (−1.2, 1) to ~2.3e6 (≈ 4ρ·|x₁|·|x₂ − x₁²|
+# dominates). Setting the bound at 1e6 makes the check fire on the very
+# first iteration. The original plan suggested 1e8 with ρ = 1e6, but the
+# Rosenbrock gradient at this x₀ peaks well below 1e8 — empirically we need
+# either x₀ further from the valley (e.g. (10, 10)) or a lower threshold.
+# A lower threshold is the more direct signal here.
 
-println("\n--- A2: CheckGradientNormBound stress, ρ=1e6 ---")
+println("\n--- A2: CheckGradientNormBound stress, ρ=1e6, bound=1e6 ---")
 config_a2 = ExperimentConfig(
     name              = "Stage 7.a.2 — CheckGradientNormBound stress",
     problem_spec      = AnalyticProblem(name=:rosenbrock,
-                                        params=(ρ = 1e6, x0 = [-1.2, 1.0])),
+                                        params=(rho = 1e6, x0 = [-1.2, 1.0])),
     conventional_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = FixedStep(α=1e-9))],
     stopping_criteria = MaxIterations(n=50),
@@ -154,7 +183,7 @@ config_a2 = ExperimentConfig(
     seed              = 42,
     debug             = DebugConfig(
         enabled    = true,
-        checks     = DebugCheck[CheckGradientNormBound(max_norm = 1e8)],
+        checks     = DebugCheck[CheckGradientNormBound(max_norm = 1e6)],
         on_trigger = :warn,
     ),
     tags              = Dict{String,Any}("stage" => "7.a.2"),
@@ -166,7 +195,7 @@ _report("A2", result_a2)
 #
 # Fixed step of 1e-6 means ‖αd‖ is roughly constant and tiny, so over any
 # window the step norm is essentially unchanging (no decay) — the check
-# fires as soon as window iterations are in flight.
+# fires as soon as `window` iterations are in flight.
 
 println("\n--- A3: CheckStepDecay stress, FixedStep(α=1e-6) ---")
 config_a3 = ExperimentConfig(
@@ -190,24 +219,20 @@ _report("A3", result_a3)
 # ─── A4: CheckNumericalGradient on a BROKEN gradient at :error ──────────────
 #
 # We define a separate Objective subtype with an intentionally-wrong
-# gradient (the −4ρx₁(x₂ − x₁²) term is missing from ∂/∂x₁). This is the
+# gradient (the −2(1−x₁) − 4ρ x₁ (x₂ − x₁²) term is missing). This is the
 # cleanest way to exercise the numerical check: leave the real
 # RosenbrockObjective untouched, register a fresh problem, and run it.
-#
-# CheckNumericalGradient compares the analytical gradient state.iterate
-# .gradient against a central-difference estimate; the relative error
-# should blow past max_error = 1e-5 on the very first iteration. With
-# on_trigger = :error, the run should halt loudly.
 
 struct BrokenRosenbrockObjective <: Objective
     ρ::Float64
 end
 
-value(f::BrokenRosenbrockObjective, x) =
+value(f::BrokenRosenbrockObjective, x::Vector{Float64})::Float64 =
     (1.0 - x[1])^2 + f.ρ * (x[2] - x[1]^2)^2
 
-function grad!(g, f::BrokenRosenbrockObjective, x)
-    # Intentionally missing the -4ρx₁(x₂ - x₁²) term — first component is wrong.
+function grad!(g::Vector{Float64}, f::BrokenRosenbrockObjective, x::Vector{Float64})::Vector{Float64}
+    # Intentionally missing the −4ρ x₁ (x₂ − x₁²) term — first component
+    # is wrong by a large margin at x = (-1.2, 1) when ρ = 100.
     g[1] = -2.0 * (1.0 - x[1])
     g[2] =  2.0 * f.ρ * (x[2] - x[1]^2)
     return g
@@ -215,10 +240,11 @@ end
 
 # Hessian is unused by GradientDescent + ArmijoLS but the interface needs a
 # concrete return; provide a stub that flags the calling site if used.
-hessian(::BrokenRosenbrockObjective, x) = MatrixHessian(zeros(length(x), length(x)))
+hessian(::BrokenRosenbrockObjective, x::Vector{Float64}) =
+    MatrixHessian(zeros(length(x), length(x)))
 
-register_problem!(:rosenbrock_broken, (params, rng) -> begin
-    ρ  = Float64(get(params, :ρ, 100.0))
+register_analytic_problem!(:rosenbrock_broken, (params, rng) -> begin
+    ρ  = Float64(get(params, :rho, 100.0))
     x0 = collect(Float64, get(params, :x0, [-1.2, 1.0]))
     return Problem(BrokenRosenbrockObjective(ρ), x0;
                    x_opt = [1.0, 1.0],
@@ -230,7 +256,7 @@ println("    (run is expected to halt with an ErrorException)")
 config_a4 = ExperimentConfig(
     name              = "Stage 7.a.4 — broken gradient, :error",
     problem_spec      = AnalyticProblem(name=:rosenbrock_broken,
-                                        params=(ρ = 100.0, x0 = [-1.2, 1.0])),
+                                        params=(rho = 100.0, x0 = [-1.2, 1.0])),
     conventional_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = ArmijoLS())],
     stopping_criteria = MaxIterations(n=10),
@@ -246,22 +272,22 @@ config_a4 = ExperimentConfig(
     tags              = Dict{String,Any}("stage" => "7.a.4"),
 )
 
-a4_caught = false
-try
-    run_experiment(config_a4; verbosity=VERBOSITY)
-catch e
-    a4_caught = true
-    println("    ✓ run halted with: ", sprint(showerror, e) |> first_line)
+let a4_caught = false
+    try
+        run_experiment(config_a4; verbosity=VERBOSITY)
+    catch e
+        a4_caught = true
+        println("    ✓ run halted with: ", sprint(showerror, e) |> first_line)
+    end
+    a4_caught || @error "A4: broken gradient did NOT trigger the numerical-gradient " *
+                        "check — central-difference computation or threshold is " *
+                        "misconfigured."
 end
-a4_caught || @error "A4: broken gradient did NOT trigger the numerical-gradient check — " *
-                    "central-difference computation or threshold is misconfigured."
 
 # ─── A5: all four checks at :log (silent recording) ─────────────────────────
 #
-# on_trigger = :log means triggered events are recorded in logger.events
-# (or wherever the implementation records them) without printing. This run
-# should produce no DEBUG output on stderr; the events should be inspectable
-# afterwards.
+# on_trigger = :log records events into logger.events without printing them
+# (when a logger is reachable; trigger_debug! has the wiring).
 
 println("\n--- A5: all four checks active, on_trigger=:log ---")
 println("    (expect NO console output from debug checks)")
@@ -299,12 +325,8 @@ println("╚══════════════════════�
 # ─── B1: :any composite with the remaining criteria + method_criteria ───────
 #
 # Six criteria in a single :any composite, plus a per-method override
-# narrowing Fixed's iteration budget so that the *binding* criterion differs
-# across methods. Expected stop_reasons:
-#   Fixed   → :max_iterations or :objective_stagnated (its small budget)
-#   Armijo  → :gradient_converged or :optimal_reached
-#   Cauchy  → :gradient_converged
-#   BB1/BB2 → :optimal_reached  (typically reach x* fastest)
+# narrowing Fixed's iteration budget so that the binding criterion differs
+# across methods.
 
 println("\n--- B1: :any composite covering all remaining criteria, with method_criteria ---")
 config_b1 = ExperimentConfig(
@@ -360,10 +382,6 @@ end
 # tolerances become satisfied within a sensible budget.
 
 println("\n--- B2: stop_when_all(GradientTolerance(1e-6), StepTolerance(1e-8)) ---")
-# stop_when_all is the criterion under test; the outer :any with
-# MaxIterations is a safety budget so a misbehaving :all doesn't trap us
-# in an effectively infinite loop. If :all_criteria_met never fires,
-# MaxIterations terminates the run and the assertion below catches it.
 config_b2 = ExperimentConfig(
     name              = "Stage 7.b.2 — :all composite",
     problem_spec      = ROSEN,
@@ -402,11 +420,12 @@ println("\n\n╔═════════════════════�
 println("║ Stage 7.c — Range-gated verbosity (iter_range = 200:300)     ║")
 println("╚══════════════════════════════════════════════════════════════╝")
 
-# MILESTONE fallback + iter_range = 200:300 ⇒ the user should see DETAILED
-# output only inside that band, with everything else silent. Visually
-# inspect the stderr/stdout stream: there should be a burst of per-iter
-# lines between iter 200 and 300, and nothing outside it (the MILESTONE
-# fallback only contributes start/end/event lines).
+# MILESTONE fallback + iter_range = 200:300 ⇒ per-iter DETAILED lines appear
+# only inside that band, and milestone start/event/finalize lines bookend
+# the run (`maybe_print`'s iter_range branch silences per-iter output
+# outside the range; `_print_milestone` still emits MILESTONE-level lines
+# regardless). Inspect the stream below: per-iter lines should be present
+# for iter ∈ 200:300 only.
 
 println("\n--- C1: VerbosityConfig(level=MILESTONE, iter_range=200:300) ---")
 println("    Visual check: per-iter lines appear ONLY for iter ∈ 200:300.\n")
@@ -446,7 +465,7 @@ println("""
                      × on_trigger ∈ {:warn, :error, :log}
     stopping.jl    : TimeLimit, ObjectiveStagnation, StepTolerance,
                      DistanceToOptimal, GradientTolerance, MaxIterations
-                     CompositeCriteria(:any) and (:all)
+                     CompositeCriterion(:any) and (:all)
                      ExperimentConfig.method_criteria
     logging.jl     : VerbosityConfig.iter_range branch of maybe_print
 

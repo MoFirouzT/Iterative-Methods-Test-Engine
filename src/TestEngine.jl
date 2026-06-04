@@ -12,9 +12,9 @@ include(joinpath(@__DIR__, "..", "algorithms", "conventional", "gradient_descent
 
 include(joinpath(@__DIR__, "..", "problems", "rosenbrock", "rosenbrock.jl"))
 
+include("debug.jl")
 include("experiment.jl")
 include("persistence.jl")
-include("debug.jl")
 include("analysis.jl")
 
 export Objective, Regularizer, Hessian, MatrixHessian, OperatorHessian, DiagonalHessian

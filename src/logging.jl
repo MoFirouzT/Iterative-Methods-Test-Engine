@@ -323,6 +323,7 @@ function finalize!(logger::Logger, method, state)
             state,
             stop_reason,
             n_iters,
+            copy(logger.events),
         )
     end
 
@@ -332,6 +333,7 @@ function finalize!(logger::Logger, method, state)
         final_state = state,
         stop_reason = stop_reason,
         n_iters = n_iters,
+        events = copy(logger.events),
     )
 end
 
