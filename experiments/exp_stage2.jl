@@ -13,8 +13,7 @@
 # To run, from project root:
 #     julia --project=. experiments/exp_stage2.jl
 
-include("../src/TestEngine.jl")
-using .TestEngine
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
 using DataFrames
 using CairoMakie

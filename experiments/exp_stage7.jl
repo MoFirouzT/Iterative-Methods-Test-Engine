@@ -43,8 +43,7 @@
 #     `ExperimentConfig`'s `debug::DebugConfig` field resolves at parse time.
 # =============================================================================
 
-include("../src/TestEngine.jl")
-using .TestEngine
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using LinearAlgebra
 using Printf

@@ -2,27 +2,8 @@ using Test
 using LinearAlgebra: I, norm
 using Random: AbstractRNG
 
-if !@isdefined(IterationLog)
-    include(joinpath(@__DIR__, "..", "src", "logging.jl"))
-end
-if !@isdefined(IterativeMethod)
-    include(joinpath(@__DIR__, "..", "src", "core.jl"))
-end
-if !@isdefined(StoppingCriterion)
-    include(joinpath(@__DIR__, "..", "src", "stopping.jl"))
-end
-if !@isdefined(StepSize)
-    include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
-end
-if !@isdefined(VariantGrid)
-    include(joinpath(@__DIR__, "..", "src", "variants.jl"))
-end
-if !@isdefined(Problem)
-    include(joinpath(@__DIR__, "..", "src", "problems.jl"))
-end
-if !@isdefined(ExperimentConfig)
-    include(joinpath(@__DIR__, "..", "src", "experiment.jl"))
-end
+include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+import .TestEngine: init_state, step!   # engine dispatch points these tests extend
 
 @kwdef struct TinyGD <: ConventionalMethod
     step_size::StepSize = FixedStep(α = 0.2)

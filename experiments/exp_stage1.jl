@@ -7,8 +7,7 @@
 # To run, from project root:
 #     julia --project=. experiments/exp_stage1.jl
 
-include("../src/TestEngine.jl")
-using .TestEngine          # the framework — adjust the module name if yours differs
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
 using DataFrames
 using CairoMakie

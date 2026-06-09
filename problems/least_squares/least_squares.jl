@@ -6,8 +6,9 @@
 Plugs into the engine through the `value` / `grad!` / `hessian` contract.
 """
 
-import .TestEngine: Objective, Hessian, MatrixHessian, value, grad!, hessian
-using LinearAlgebra: norm, mul!, adjoint
+import .TestEngine: Objective, Hessian, MatrixHessian, Problem, value, grad!, hessian,
+	register_analytic_problem!
+using LinearAlgebra: norm, mul!, adjoint, I
 
 
 """
@@ -48,3 +49,16 @@ function hessian(f::LeastSquares, x::Vector{Float64})::Hessian
 	H_matrix = f.kernel.A' * f.kernel.A
 	return MatrixHessian(H_matrix)
 end
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Built-in registration: a generic quadratic least-squares family `:quadratic`
+# (a quadratic f(x)=½‖Ax−b‖² is just a LeastSquares instance, so it lives here).
+# ─────────────────────────────────────────────────────────────────────────
+
+register_analytic_problem!(:quadratic, (params, rng) -> begin
+	A  = get(params, :A, Matrix{Float64}(I, 2, 2))
+	b  = get(params, :b, zeros(2))
+	x0 = get(params, :x0, zeros(length(b)))
+	Problem(LeastSquares(LeastSquaresKernel(A, b)), x0)
+end)

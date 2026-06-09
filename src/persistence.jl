@@ -220,6 +220,14 @@ function _manifest_payload(result::ExperimentResult, skipped_extras::Vector{Symb
 end
 
 
+# JSON has no Inf/NaN. Map non-finite reals to `nothing` (→ null) so manifests
+# stay valid for problems without a known optimum (where dist_to_opt = Inf).
+_json_safe(x::AbstractFloat)  = isfinite(x) ? x : nothing
+_json_safe(x::AbstractDict)   = Dict{String,Any}(string(k) => _json_safe(v) for (k, v) in x)
+_json_safe(x::AbstractVector) = Any[_json_safe(v) for v in x]
+_json_safe(x) = x
+
+
 """
 	save_experiment(result::ExperimentResult;
 	                compress = false,
@@ -266,7 +274,7 @@ function save_experiment(result::ExperimentResult;
 
 	manifest_path = joinpath(result.experiment_path, "manifest.json")
 	open(manifest_path, "w") do io
-		JSON3.pretty(io, manifest)
+		JSON3.pretty(io, _json_safe(manifest))
 	end
 
 	return nothing

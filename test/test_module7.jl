@@ -1,8 +1,7 @@
 using Test
 
-if !@isdefined(IterationLog)
-    include(joinpath(@__DIR__, "..", "src", "logging.jl"))
-end
+include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+import .TestEngine: maybe_print   # internal logging helper exercised by these tests
 
 function make_entry(iter::Int)
     IterationLog(

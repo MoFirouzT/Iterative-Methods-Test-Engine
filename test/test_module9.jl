@@ -2,9 +2,7 @@ using Test
 using LinearAlgebra: norm, Diagonal, I
 using Random: MersenneTwister
 
-include(joinpath(@__DIR__, "..", "src", "logging.jl"))
-include(joinpath(@__DIR__, "..", "src", "core.jl"))
-include(joinpath(@__DIR__, "..", "src", "problems.jl"))
+include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
 
 @testset "Module 9 Problem Factory" begin
     # Test LeastSquares data fidelity
@@ -102,15 +100,16 @@ include(joinpath(@__DIR__, "..", "src", "problems.jl"))
     @test length(prob_random.gs) == 1
     @test prob_random.gs[1] isa L1Norm
     
-    # Test FileProblem (with a simple in-memory loader)
+    # Test FileProblem (loader registered by name, then referenced — the current API)
+    register_file_loader!(:test_file_loader, (path) -> begin
+        A = Matrix{Float64}(I, 3, 3)
+        b = ones(3)
+        x0 = zeros(3)
+        Problem(LeastSquares(LeastSquaresKernel(A, b)), x0)
+    end)
     spec_file = FileProblem(
         path = "dummy_path.txt",
-        loader = (path) -> begin
-            A = Matrix{Float64}(I, 3, 3)
-            b = ones(3)
-            x0 = zeros(3)
-            Problem(LeastSquares(LeastSquaresKernel(A, b)), x0)
-        end,
+        loader_name = :test_file_loader,
         description = "Test file problem",
     )
     rng3 = MersenneTwister(44)

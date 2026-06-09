@@ -46,8 +46,7 @@
 #     for any single run_id when warm-up is active.
 # =============================================================================
 
-include("../src/TestEngine.jl")
-using .TestEngine
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using CairoMakie
 using Statistics

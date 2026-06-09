@@ -39,8 +39,7 @@
 
 # Match the Stages 1–4 include pattern. TestEngine is a local module under
 # src/, not a registered package; `using TestEngine` would fail.
-include("../src/TestEngine.jl")
-using .TestEngine
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using CairoMakie
 using Statistics

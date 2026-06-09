@@ -7,8 +7,7 @@
 
 using Random, LinearAlgebra, Printf
 
-include("../src/TestEngine.jl")
-using .TestEngine
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 
 # ── Build problem and method ────────────────────────────────────────────────────
 problem = make_problem(

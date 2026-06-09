@@ -2,12 +2,9 @@ using Test
 using LinearAlgebra: I, norm
 using Random: AbstractRNG, default_rng
 
-include(joinpath(@__DIR__, "..", "src", "logging.jl"))
-include(joinpath(@__DIR__, "..", "src", "core.jl"))
-include(joinpath(@__DIR__, "..", "src", "stopping.jl"))
-include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
-include(joinpath(@__DIR__, "..", "src", "problems.jl"))
-include(joinpath(@__DIR__, "..", "src", "variants.jl"))
+# Engine + all content via the shared bootstrap (idempotent).
+include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+import .TestEngine: grad!, init_state, step!   # engine dispatch points these tests extend
 
 struct DummyProblem
     n::Int
@@ -48,6 +45,7 @@ end
 @kwdef mutable struct StepSizeNumerics
     n_linesearch_evals::Int = 0
     grad_prev::Vector{Float64} = Float64[]
+    x_trial::Vector{Float64} = Float64[]   # scratch buffer the ArmijoLS path writes into
 end
 
 @kwdef mutable struct StepSizeState
@@ -107,7 +105,7 @@ struct UnimplementedMethod <: IterativeMethod end
         iterate = IterateGroup(x = copy(x), gradient = copy(gradient), x_prev = Float64[]),
         metrics = MetricsGroup(objective = objective(problem, x), gradient_norm = norm(gradient), step_norm = 0.0),
         timing = TimingGroup(core_time_ns = 0),
-        numerics = StepSizeNumerics(),
+        numerics = StepSizeNumerics(x_trial = similar(x)),
     )
 
     @test compute_step_size(FixedStep(α = 0.25), state, problem, direction) == 0.25
@@ -163,11 +161,12 @@ end
 
     @test result.stop_reason == :max_iterations
     @test result.n_iters == 1
-    @test length(result.iter_logs) == 1
-    @test result.iter_logs[1].core_time_ns > 0
-    @test result.iter_logs[1].objective == result.final_state.metrics.objective
+    # iter_logs[1] is the iter=0 init snapshot (core_time 0); the real iteration is iter_logs[end].
+    @test length(result.iter_logs) == 2
+    @test result.iter_logs[end].core_time_ns > 0
+    @test result.iter_logs[end].objective == result.final_state.metrics.objective
     @test result.final_state.timing.core_time_ns > 0
-    @test empty_logger.total_core_ns == result.iter_logs[1].core_time_ns
+    @test empty_logger.total_core_ns == result.iter_logs[end].core_time_ns
 end
 
 @testset "Module 4 nested runner skeleton" begin
@@ -185,9 +184,9 @@ end
     @test sub.stop_reason == :max_iterations
     @test sub.converged == false
     @test sub.n_iters == 2
-    @test length(sub.iter_logs) == 2
+    @test length(sub.iter_logs) == 3   # iter=0 init entry + 2 iterations
     @test sub.core_time_ns == sum(log.core_time_ns for log in sub.iter_logs)
-    @test length(outer_logger.pending_sub_logs) == 2
+    @test length(outer_logger.pending_sub_logs) == 3
 
     outer_logger_2 = make_logger()
     cfg_no_attach = SubRunConfig(
@@ -221,7 +220,7 @@ end
 
     specs = expand(grid)
 
-    @test length(specs) == 4
+    @test length(specs) == 2   # 2 hessian values × 1 linesearch value
     @test specs[1].name == "MyMethod[hessian=BFGS,linesearch=Armijo,step_size=0.01]"
     @test specs[1].short_name == "MM/BFGS/Arm"
     @test specs[1].params == (; hessian = BFGS(), linesearch = ArmijoLS(), step_size = 0.01)
@@ -231,3 +230,4 @@ end
 include(joinpath(@__DIR__, "test_module5.jl"))
 include(joinpath(@__DIR__, "test_module7.jl"))
 include(joinpath(@__DIR__, "test_module8.jl"))
+include(joinpath(@__DIR__, "test_module9.jl"))   # Problem Factory: exercises the moved LeastSquares/regularizer content

@@ -312,7 +312,10 @@ function finalize!(logger::Logger, method, state)
         last_entry.extras[:sub_logs] = logger.pending_sub_logs
     end
     
-    n_iters = length(logger.iter_logs)
+    # Count actual iterations, excluding the iter=0 init entry that log_init!
+    # records for trajectory / warm-up tooling. (run_sub_method counts the same
+    # way via its loop counter; using length() here double-counted the init row.)
+    n_iters = count(e -> e.iter > 0, logger.iter_logs)
     _print_milestone(logger, string("finalize stop_reason=", stop_reason, " n_iters=", n_iters))
     
     # Return typed MethodResult when Module 5 is loaded, otherwise a compatible NamedTuple.

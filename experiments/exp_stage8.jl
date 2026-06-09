@@ -34,8 +34,7 @@
 #     trips events through JLD2 automatically.
 # =============================================================================
 
-include("../src/TestEngine.jl")
-using .TestEngine
+include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using Random
 using LinearAlgebra
