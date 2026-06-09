@@ -28,6 +28,7 @@ LocalPreferences.toml
 JuliaLocalPreferences.toml
 
 .DS_Store
-.github/
+.github/*
+!.github/workflows/
 *.pdf
 logs/*

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Julia ${{ matrix.julia-version }} — ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1']      # latest stable 1.x
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Cache Julia depot
+        uses: julia-actions/cache@v2
+
+      # This is a script-style project (no package name/UUID), so tests run via
+      # `test/runtests.jl` rather than Pkg.test(). Instantiate resolves the deps
+      # fresh from Project.toml — Manifest.toml is intentionally git-ignored, so
+      # this also verifies a clean checkout builds.
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Run test suite
+        run: julia --project=. test/runtests.jl

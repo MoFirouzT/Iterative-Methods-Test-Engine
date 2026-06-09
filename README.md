@@ -1,5 +1,7 @@
 # Iterative-Methods Test Engine
 
+[![CI](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/ci.yml)
+
 A Julia framework for **side-by-side comparison of iterative optimization methods** —
 define a method once, sweep its variants, run them against conventional baselines on
 shared problems, and measure convergence and *core* compute time under one honest,
@@ -90,5 +92,7 @@ are called out here rather than left as empty exported stubs:
   `OperatorHessian` and `DiagonalHessian`.
 - **Trust-region with a Steihaug-CG inner solve** — the nested-method machinery
   (`run_sub_method` / `attach_sub_logs!`) is implemented and tested; it awaits this consumer.
-- **Continuous integration** — the suite runs locally via `test/runtests.jl`; a GitHub
-  Actions workflow is a quick future add.
+
+CI runs the full suite on every push via [GitHub Actions](.github/workflows/ci.yml)
+(`julia --project test/runtests.jl`, 175 tests), instantiating from `Project.toml` so a
+clean checkout is verified each time.
