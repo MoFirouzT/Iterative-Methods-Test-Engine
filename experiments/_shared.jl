@@ -63,6 +63,32 @@ function build_standard_methods()
     ]
 end
 
+"""
+    build_ls_methods(L)
+
+The same five step-size rules as `build_standard_methods`, tuned for a linear
+least-squares quadratic with Lipschitz constant `L = σ_max(A)²`:
+- `FixedStep(α = 1/L)` — the stable fixed step for a quadratic (the Rosenbrock
+  default `8e-4` would be far too small here).
+- `CauchyStep(α_max = Inf)` — the quadratic model is exact, so no trust-radius
+  cap; this is genuine exact-line-search steepest descent.
+Reuses `PLOT_ORDER` / `COLORS`. Returned in `PLOT_ORDER`.
+"""
+function build_ls_methods(L)
+    [
+        "Fixed"  => GradientDescent(direction = SteepestDescent(),
+                                    step_size = FixedStep(α = 1 / L)),
+        "Armijo" => GradientDescent(direction = SteepestDescent(),
+                                    step_size = ArmijoLS()),
+        "Cauchy" => GradientDescent(direction = SteepestDescent(),
+                                    step_size = CauchyStep(α_max = Inf)),
+        "BB1"    => GradientDescent(direction = SteepestDescent(),
+                                    step_size = BarzilaiBorwein(variant = :BB1)),
+        "BB2"    => GradientDescent(direction = SteepestDescent(),
+                                    step_size = BarzilaiBorwein(variant = :BB2)),
+    ]
+end
+
 # ---------------------------------------------------------------------------
 # Trajectory extraction from DataFrame
 # ---------------------------------------------------------------------------

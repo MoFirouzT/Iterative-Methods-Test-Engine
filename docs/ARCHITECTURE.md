@@ -1949,7 +1949,8 @@ TestEngine.jl/
 │
 ├── problems/                     # CONTENT — concrete problem families (self-register on load)
 │   ├── rosenbrock/               # rosenbrock.{md,jl} — RosenbrockObjective; :rosenbrock
-│   ├── least_squares/            # least_squares.jl  — LeastSquares; :quadratic family
+│   ├── least_squares/            # least_squares.{md,jl} — LeastSquares (selectable
+│   │                             #   :matrix/:operator Hessian); :quadratic + :linear_ls
 │   ├── lasso/                    # lasso.{md,jl}     — :lasso sparse-recovery generator
 │   └── regularizers/             # regularizers.jl   — L1/L2/Zero, prox via ProximalOperators.jl
 │
@@ -1958,6 +1959,8 @@ TestEngine.jl/
 │   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
 │   ├── exp_stage1.jl … exp_stage8.jl      # staged comparison track (Rosenbrock narrative)
 │   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
+│   ├── exp_ls1_dimension.jl               #   Stage LS-1: dimension scaling + timing pillar
+│   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
 │   ├── smoke_test.jl
 │   └── basic_experiments.md, Experiment_TODOs.md
 │
@@ -1970,7 +1973,8 @@ TestEngine.jl/
     ├── test_module7.jl           # verbosity system
     ├── test_module8.jl           # persistence (save/load, manifest, CSV)
     ├── test_module9.jl           # problem factory: LeastSquares / regularizer content
-    └── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
+    ├── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
+    └── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
 ```
 
 ---

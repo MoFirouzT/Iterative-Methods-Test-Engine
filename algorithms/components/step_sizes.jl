@@ -63,18 +63,32 @@ end
     CauchyStep <: StepSize
 
 Closed-form step minimizing the quadratic Taylor expansion along d_k:
-α = −∇f(x)ᵀd / dᵀ∇²f(x)d. Falls back to `fallback_α` when curvature is
-non-positive (denominator ≤ ε_denom). The computed step is then clamped
-to `[α_min, α_max]` — necessary on non-quadratic problems where the local
-quadratic model can produce an unphysically large step (e.g. Rosenbrock
-far from the valley, where Cauchy will otherwise spike to α ≈ 10 and send
-f to ~1e12 in a single iter before recovering).
+α = −∇f(x)ᵀd / dᵀ∇²f(x)d. Falls back to `fallback_α` when the curvature is
+non-positive. The computed step is then clamped to `[α_min, α_max]` —
+necessary on non-quadratic problems where the local quadratic model can produce
+an unphysically large step (e.g. Rosenbrock far from the valley, where Cauchy
+will otherwise spike to α ≈ 10 and send f to ~1e12 in a single iter before
+recovering). On a genuine quadratic the model is exact, so there set
+`α_max = Inf` to allow the true exact-line-search step (which routinely exceeds 1).
+
+**The curvature guard is scale-relative**, not absolute — the same fix the
+`BarzilaiBorwein` guard carries, and for the same reason. The denominator
+`den = dᵀ∇²f d` is the (unnormalized) Rayleigh quotient; near convergence
+`‖d‖ = ‖∇f‖ → 0`, so `den → 0` quadratically and an *absolute* threshold
+(`den ≤ ε_denom`) fires spuriously even though the ratio `−∇fᵀd / den` is
+perfectly well-defined. That collapses Cauchy to the tiny `fallback_α` and makes
+it crawl: on a consistent least-squares system (κ = 100) the absolute guard
+turned a ~650-iteration solve into ~240 000. The relative guard
+
+    den ≤ ε_denom · ‖d‖²        (i.e. Rayleigh quotient den/‖d‖² ≤ ε_denom)
+
+only fires for genuinely flat/negative curvature, independent of gradient scale.
 """
 @kwdef struct CauchyStep <: StepSize
 	fallback_α::Float64 = 1e-3
-	ε_denom::Float64    = 1e-14
+	ε_denom::Float64    = 1e-14     # relative threshold: den ≤ ε_denom · ‖d‖²
 	α_min::Float64      = 0.0       # reject negative steps from sign pathologies
-	α_max::Float64      = 1.0       # cap to the trust radius of the quadratic model
+	α_max::Float64      = 1.0       # trust-radius cap; set Inf on a true quadratic
 end
 
 """
@@ -177,7 +191,9 @@ function compute_step_size(rule::CauchyStep, state, problem, direction::Vector{F
 		Hd  = apply(H, direction)                              # ∇²f(x_k)·d_k
 		num = dot(state.iterate.gradient, direction)           # ∇f(x_k)ᵀd_k
 		den = dot(direction, Hd)                               # d_kᵀ∇²f(x_k)d_k
-		den <= rule.ε_denom && return rule.fallback_α          # non-positive curvature
+		# Scale-relative curvature guard (see docstring): fires only for genuinely
+		# flat/negative curvature, NOT in the small-gradient regime near convergence.
+		den <= rule.ε_denom * dot(direction, direction) && return rule.fallback_α
 		return clamp(-num / den, rule.α_min, rule.α_max)       # bound to trust radius
 	end
 end

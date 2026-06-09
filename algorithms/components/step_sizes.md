@@ -135,16 +135,21 @@ $$\alpha_k^C = -\frac{\nabla f(x_k)^T d_k}{d_k^T \nabla^2 f(x_k)\, d_k}$$
 
 > **Validity condition.** The denominator $d_k^T \nabla^2 f(x_k)\, d_k > 0$
 > requires positive curvature along $d_k$. The implementation guards against
-> non-positive denominators.
+> non-positive curvature with a **scale-relative** test (see §3.3).
 
-This is an **exact** line search only when $f$ is quadratic.
+This is an **exact** line search only when $f$ is quadratic. On a genuine
+quadratic set `α_max = Inf` — the trust-radius cap below exists only to tame the
+non-quadratic case (Rosenbrock), and would otherwise throttle the legitimate
+exact step (which routinely exceeds 1).
 
 ### 3.2 Julia Struct
 
 ```julia
 @kwdef struct CauchyStep <: StepSize
-    fallback_α :: Float64 = 1e-3    # used when denominator ≤ ε_denom
-    ε_denom    :: Float64 = 1e-14   # numerical zero threshold for denominator
+    fallback_α :: Float64 = 1e-3    # used when curvature is non-positive
+    ε_denom    :: Float64 = 1e-14   # RELATIVE threshold: den ≤ ε_denom · ‖d‖²
+    α_min      :: Float64 = 0.0     # reject negative steps from sign pathologies
+    α_max      :: Float64 = 1.0     # trust-radius cap; set Inf on a true quadratic
 end
 ```
 
@@ -152,24 +157,33 @@ end
 
 The Hessian is obtained as a `Hessian` object via `hessian(problem.f, x)` and
 $\nabla^2 f(x)\, d$ is computed by `apply(H, d)`. Both calls and the dot products
-are core mathematical computation — wrapped in `@core_timed`. The guard and
-division are bookkeeping.
+are core mathematical computation — wrapped in `@core_timed`. The guard, clamp,
+and division are bookkeeping.
 
 ```julia
 function compute_step_size(rule::CauchyStep, state, problem,
                            direction::Vector{Float64})::Float64
-    local Hd, num, den
     @core_timed state begin
         H   = hessian(problem.f, state.iterate.x)         # ∇²f(x_k) — a Hessian object
         Hd  = apply(H, direction)                         # H_k · d_k
         num = dot(state.iterate.gradient, direction)      # g_k^T d_k
         den = dot(direction, Hd)                          # d_k^T H_k d_k
+        den <= rule.ε_denom * dot(direction, direction) && return rule.fallback_α
+        return clamp(-num / den, rule.α_min, rule.α_max)
     end
-
-    den <= rule.ε_denom && return rule.fallback_α   # non-positive curvature
-    return -num / den
 end
 ```
+
+> **Scale-relative curvature guard.** `den = dᵀ∇²f d` is the unnormalized
+> Rayleigh quotient; near convergence `‖d‖ = ‖∇f‖ → 0`, so `den → 0`
+> quadratically. An *absolute* guard (`den ≤ ε_denom`) then misfires even though
+> `−num/den` is perfectly well-defined, collapsing Cauchy to the tiny
+> `fallback_α` — on a consistent least-squares system (κ = 100) this turned a
+> ~650-iteration solve into ~240 000. The relative form `den ≤ ε_denom · ‖d‖²`
+> (Rayleigh quotient ≤ ε_denom) fires only for genuinely flat/negative
+> curvature, independent of gradient scale. This mirrors the `BarzilaiBorwein`
+> guard, which was fixed the same way earlier; `CauchyStep` carried the latent
+> bug until the `:linear_ls` family exercised the small-gradient regime.
 
 > **Hessian abstraction.** `hessian(problem.f, x)` returns a `Hessian` object
 > (see `architecture.md` §3 — Module 1). For Rosenbrock this is a `MatrixHessian`

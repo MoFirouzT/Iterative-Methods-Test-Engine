@@ -6,9 +6,10 @@
 Plugs into the engine through the `value` / `grad!` / `hessian` contract.
 """
 
-import .TestEngine: Objective, Hessian, MatrixHessian, Problem, value, grad!, hessian,
-	register_analytic_problem!
-using LinearAlgebra: norm, mul!, adjoint, I
+import .TestEngine: Objective, Hessian, MatrixHessian, OperatorHessian, Problem,
+	value, grad!, hessian, register_analytic_problem!, register_random_problem!
+using LinearAlgebra: norm, mul!, adjoint, qr, Diagonal, I
+using Random: randn
 
 
 """
@@ -25,11 +26,26 @@ end
 """
 	LeastSquares <: Objective
 
-Least-squares objective: f(x) = 0.5 ‖Ax − b‖²
+Least-squares objective: f(x) = 0.5 ‖Ax − b‖².
+
+The Hessian ∇²f = AᵀA is constant. Its **representation is selectable** via
+`hessian_mode` so the same objective can serve both regimes:
+
+- `:matrix`   — materialize `MatrixHessian(AᵀA)`. The default (preserves all
+  prior behavior); needed where a method reads `materialize`/`diagonal`
+  (e.g. a Jacobi preconditioner). Cost: forms the n×n matrix once per call.
+- `:operator` — `OperatorHessian(d -> Aᵀ(A d), n)`, never materialized. The
+  scalable mode for large n (`apply` is two O(mn) matvecs); used by the
+  `:linear_ls` conditioning family. `CauchyStep` only calls `apply`, so it
+  works in either mode.
 """
 struct LeastSquares <: Objective
 	kernel::LeastSquaresKernel
+	hessian_mode::Symbol
 end
+
+# Default to :matrix so existing call sites (lasso, :quadratic, tests) are unchanged.
+LeastSquares(kernel::LeastSquaresKernel) = LeastSquares(kernel, :matrix)
 
 
 function value(f::LeastSquares, x::Vector{Float64})
@@ -46,8 +62,15 @@ end
 
 
 function hessian(f::LeastSquares, x::Vector{Float64})::Hessian
-	H_matrix = f.kernel.A' * f.kernel.A
-	return MatrixHessian(H_matrix)
+	A = f.kernel.A
+	if f.hessian_mode === :operator
+		n = size(A, 2)
+		return OperatorHessian(d -> A' * (A * d), n)     # AᵀA d, never materialized
+	elseif f.hessian_mode === :matrix
+		return MatrixHessian(A' * A)
+	else
+		throw(ArgumentError("LeastSquares hessian_mode must be :matrix or :operator, got :$(f.hessian_mode)"))
+	end
 end
 
 
@@ -61,4 +84,38 @@ register_analytic_problem!(:quadratic, (params, rng) -> begin
 	b  = get(params, :b, zeros(2))
 	x0 = get(params, :x0, zeros(length(b)))
 	Problem(LeastSquares(LeastSquaresKernel(A, b)), x0)
+end)
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# `:linear_ls` — conditioning- and dimension-parametrized least squares.
+#
+# Parametrized by the HESSIAN condition number κ = cond(AᵀA), which is what
+# governs the GD convergence rate — NOT cond(A). Since cond(AᵀA) = cond(A)²,
+# we set A's singular values to span 1 → κ^(-1/2), giving cond(A) = √κ and thus
+# cond(AᵀA) = κ. The system is CONSISTENT (b = A·x_star), so the minimizer is
+# unique, x_opt = x_star, and f(x_opt) = 0 — stop on gradient/distance, never on
+# an f-value (relative-f is degenerate when f* = 0). Uses the :operator Hessian
+# mode so OperatorHessian is exercised (CauchyStep applies it as two matvecs).
+# ─────────────────────────────────────────────────────────────────────────
+
+register_random_problem!(:linear_ls, (rng, p) -> begin
+	n = get(p, :n, 100)
+	m = get(p, :m, 2n)
+	κ = get(p, :condition_number, 1.0e3)               # κ = cond(AᵀA), the rate-driver
+
+	s = exp10.(range(0, -0.5 * log10(κ); length = n))  # σ: 1 → κ^(-1/2) ⇒ cond(A)=√κ
+	U = Matrix(qr(randn(rng, m, n)).Q)[:, 1:n]         # m×n orthonormal columns (thin factor)
+	V = Matrix(qr(randn(rng, n, n)).Q)                 # n×n orthonormal
+	A = U * Diagonal(s) * V'
+
+	x_star = randn(rng, n)
+	b = A * x_star                                     # consistent ⇒ x_opt = x_star, f* = 0
+
+	Problem(
+		LeastSquares(LeastSquaresKernel(A, b), :operator),
+		zeros(n);
+		meta  = Dict{Symbol,Any}(:condition_number => κ, :L => maximum(s)^2, :m => m),
+		x_opt = x_star,
+	)
 end)

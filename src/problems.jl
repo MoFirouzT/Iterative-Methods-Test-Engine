@@ -9,7 +9,7 @@ and registration of analytic problem families.
 """
 
 using Random: AbstractRNG, randn
-using LinearAlgebra: norm, mul!, Diagonal
+using LinearAlgebra: norm, mul!, Diagonal, diag
 
 
 # ─────────────────────────────────────────────────────────────────────────

@@ -186,11 +186,31 @@ specific class of validations that 2D Rosenbrock cannot reach.
 
 ### Linear least squares — dimension and conditioning sweeps
 
-**Tag:** (problem-family). **Unlocks:** `LeastSquares`, `LeastSquaresKernel`
-(now in [problems/least_squares/least_squares.jl](../problems/least_squares/least_squares.jl),
-exercised by the `:quadratic` family + tests but not yet by a scaling/conditioning
-experiment), dimension scaling, condition-number sweeps, the
+**Tag:** (problem-family). **Unlocks:** `LeastSquares`, `LeastSquaresKernel`,
+`OperatorHessian`, dimension scaling, condition-number sweeps, the
 `@core_timed`-vs-wall measurement as a real ordering signal.
+
+**✅ Resolved (portfolio Item 1).** Done end to end:
+- `LeastSquares` now has a **selectable Hessian mode** (`:matrix` default /
+  `:operator`); `:operator` returns `OperatorHessian(d → Aᵀ(A d), n)` — lit up
+  by the `:linear_ls` family and applied by `CauchyStep`.
+- `:linear_ls` generator registered ([least_squares.{md,jl}](../problems/least_squares/))
+  — parametrized by `κ = cond(AᵀA)` (singular values span `1 → κ^(−1/2)`, so the
+  squaring is correct), consistent `b = A·x_star` ⇒ `x_opt = x_star`, `f* = 0`.
+- **Stage LS-1** ([exp_ls1_dimension.jl](exp_ls1_dimension.jl)) — iters flat in n,
+  wall ∝ O(mn), **core_time/wall_time climbs 2% → 89% → 98%** across n∈{10,100,1000},
+  landing in [50%,110%] at n=1000 (the timing pillar, finally validated).
+- **Stage LS-2** ([exp_ls2_conditioning.jl](exp_ls2_conditioning.jl)) — log-log
+  slopes: Fixed/Armijo/Cauchy ≈ **1.0** (O(κ)), BB1/BB2 ≈ **0.5** (O(√κ)).
+- Regression tests in [test_least_squares.jl](../test/test_least_squares.jl).
+- **Surfaced & fixed two latent bugs** the small-gradient / large-n regimes
+  exposed: `CauchyStep`'s absolute curvature guard (→ scale-relative, see
+  `step_sizes.md`) and a missing `diag` import breaking `diagonal(::MatrixHessian)`.
+
+κ range was capped at 1e4 (not the sketched 1e7): Fixed/Armijo are O(κ), so 1e7
+would need ~1e8 iters — infeasible. Three decades reads the slope cleanly.
+
+<details><summary>Original sketch (for reference)</summary>
 
 The kernel and a basic `:quadratic` registration exist; the conditioning `:linear_ls`
 generator and the scaling/conditioning stage are missing. Sketch:
@@ -224,6 +244,8 @@ end)
   scaffolding, so the `core_time / wall_time ∈ [50%, 110%]` band from
   Stage 4 has a real chance of being met. If it still isn't, the diagnostic
   in `print_timing_table` points at the right fix.
+
+</details>
 
 ### Lasso — composite f + g, exercises `prox`
 
@@ -301,15 +323,17 @@ non-smooth-prox path with a different `prox` shape from the lasso.
 **Tag:** (problem-family, mostly).
 
 [src/problems.jl](../src/problems.jl) exports `MatrixHessian`,
-`OperatorHessian`, `DiagonalHessian` — but only `MatrixHessian` is constructed
-anywhere (by Rosenbrock's `hessian`). The other two are dark.
+`OperatorHessian`, `DiagonalHessian`.
 
-- `DiagonalHessian` is natural for separable problems (a per-coordinate
-  quadratic). Tiny problem family: `f(x) = 0.5 * sum(d_i * x_i^2)`.
-- `OperatorHessian` is natural when forming the Hessian matrix is infeasible —
-  i.e. large-scale problems. Exercised by any matvec-only method on the
-  linear-least-squares problem above (you'd pass `H = A'A` as an operator,
-  not as a dense matrix).
+- `MatrixHessian` — constructed by Rosenbrock and by `LeastSquares` in its
+  `:matrix` mode. `diagonal(::MatrixHessian)` was latently broken (missing
+  `diag` import); **fixed** in Item 1, so the Jacobi-preconditioner path is ready.
+- ✅ `OperatorHessian` — **now constructed** by `LeastSquares` in `:operator`
+  mode (`d → Aᵀ(A d)`), exercised by the `:linear_ls` family + `CauchyStep`
+  (Item 1). No longer dark.
+- `DiagonalHessian` — **still dark.** Natural for separable problems (a
+  per-coordinate quadratic, `f(x) = ½ Σ dᵢ xᵢ²`); slated for Item 3
+  (separable quadratic + Jacobi preconditioner).
 
 These are essentially free once the underlying problems exist; what they
 validate is the `apply`/`materialize`/`diagonal` dispatch surface on
