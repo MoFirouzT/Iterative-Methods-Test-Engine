@@ -231,3 +231,4 @@ include(joinpath(@__DIR__, "test_module5.jl"))
 include(joinpath(@__DIR__, "test_module7.jl"))
 include(joinpath(@__DIR__, "test_module8.jl"))
 include(joinpath(@__DIR__, "test_module9.jl"))   # Problem Factory: exercises the moved LeastSquares/regularizer content
+include(joinpath(@__DIR__, "test_proximal_gradient.jl"))   # ProximalGradient: ISTA↔GD reduction, FISTA acceleration, one-prox-per-step

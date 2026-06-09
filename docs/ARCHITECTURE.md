@@ -192,6 +192,16 @@ abstract type Regularizer end
 #   prox(g, x, γ)  → argmin_u { g(u) + 1/(2γ)‖u−x‖² }
 ```
 
+Concrete regularizers (`L1Norm`, `L2Norm`, `ZeroRegularizer`) live in the
+content layer (`problems/regularizers/regularizers.jl`), not the engine. Each
+is a thin wrapper that keeps a tidy public face — the `.λ` field, the
+`value`/`prox` contract returning a plain `Vector{Float64}` — and delegates the
+actual proximal math to [`ProximalOperators.jl`](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
+(`L1Norm`→`NormL1`, `L2Norm`→`SqrNormL2(2λ)`, `ZeroRegularizer`→`Zero`). An
+inner constructor builds the backend operator from `λ`, so the two cannot
+drift. Because regularizers are content, swapping the backend touches only that
+one file; consumers (`ProximalGradient`, experiments, tests) never see it.
+
 ### Problem
 
 ```julia
@@ -694,9 +704,10 @@ right bucket happens later in `resolve_methods`.
 
 ### Component Abstractions
 
-Each variation axis is an abstract type with concrete implementations. For the
-current simplified setup, the framework ships with two pluggable component
-hierarchies, both consumed by `GradientDescent`:
+Each variation axis is an abstract type with concrete implementations. The
+framework ships several pluggable component hierarchies: **descent direction**
+and **step-size rule** (both consumed by `GradientDescent`), and a
+**minor-update** slot (consumed by `ProximalGradient` — see below):
 
 ```julia
 # Descent direction (see descent_directions.md)
@@ -724,8 +735,26 @@ abstract type LineSearch <: StepSize end       # subset that performs an actual 
 end
 ```
 
-Other component hierarchies (Hessian approximations, minor updates, ...) can be added
-later. They follow the same pattern: an abstract type, concrete subtypes, a single
+```julia
+# Minor update — post-step correction / extrapolation (see minor_updates.jl)
+abstract type MinorUpdate end
+struct NoMinorUpdate <: MinorUpdate end           # plain method (no extrapolation)
+@kwdef struct NesterovStep <: MinorUpdate end     # FISTA momentum
+@kwdef struct MomentumStep <: MinorUpdate; α::Float64 = 0.1 end   # heavy-ball
+
+# Consumed through two functions a method calls per step:
+#   extrapolate(mu, x, x_prev, t)  → gradient-evaluation point y
+#   advance_momentum(mu, t)        → next momentum parameter t
+```
+
+`ProximalGradient` (the composite-objective method) crosses a **step-size** axis
+with this **minor-update** axis: `NoMinorUpdate` ⇒ ISTA, `NesterovStep` ⇒ FISTA.
+With a zero/absent regularizer it reduces to (accelerated) gradient descent, so
+the same method tells the smooth-acceleration story for free. See
+`algorithms/conventional/proximal_gradient/proximal_gradient.md`.
+
+Other component hierarchies (Hessian approximations, ...) can be added later.
+They follow the same pattern: an abstract type, concrete subtypes, a single
 dispatched function on the abstract.
 
 ### VariantAxis and VariantGrid
@@ -1911,20 +1940,24 @@ TestEngine.jl/
 │   │   ├── descent_directions.{md,jl}   # DescentDirection, SteepestDescent, compute_direction
 │   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
 │   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov/Correction
+│   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
 │   │   └── hessian_approx.jl            # HessianApprox + BFGS/SR1/LBFGS/DiagBFGS (prune candidates)
 │   ├── conventional/
-│   │   └── gradient_descent.jl
+│   │   ├── gradient_descent.jl
+│   │   └── proximal_gradient/    # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
 │   └── experimental/             # (added later)
 │
 ├── problems/                     # CONTENT — concrete problem families (self-register on load)
 │   ├── rosenbrock/               # rosenbrock.{md,jl} — RosenbrockObjective; :rosenbrock
 │   ├── least_squares/            # least_squares.jl  — LeastSquares; :quadratic family
-│   └── regularizers/             # regularizers.jl   — L1Norm/L2Norm/ZeroRegularizer + prox
+│   ├── lasso/                    # lasso.{md,jl}     — :lasso sparse-recovery generator
+│   └── regularizers/             # regularizers.jl   — L1/L2/Zero, prox via ProximalOperators.jl
 │
 ├── experiments/                  # load engine + content via _bootstrap.jl
 │   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
 │   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
-│   ├── exp_stage1.jl … exp_stage8.jl   # the staged comparison experiments
+│   ├── exp_stage1.jl … exp_stage8.jl      # staged comparison track (Rosenbrock narrative)
+│   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
 │   ├── smoke_test.jl
 │   └── basic_experiments.md, Experiment_TODOs.md
 │
@@ -1936,7 +1969,8 @@ TestEngine.jl/
     ├── test_module5.jl           # experiment orchestration (resolve_methods, run_experiment)
     ├── test_module7.jl           # verbosity system
     ├── test_module8.jl           # persistence (save/load, manifest, CSV)
-    └── test_module9.jl           # problem factory: LeastSquares / regularizer content
+    ├── test_module9.jl           # problem factory: LeastSquares / regularizer content
+    └── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
 ```
 
 ---

@@ -28,10 +28,12 @@ if !isdefined(Main, :_TESTENGINE_LOADED)
 
 	# 3. Methods — compose the components above
 	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "gradient_descent.jl"))
+	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "proximal_gradient", "proximal_gradient.jl"))
 
 	# 4. Regularizers + problem families — register themselves with the engine on load
 	include(joinpath(_BOOT_ROOT, "problems", "regularizers", "regularizers.jl"))
 	include(joinpath(_BOOT_ROOT, "problems", "least_squares", "least_squares.jl"))
+	include(joinpath(_BOOT_ROOT, "problems", "lasso", "lasso.jl"))
 	include(joinpath(_BOOT_ROOT, "problems", "rosenbrock", "rosenbrock.jl"))
 
 	_TESTENGINE_LOADED = true

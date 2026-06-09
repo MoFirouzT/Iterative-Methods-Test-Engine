@@ -4,6 +4,13 @@ Each stage validates a specific block of the framework against a single 2D Rosen
 After Stage 7, every architectural block that *can* be validated on Rosenbrock has been;
 the remaining blocks require other problem types (see `Experiment_TODOs.md`).
 
+> **Two experiment tracks.** This file documents the `exp_stageN` track — the
+> Rosenbrock build-up that rehearses the engine contract. A second,
+> problem-named track (`exp_<problem>N`, e.g. `exp_lasso1_ista_fista.jl`) carries
+> the portfolio items from `portfolio_roadmap.md`, each lighting up a subsystem
+> Rosenbrock structurally can't reach (composite `f + g`, conditioning sweeps,
+> nesting). The two tracks coexist; stage numbering is not shared.
+
 The build-up is intentional.
 Stages 0–4 hand-roll the per-method rng derivation and the run loop, rehearsing
 the orchestrator's contract before depending on the orchestrator.

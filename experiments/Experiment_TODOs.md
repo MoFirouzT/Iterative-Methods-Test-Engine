@@ -140,12 +140,14 @@ shifts from line search to the update.
 `MomentumStep`, `NesterovStep`, `CorrectionStep`
 ([algorithms/components/minor_updates.jl](../algorithms/components/minor_updates.jl)).
 
-Same shape as the quasi-Newton gap — the type hierarchy is paid for, no
-method composes it into a step. Until a method takes a `MinorUpdate` field
-and applies it (heavy ball / Nesterov / correction), none of these symbols
-are exercised. The validation would be a stage comparing GD vs. GD with
-`MomentumStep` and `NesterovStep` on Rosenbrock, expecting the standard
-Nesterov speedup on smooth strongly-convex regions.
+**✅ Mostly resolved (portfolio Item 2).** `MinorUpdate` now carries behavior
+(`extrapolate` / `advance_momentum`), and `ProximalGradient` composes it:
+`NoMinorUpdate` ⇒ ISTA, `NesterovStep` ⇒ FISTA, `MomentumStep` ⇒ heavy-ball.
+`NoMinorUpdate` + `NesterovStep` are exercised by `exp_lasso1_ista_fista.jl`
+and `test/test_proximal_gradient.jl` (FISTA's O(1/k²) acceleration asserted).
+**Still dark:** `CorrectionStep` (no consumer — Tier-3 prune candidate); and
+`MomentumStep`, while wired, has no shipped experiment yet (cheap swept
+variant for a future stage).
 
 ### Experimental methods
 
@@ -229,22 +231,27 @@ end)
 operator dispatch, the regularizer-sum branch of `total_objective`. **Needs:**
 a proximal method.
 
-Right now the regularizer interface is fully implemented but no `step!` calls
-`prox`. To exercise the composite path:
+**✅ Resolved (portfolio Item 2 — the flagship).** All three steps are done:
 
-1. Add a `ProximalGradient` method that interleaves a gradient step on `f`
-   with a `prox` call on `g`.
-2. Register a `:lasso` problem: `LeastSquares` data fidelity + `L1Norm`
-   regularizer with controllable `λ`.
-3. **Stage 10 — Lasso.** ISTA / FISTA on the lasso, sparsity recovery as a
-   function of `λ`. Validates that `prox` is called once per step with the
-   correct `γ`, that `total_objective` correctly sums `f + g`, and that the
-   final iterate's support matches the ground truth.
+1. `ProximalGradient` ([algorithms/conventional/proximal_gradient/](../algorithms/conventional/proximal_gradient/))
+   interleaves a gradient step on `f` with a `prox` call on `g`.
+2. `:lasso` problem registered ([problems/lasso/](../problems/lasso/)):
+   `LeastSquares` + `L1Norm`, controllable `m, n, k, λ`, `L = ‖A‖²` in meta.
+3. **Stage LASSO-1** ([exp_lasso1_ista_fista.jl](exp_lasso1_ista_fista.jl)) —
+   ISTA vs FISTA money figure (FISTA's O(1/k²) vs ISTA's O(1/k); support
+   recovery). `test/test_proximal_gradient.jl` asserts `prox` is called once
+   per step, `total_objective` sums `f + g`, and FISTA's gap is < 0.1× ISTA's
+   at a mid iteration. The planted support is recovered with zero spurious
+   coordinates in the shipped instance.
 
-**Concrete invariant for this stage:** at sufficiently large `λ`, the final
-iterate's support is a subset of the true support. The "extra" coordinates
-that ProxGD might still touch should have `|x_i| ≤ γ λ` — i.e. one
-soft-threshold call away from zero.
+**Remaining (deferred):** the *sparsity-recovery-vs-λ sweep* (Stage LASSO-1
+shows a single λ); `L2Norm` (a ridge demo would light it up); and `ProxGrad`
+with a `ZeroRegularizer` as an explicit smooth-acceleration stage (the
+reduction is unit-tested but has no shipped figure).
+
+**Concrete invariant:** at sufficiently large `λ`, the final iterate's support
+is a subset of the true support; "extra" coordinates ProxGD touches should have
+`|x_i| ≤ γ λ` — one soft-threshold call away from zero.
 
 ### Logistic regression with mini-batches — stochastic `step!`
 
