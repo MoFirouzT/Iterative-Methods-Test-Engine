@@ -233,3 +233,4 @@ include(joinpath(@__DIR__, "test_module8.jl"))
 include(joinpath(@__DIR__, "test_module9.jl"))   # Problem Factory: exercises the moved LeastSquares/regularizer content
 include(joinpath(@__DIR__, "test_proximal_gradient.jl"))   # ProximalGradient: ISTA↔GD reduction, FISTA acceleration, one-prox-per-step
 include(joinpath(@__DIR__, "test_least_squares.jl"))       # LeastSquares Hessian modes, :linear_ls conditioning, Cauchy-guard regression
+include(joinpath(@__DIR__, "test_preconditioned_gradient.jl"))   # PreconditionedGradient: Jacobi=Newton, dual-bucket routing, diagonal contract

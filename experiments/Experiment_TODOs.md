@@ -152,14 +152,23 @@ variant for a future stage).
 ### Experimental methods
 
 **Tag:** (framework). **Exports:** `ExperimentalMethod` (abstract).
-**Directory:** [algorithms/experimental/](../algorithms/experimental/) is empty.
 
-`resolve_methods` already routes by concrete type so adding a method here
-should not require runner changes. But until at least one experimental method
-exists, the `experimental_methods` field of `ExperimentConfig` is a vestigial
-slot. Even a single illustrative implementation (e.g. an adaptive-step
-heuristic that doesn't fit `ConventionalMethod`) would unlock validation of
-the dual-bucket routing.
+**✅ Resolved (portfolio Item 3).** `PreconditionedGradient <: ExperimentalMethod`
+lives in [algorithms/experimental/preconditioned_gradient/](../algorithms/experimental/preconditioned_gradient/),
+crossing a **preconditioner** axis (`IdentityPreconditioner` / `JacobiPreconditioner`,
+in [components/preconditioners.{md,jl}](../algorithms/components/preconditioners.md))
+with a step-size axis. [exp_precond1_grid.jl](exp_precond1_grid.jl) runs a 2×3
+`VariantGrid` alongside a conventional `GradientDescent` baseline in one
+`run_experiment`, and `test_preconditioned_gradient.jl` asserts the **dual-bucket
+routing** (baseline → conventional, all 6 variants → experimental) — the first
+real exercise of `resolve_methods`'s split. On the `:separable_quadratic`
+(DiagonalHessian) the Jacobi preconditioner is exact Newton: ~1 iter vs O(κ) for
+Identity — a ~9×10⁴ iteration gap at κ=1e4.
+
+Step-size axis is `{Fixed, Armijo, Cauchy}` (not the roadmap's `{Fixed, Armijo,
+BB1}`): Fixed/Armijo/Cauchy compose with an arbitrary descent direction, but
+BarzilaiBorwein's secant step is derived for `d = −g` and diverges on a
+preconditioned direction.
 
 ### Sub-method machinery in experiments
 
@@ -331,9 +340,12 @@ non-smooth-prox path with a different `prox` shape from the lasso.
 - ✅ `OperatorHessian` — **now constructed** by `LeastSquares` in `:operator`
   mode (`d → Aᵀ(A d)`), exercised by the `:linear_ls` family + `CauchyStep`
   (Item 1). No longer dark.
-- `DiagonalHessian` — **still dark.** Natural for separable problems (a
-  per-coordinate quadratic, `f(x) = ½ Σ dᵢ xᵢ²`); slated for Item 3
-  (separable quadratic + Jacobi preconditioner).
+- ✅ `DiagonalHessian` — **now constructed** by `SeparableQuadratic`
+  (`f(x) = ½ Σ dᵢ xᵢ²`, hessian → `DiagonalHessian(d)`), exercised by the
+  `:separable_quadratic` family + the Jacobi preconditioner (Item 3). No longer
+  dark. All three Hessian representations are now live, and `diagonal` is
+  exercised on both supporting types (DiagonalHessian, MatrixHessian) and
+  correctly rejected on OperatorHessian.
 
 These are essentially free once the underlying problems exist; what they
 validate is the `apply`/`materialize`/`diagonal` dispatch surface on

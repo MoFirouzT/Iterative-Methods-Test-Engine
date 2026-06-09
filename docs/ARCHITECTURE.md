@@ -753,6 +753,23 @@ With a zero/absent regularizer it reduces to (accelerated) gradient descent, so
 the same method tells the smooth-acceleration story for free. See
 `algorithms/conventional/proximal_gradient/proximal_gradient.md`.
 
+```julia
+# Preconditioner — supplies M⁻¹ for d = −M⁻¹∇f (see preconditioners.jl)
+abstract type Preconditioner end
+struct IdentityPreconditioner <: Preconditioner end   # M⁻¹ = I  ⇒ plain GD
+struct JacobiPreconditioner   <: Preconditioner end   # M⁻¹ = diag(∇²f)⁻¹
+
+precondition(M, g, problem, x) -> M⁻¹·g
+```
+
+`PreconditionedGradient` (the *experimental* method) crosses this
+**preconditioner** axis with a step-size axis. `JacobiPreconditioner` reads
+`diagonal(hessian(f, x))` — so it is exact Newton where the Hessian is diagonal
+(`DiagonalHessian`), works on any `diagonal`-capable Hessian (`MatrixHessian`),
+and is *correctly inapplicable* on an `OperatorHessian` (clean `ArgumentError`,
+no silent fallback). This is the "each `Hessian` declares which operations it
+supports" contract made operational. See `components/preconditioners.md`.
+
 Other component hierarchies (Hessian approximations, ...) can be added later.
 They follow the same pattern: an abstract type, concrete subtypes, a single
 dispatched function on the abstract.
@@ -1941,17 +1958,20 @@ TestEngine.jl/
 │   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
 │   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov/Correction
 │   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
-│   │   └── hessian_approx.jl            # HessianApprox + BFGS/SR1/LBFGS/DiagBFGS (prune candidates)
+│   │   ├── hessian_approx.jl            # HessianApprox + BFGS/SR1/LBFGS/DiagBFGS (prune candidates)
+│   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
 │   ├── conventional/
 │   │   ├── gradient_descent.jl
 │   │   └── proximal_gradient/    # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
-│   └── experimental/             # (added later)
+│   └── experimental/
+│       └── preconditioned_gradient/ # preconditioned_gradient.{md,jl} — PreconditionedGradient
 │
 ├── problems/                     # CONTENT — concrete problem families (self-register on load)
 │   ├── rosenbrock/               # rosenbrock.{md,jl} — RosenbrockObjective; :rosenbrock
 │   ├── least_squares/            # least_squares.{md,jl} — LeastSquares (selectable
 │   │                             #   :matrix/:operator Hessian); :quadratic + :linear_ls
 │   ├── lasso/                    # lasso.{md,jl}     — :lasso sparse-recovery generator
+│   ├── separable_quadratic/      # separable_quadratic.{md,jl} — :separable_quadratic (DiagonalHessian)
 │   └── regularizers/             # regularizers.jl   — L1/L2/Zero, prox via ProximalOperators.jl
 │
 ├── experiments/                  # load engine + content via _bootstrap.jl
@@ -1961,6 +1981,7 @@ TestEngine.jl/
 │   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
 │   ├── exp_ls1_dimension.jl               #   Stage LS-1: dimension scaling + timing pillar
 │   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
+│   ├── exp_precond1_grid.jl               #   Stage EXP-1: VariantGrid + dual routing; Jacobi≈Newton
 │   ├── smoke_test.jl
 │   └── basic_experiments.md, Experiment_TODOs.md
 │
@@ -1974,7 +1995,8 @@ TestEngine.jl/
     ├── test_module8.jl           # persistence (save/load, manifest, CSV)
     ├── test_module9.jl           # problem factory: LeastSquares / regularizer content
     ├── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
-    └── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
+    ├── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
+    └── test_preconditioned_gradient.jl # Jacobi=Newton, dual-bucket routing, diagonal contract
 ```
 
 ---
