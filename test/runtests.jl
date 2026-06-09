@@ -202,9 +202,9 @@ end
 end
 
 @testset "Variant grid expansion" begin
-    axis1 = VariantAxis(:hessian,
-        BFGS() => "BFGS",
-        SR1() => "SR1",
+    axis1 = VariantAxis(:preconditioner,
+        IdentityPreconditioner() => "Identity",
+        JacobiPreconditioner()   => "Jacobi",
     )
 
     axis2 = VariantAxis(:linesearch,
@@ -214,16 +214,16 @@ end
     grid = VariantGrid(
         base_name = "MyMethod",
         axes = [axis1, axis2],
-        builder = (; hessian, linesearch, step_size) -> DummyMethod(),
+        builder = (; preconditioner, linesearch, step_size) -> DummyMethod(),
         shared_params = (; step_size = 0.01),
     )
 
     specs = expand(grid)
 
-    @test length(specs) == 2   # 2 hessian values × 1 linesearch value
-    @test specs[1].name == "MyMethod[hessian=BFGS,linesearch=Armijo,step_size=0.01]"
-    @test specs[1].short_name == "MM/BFGS/Arm"
-    @test specs[1].params == (; hessian = BFGS(), linesearch = ArmijoLS(), step_size = 0.01)
+    @test length(specs) == 2   # 2 preconditioner values × 1 linesearch value
+    @test specs[1].name == "MyMethod[preconditioner=Identity,linesearch=Armijo,step_size=0.01]"
+    @test specs[1].short_name == "MM/Identity/Arm"
+    @test specs[1].params == (; preconditioner = IdentityPreconditioner(), linesearch = ArmijoLS(), step_size = 0.01)
     @test specs[1].method isa DummyMethod
 end
 
@@ -234,3 +234,4 @@ include(joinpath(@__DIR__, "test_module9.jl"))   # Problem Factory: exercises th
 include(joinpath(@__DIR__, "test_proximal_gradient.jl"))   # ProximalGradient: ISTA↔GD reduction, FISTA acceleration, one-prox-per-step
 include(joinpath(@__DIR__, "test_least_squares.jl"))       # LeastSquares Hessian modes, :linear_ls conditioning, Cauchy-guard regression
 include(joinpath(@__DIR__, "test_preconditioned_gradient.jl"))   # PreconditionedGradient: Jacobi=Newton, dual-bucket routing, diagonal contract
+include(joinpath(@__DIR__, "test_external_validation.jl"))       # cross-check converged solutions vs Optim.jl + ProximalAlgorithms.jl

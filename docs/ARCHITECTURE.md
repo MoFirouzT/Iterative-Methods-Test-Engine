@@ -127,8 +127,9 @@ available, not about inverse-problems vocabulary.
 ### Hessian
 
 The Hessian at a point is itself an object, not a single function. This unifies exact
-Hessians, full quasi-Newton approximations (BFGS, SR1), limited-memory variants
-(L-BFGS), and structured forms (diagonal, Kronecker, ...) under one dispatch surface.
+Hessians and structured forms (diagonal, operator/matvec, ...) under one dispatch
+surface, and is designed to accommodate quasi-Newton approximations (BFGS, SR1, L-BFGS)
+the same way (a stretch goal — not currently shipped; see the README).
 
 ```julia
 abstract type Hessian end
@@ -1956,9 +1957,8 @@ TestEngine.jl/
 │   ├── components/               #   shared method-construction vocabulary (extend engine)
 │   │   ├── descent_directions.{md,jl}   # DescentDirection, SteepestDescent, compute_direction
 │   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
-│   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov/Correction
+│   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov
 │   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
-│   │   ├── hessian_approx.jl            # HessianApprox + BFGS/SR1/LBFGS/DiagBFGS (prune candidates)
 │   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
 │   ├── conventional/
 │   │   ├── gradient_descent.jl
@@ -1996,7 +1996,8 @@ TestEngine.jl/
     ├── test_module9.jl           # problem factory: LeastSquares / regularizer content
     ├── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
     ├── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
-    └── test_preconditioned_gradient.jl # Jacobi=Newton, dual-bucket routing, diagonal contract
+    ├── test_preconditioned_gradient.jl # Jacobi=Newton, dual-bucket routing, diagonal contract
+    └── test_external_validation.jl # cross-check solutions vs Optim.jl + ProximalAlgorithms.jl
 ```
 
 ---

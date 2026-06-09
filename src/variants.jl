@@ -9,11 +9,11 @@ using Base: @kwdef
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Method-construction component vocabulary (HessianApprox / MinorUpdate and
+# Method-construction component vocabulary (MinorUpdate / Preconditioner and
 # their concretes) lives in the CONTENT layer — the engine grid machinery
 # below is method-agnostic and never references it:
-#   algorithms/components/hessian_approx.jl  — HessianApprox, BFGS, SR1, …
 #   algorithms/components/minor_updates.jl   — MinorUpdate, NesterovStep, …
+#   algorithms/components/preconditioners.jl — Preconditioner, Identity/Jacobi
 # ─────────────────────────────────────────────────────────────────────────
 
 
@@ -82,16 +82,12 @@ end
 
 const ABBREVIATIONS = Dict{String,String}(
 	"MyMethod" => "MM",
-	"BFGS" => "BFGS",
-	"SR1" => "SR1",
-	"LBFGS" => "LBFG",
 	"None" => "∅",
 	"NoMinorUpdate" => "∅",
 	"Momentum" => "Mom",
 	"MomentumStep" => "Mom",
 	"Nesterov" => "Nest",
 	"NesterovStep" => "Nest",
-	"CorrectionStep" => "Corr",
 	"Armijo" => "Arm",
 	"ArmijoLS" => "Arm",
 )

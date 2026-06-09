@@ -24,7 +24,6 @@ if !isdefined(Main, :_TESTENGINE_LOADED)
 	include(joinpath(_BOOT_ROOT, "algorithms", "components", "descent_directions.jl"))
 	include(joinpath(_BOOT_ROOT, "algorithms", "components", "step_sizes.jl"))
 	include(joinpath(_BOOT_ROOT, "algorithms", "components", "minor_updates.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "components", "hessian_approx.jl"))
 	include(joinpath(_BOOT_ROOT, "algorithms", "components", "preconditioners.jl"))
 
 	# 3. Methods — compose the components above

@@ -115,24 +115,19 @@ still have no method that consumes them, so no experiment can validate them as w
 
 ### Quasi-Newton hierarchy
 
-**Tag:** (framework). **Types:** `HessianApprox`, `FullHessian`, `BFGS`,
-`SR1`, `LBFGS`, `DiagBFGS` ([algorithms/components/hessian_approx.jl](../algorithms/components/hessian_approx.jl)).
+**Tag:** (framework). **🗑 PRUNED (portfolio Item 6 / Export Audit).** The empty
+`HessianApprox` / `FullHessian` / `BFGS` / `SR1` / `LBFGS` / `DiagBFGS` structs
+(formerly `algorithms/components/hessian_approx.jl`) were **deleted** — an
+exported empty struct reads as an unfinished edge, and the Hessian-representation
+surface is already demonstrated more cheaply via `OperatorHessian` (Item 1) and
+`DiagonalHessian` (Item 3). BFGS/LBFGS now live only as a clearly-labelled
+**README stretch goal**, not as dead code. (Recoverable from git history if ever
+implemented; the `Hessian` hierarchy is designed to accommodate them — see the
+forward-compatibility note in architecture.md §3.)
 
-These are declared as empty structs. There is no `step!` method that takes a
-`HessianApprox` and computes a Newton/quasi-Newton direction. To make this
-testable:
-
-1. Add a concrete method type (e.g. `QuasiNewton(approx::HessianApprox,
-   step_size::StepSize)`) with `init_state` and `step!`.
-2. Implement the rank-one and rank-two updates for `BFGS`, `SR1`, `LBFGS`,
-   `DiagBFGS` against their secant pairs.
-3. Add a stage that runs at least `BFGS` and `LBFGS` on Rosenbrock and
-   compares to Stage 1's GD curves on the iter and eval axes. BFGS on
-   Rosenbrock should hit `:gradient_converged` in O(20–30) iters at ρ=100.
-
-**Validates (once implemented):** secant-pair bookkeeping, the
-`HessianApprox` dispatch surface, comparison curves where the dominant cost
-shifts from line search to the update.
+**Would have validated (if implemented):** secant-pair bookkeeping, a quasi-Newton
+dispatch surface, and comparison curves where the dominant cost shifts from line
+search to the update.
 
 ### Minor-update hierarchy
 

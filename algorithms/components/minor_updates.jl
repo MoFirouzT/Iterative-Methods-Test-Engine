@@ -41,15 +41,6 @@ Nesterov-style correction.
 	α::Float64 = 0.1
 end
 
-"""
-	struct CorrectionStep <: MinorUpdate
-
-Iterated correction step.
-"""
-@kwdef struct CorrectionStep <: MinorUpdate
-	n_inner::Int = 3
-end
-
 
 # ─────────────────────────────────────────────────────────────────────────
 # Behavior — consumed by composing methods (e.g. ProximalGradient)
