@@ -6,11 +6,11 @@ include("core.jl")
 include("stopping.jl")
 include("variants.jl")
 
-include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "descent_directions.jl"))
-include(joinpath(@__DIR__, "..", "algorithms", "conventional", "components", "step_sizes.jl"))
-include(joinpath(@__DIR__, "..", "algorithms", "conventional", "gradient_descent.jl"))
-
-include(joinpath(@__DIR__, "..", "problems", "rosenbrock", "rosenbrock.jl"))
+# NOTE: concrete methods and problems are deliberately NOT included here.
+# The engine module ships only abstractions + machinery + dependency-free
+# utilities. Content (algorithms/, problems/) is loaded by experiments and
+# tests via experiments/_bootstrap.jl and extends the engine through
+# `import .TestEngine`. This keeps the engine standalone and dependency-lean.
 
 include("debug.jl")
 include("experiment.jl")
@@ -30,15 +30,11 @@ export SubRunConfig, SubResult, @core_timed
 export StoppingCriterion, MaxIterations, TimeLimit, GradientTolerance
 export ObjectiveStagnation, StepTolerance, DistanceToOptimal, CompositeCriterion, stop_when_any, stop_when_all, should_stop
 
-export DescentDirection, SteepestDescent, StepSize, LineSearch
-export FixedStep, ArmijoLS, CauchyStep, BarzilaiBorwein
-export GradientDescent, GradientDescentNumerics, GradientDescentState
-export compute_direction, compute_step_size
+# Concrete methods, their components (StepSize/DescentDirection/MinorUpdate/
+# HessianApprox + concretes), GradientDescent, and concrete problems
+# (Rosenbrock, LeastSquares, regularizers) are CONTENT — defined in algorithms/
+# and problems/, loaded via experiments/_bootstrap.jl. Not exported here.
 
-export RosenbrockKernel, RosenbrockObjective
-
-export HessianApprox, FullHessian, BFGS, SR1, LBFGS, DiagBFGS
-export MinorUpdate, NoMinorUpdate, MomentumStep, NesterovStep, CorrectionStep
 export VariantAxis, VariantGrid, VariantSpec, expand
 export ABBREVIATIONS, abbreviate, register_abbreviation!
 

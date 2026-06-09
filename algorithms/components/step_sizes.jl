@@ -22,6 +22,7 @@ rules use it as a non-allocating scratch buffer.
 
 using Base: @kwdef
 using LinearAlgebra: dot, norm
+using .TestEngine: total_objective, hessian, apply, @core_timed   # engine functions this content calls
 
 
 # ─────────────────────────────────────────────────────────────────────────

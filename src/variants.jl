@@ -9,96 +9,12 @@ using Base: @kwdef
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Component Abstractions
+# Method-construction component vocabulary (HessianApprox / MinorUpdate and
+# their concretes) lives in the CONTENT layer — the engine grid machinery
+# below is method-agnostic and never references it:
+#   algorithms/components/hessian_approx.jl  — HessianApprox, BFGS, SR1, …
+#   algorithms/components/minor_updates.jl   — MinorUpdate, NesterovStep, …
 # ─────────────────────────────────────────────────────────────────────────
-
-"""
-	abstract type HessianApprox
-
-Base type for Hessian approximation strategies.
-"""
-abstract type HessianApprox end
-
-"""
-	struct FullHessian <: HessianApprox
-
-Dense exact Hessian.
-"""
-struct FullHessian <: HessianApprox end
-
-"""
-	struct BFGS <: HessianApprox
-
-BFGS rank-2 update.
-"""
-struct BFGS <: HessianApprox end
-
-"""
-	struct SR1 <: HessianApprox
-
-Symmetric rank-1 update.
-"""
-struct SR1 <: HessianApprox end
-
-"""
-	struct LBFGS <: HessianApprox
-
-Limited-memory BFGS update.
-"""
-@kwdef struct LBFGS <: HessianApprox
-	m::Int = 5
-end
-
-"""
-	struct DiagBFGS <: HessianApprox
-
-Diagonal BFGS approximation.
-"""
-@kwdef struct DiagBFGS <: HessianApprox
-	damped::Bool = false
-end
-
-"""
-	abstract type MinorUpdate
-
-Base type for post-step correction strategies.
-"""
-abstract type MinorUpdate end
-
-"""
-	struct NoMinorUpdate <: MinorUpdate
-
-No-op correction.
-"""
-struct NoMinorUpdate <: MinorUpdate end
-
-"""
-	struct MomentumStep <: MinorUpdate
-
-Simple momentum correction.
-"""
-@kwdef struct MomentumStep <: MinorUpdate
-	α::Float64 = 0.1
-end
-
-"""
-	struct NesterovStep <: MinorUpdate
-
-Nesterov-style correction.
-"""
-@kwdef struct NesterovStep <: MinorUpdate
-	α::Float64 = 0.1
-end
-
-"""
-	struct CorrectionStep <: MinorUpdate
-
-Iterated correction step.
-"""
-@kwdef struct CorrectionStep <: MinorUpdate
-	n_inner::Int = 3
-end
-
 
 
 # ─────────────────────────────────────────────────────────────────────────

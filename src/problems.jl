@@ -289,109 +289,12 @@ const objective = total_objective
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Concrete Objective: Least Squares
+# Concrete objectives & regularizers live in the CONTENT layer, not here:
+#   problems/least_squares/least_squares.jl  — LeastSquares (+ kernel)
+#   problems/regularizers/regularizers.jl    — L1Norm / L2Norm / ZeroRegularizer
+# The engine defines only the abstract `Objective` / `Regularizer` contracts
+# (above) plus the generic `value` / `grad!` / `hessian` / `prox` functions.
 # ─────────────────────────────────────────────────────────────────────────
-
-"""
-	LeastSquaresKernel
-
-Encapsulates the data matrix A and vector b for least-squares data fidelity.
-"""
-struct LeastSquaresKernel
-	A::Matrix{Float64}
-	b::Vector{Float64}
-end
-
-
-"""
-	LeastSquares <: Objective
-
-Least-squares objective: f(x) = 0.5 ‖Ax − b‖²
-"""
-struct LeastSquares <: Objective
-	kernel::LeastSquaresKernel
-end
-
-
-function value(f::LeastSquares, x::Vector{Float64})
-	residual = f.kernel.A * x - f.kernel.b
-	0.5 * norm(residual)^2
-end
-
-
-function grad!(g::Vector{Float64}, f::LeastSquares, x::Vector{Float64})::Vector{Float64}
-	residual = f.kernel.A * x - f.kernel.b
-	mul!(g, adjoint(f.kernel.A), residual)
-	return g
-end
-
-
-function hessian(f::LeastSquares, x::Vector{Float64})::Hessian
-	H_matrix = f.kernel.A' * f.kernel.A
-	return MatrixHessian(H_matrix)
-end
-
-
-# ─────────────────────────────────────────────────────────────────────────
-# Concrete Regularizers
-# ─────────────────────────────────────────────────────────────────────────
-
-"""
-	L1Norm <: Regularizer
-
-ℓ₁ regularization: g(x) = λ ‖x‖₁
-"""
-@kwdef struct L1Norm <: Regularizer
-	λ::Float64 = 0.01
-end
-
-
-function value(g::L1Norm, x::Vector{Float64})
-	g.λ * norm(x, 1)
-end
-
-
-function prox(g::L1Norm, x::Vector{Float64}, γ::Float64)
-	sign.(x) .* max.(abs.(x) .- γ * g.λ, 0.0)
-end
-
-
-"""
-	L2Norm <: Regularizer
-
-ℓ₂ (ridge) regularization: g(x) = λ ‖x‖²
-"""
-@kwdef struct L2Norm <: Regularizer
-	λ::Float64 = 0.01
-end
-
-
-function value(g::L2Norm, x::Vector{Float64})
-	g.λ * norm(x)^2
-end
-
-
-function prox(g::L2Norm, x::Vector{Float64}, γ::Float64)
-	x ./ (1.0 + 2.0 * γ * g.λ)
-end
-
-
-"""
-	ZeroRegularizer <: Regularizer
-
-No-op regularizer (always zero).
-"""
-struct ZeroRegularizer <: Regularizer end
-
-
-function value(g::ZeroRegularizer, x::Vector{Float64})
-	0.0
-end
-
-
-function prox(g::ZeroRegularizer, x::Vector{Float64}, γ::Float64)
-	copy(x)
-end
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -539,25 +442,7 @@ end
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Convenience Registration: Built-in Analytic Problems
+# Concrete problem families register themselves from the CONTENT layer at load
+# time (e.g. problems/rosenbrock/rosenbrock.jl calls register_analytic_problem!).
+# The engine ships the registration machinery above, but no concrete problem.
 # ─────────────────────────────────────────────────────────────────────────
-
-# Quadratic
-register_analytic_problem!(:quadratic, (params, rng) -> begin
-	A = get(params, :A, Matrix{Float64}(I, 2, 2))
-	b = get(params, :b, zeros(2))
-	x0 = get(params, :x0, zeros(length(b)))
-	Problem(LeastSquares(LeastSquaresKernel(A, b)), x0)
-end)
-
-# Rosenbrock-like: f(x) = sum((1 - x[i])^2 + 100(x[i+1] - x[i]^2)^2)
-# For now, a simpler variant
-register_analytic_problem!(:rosenbrock, (params, rng) -> begin
-	n = get(params, :dim, 2)
-	x0 = ones(n) .* 0.5
-	# Use a quadratic approximation or a generic dense problem
-	# For now, return a simple quadratic
-	A = Diagonal(ones(n))
-	b = zeros(n)
-	Problem(LeastSquares(LeastSquaresKernel(A, b)), x0)
-end)

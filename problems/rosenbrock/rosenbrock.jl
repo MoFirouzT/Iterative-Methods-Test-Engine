@@ -8,7 +8,8 @@ Implements the Rosenbrock function as an Objective:
 with analytical gradient and Hessian.
 """
 
-# Objective, MatrixHessian, and Problem are available from src/problems.jl
+import .TestEngine: Objective, Hessian, MatrixHessian, Problem, value, grad!, hessian,
+	register_analytic_problem!
 
 # ─────────────────────────────────────────────────────────────────────────
 # Kernel & Fidelity Types

@@ -23,21 +23,6 @@ gaps themselves are real either way.
 
 ## Immediate blockers
 
-### Stage 4 — `DistanceToOptimal` is referenced but undefined  ✓ RESOLVED
-
-**Status:** Landed. `DistanceToOptimal` is now in
-[src/stopping.jl](../src/stopping.jl) with `should_stop` returning
-`(true, :optimal_reached)` when `state.metrics.dist_to_opt ≤ tol`, exported
-from `TestEngine`, and recognised as a convergence symbol by
-`is_converged_reason`. No runner-side wiring was needed —
-`GradientDescent.init_state` and `step!` already update
-`state.metrics.dist_to_opt` from `problem.x_opt` (defaulting to `Inf` when
-the problem has no known optimum, which makes the criterion automatically
-inert).
-
-Stage 4 now runs end-to-end and BB1/BB2/Cauchy hit `:optimal_reached` as
-expected.
-
 ### Persistence — JLD2 size on multi-run experiments
 
 **Tag:** (framework). **Symptom:** A single 5-method × 20 000-iter
@@ -354,20 +339,18 @@ through the cracks.
 
 If the goal is "maximum coverage gain per unit work," roughly in this order:
 
-1. **Fix Stage 4's `DistanceToOptimal`.** Smallest diff, unblocks the timing
-   assertion, lets the existing experiments actually run end-to-end.
-2. **Linear least squares + Stage 8/9.** Single problem family, two stages,
+1. **Linear least squares + Stage 8/9.** Single problem family, two stages,
    unlocks dimension scaling, conditioning sweeps, and gives the timing
    ratio a fair test. The kernel exists; only registration + experiment
    scripts are missing.
-3. **Lasso + ProximalGradient + Stage 10.** Activates the entire composite-
+2. **Lasso + ProximalGradient + Stage 10.** Activates the entire composite-
    problem branch (regularizers, `prox`, `total_objective` sum). Highest-
    leverage *new code* item — it lights up an entire module.
-4. **Quasi-Newton (`BFGS` at minimum) + a stage.** Standard reference method
+3. **Quasi-Newton (`BFGS` at minimum) + a stage.** Standard reference method
    on Rosenbrock; once implemented, becomes a baseline every later stage can
    compare against.
-5. **Stochastic / mini-batch logistic regression + Stage 11.** Validates the
+4. **Stochastic / mini-batch logistic regression + Stage 11.** Validates the
    rng path through `step!` functionally rather than structurally.
-6. The remaining items (operator/diagonal Hessian, file loader,
+5. The remaining items (operator/diagonal Hessian, file loader,
    constraints, minor updates) are smaller, follow naturally from the above,
    and can be tackled opportunistically.

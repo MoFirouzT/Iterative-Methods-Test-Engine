@@ -173,7 +173,7 @@ then layers fair-comparison plots on top.
 **Framework gaps filled during this stage (landed):**
 
 - `register_abbreviation!(full, short)` added to [src/variants.jl](../src/variants.jl)
-  + exported. Stage 5 needs it to register `"GradientDescent" => "GD"`,
+  \+ exported. Stage 5 needs it to register `"GradientDescent" => "GD"`,
   `"BarzilaiBorwein" => "BB"`, etc., before `expand(grid)` runs, so that the
   generated `short_name` of each `VariantSpec` uses the friendly form rather
   than the long type name.
@@ -228,7 +228,7 @@ The assertion passes only because no `step!` in this grid draws from rng.
 Add a comment in the file: introduce any stochastic step-size component and the
 assertion silently becomes vacuous.
 
-**Watch out for:**
+**Watch out for (stage5):**
 
 - if Armijo's eval count is suspiciously close to its iter count,
   `n_linesearch_evals` is not being incremented inside the backtracking loop;
@@ -244,7 +244,7 @@ assertion silently becomes vacuous.
 **Status:** done.
 **File:** `exp_stage6.jl`.
 
-Sample x₀ uniformly in [−2, 2]² (registered as a new `RandomProblem(:rosenbrock_random_x0)`). Set `n_runs = 20`. 
+Sample x₀ uniformly in [−2, 2]² (registered as a new `RandomProblem(:rosenbrock_random_x0)`). Set `n_runs = 20`.
 Plot median curves with shaded 25–75% IQR via `aggregate_runs(df, :median)`.
 Add one configuration with `IterativeWarmup(GradientDescent(FixedStep(α=1e-3)), MaxIterations(50))`.
 
@@ -286,7 +286,7 @@ Add one configuration with `IterativeWarmup(GradientDescent(FixedStep(α=1e-3)),
   is identical across all five methods within any single `run_id` when warm-up is active.
   This is the only test that actually proves the warm-up output is shared rather than each method running its own.
 
-**Watch out for:**
+**Watch out for (stage6):**
 
 - the IQR shading should *contain* the median curve at every iter — if it
   doesn't, the quantile computation is off-by-one;
@@ -386,7 +386,7 @@ Every part of `debug.jl`; every remaining stopping criterion in `stopping.jl`;
 both `:any` and `:all` composite modes; `method_criteria` dispatch; the
 `iter_range` branch of `maybe_print`.
 
-### Watch out for
+**Watch out for (stage7):**
 
 - if `CheckNumericalGradient` *passes* with the intentionally broken gradient,
   the central-difference computation or comparison threshold is wrong —
@@ -474,7 +474,7 @@ TODOs file lists that as an option, but the warm-up runs *before* any
 outer method exists, so the natural "outer logger" for `attach_sub_logs!`
 would have to be invented. Out of scope for Stage 8.
 
-### Watch out for
+**Watch out for (stage8):**
 
 - if 8.a's BB1 debug count is 0, a `debug_check!` method is invoking
   `trigger_debug!` without the `logger` keyword again — fix in

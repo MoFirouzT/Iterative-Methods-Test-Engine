@@ -6,6 +6,9 @@ step-size rule. Demonstrates the composable state module pattern.
 """
 
 using Random: AbstractRNG
+using LinearAlgebra: norm
+using .TestEngine                                          # engine types + functions this method uses
+import .TestEngine: init_state, step!, extract_log_entry   # engine dispatch points this method extends
 
 
 # ─────────────────────────────────────────────────────────────────────────
