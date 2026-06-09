@@ -8,6 +8,10 @@
 # algorithm component is CONTENT that extends the engine via `import .TestEngine`.
 # Load order matters: engine first, then components, then the methods/problems
 # that compose them. Idempotent within a process.
+#
+# To add new content (a problem, method, or component): create its file with an
+# `import .TestEngine: <names it extends>` header (see e.g. problems/rosenbrock/
+# rosenbrock.jl), then add an `include(...)` line in the matching section below.
 
 if !isdefined(Main, :_TESTENGINE_LOADED)
 	_BOOT_ROOT = normpath(joinpath(@__DIR__, ".."))

@@ -63,7 +63,7 @@ rewrites. Not Stage-4 blocking; queue under "framework gaps."
 ### GLL nonmonotone line search for Barzilai-Borwein
 
 **Tag:** (framework). **Currently:** `BarzilaiBorwein` has `α_min`/`α_max`
-fields in [step_sizes.jl](../algorithms/conventional/components/step_sizes.jl)
+fields in [step_sizes.jl](../algorithms/components/step_sizes.jl)
 but they're set to a permissive `[0, 1e6]` by default — effectively a
 no-op safety net for true numerical overflow.
 
@@ -107,16 +107,16 @@ quadratics).
 
 ---
 
-## Framework gaps — exported, no consumer
+## Framework gaps — defined, no consumer
 
-These are the largest pieces of dead surface area. Each is exported from
-[src/TestEngine.jl](../src/TestEngine.jl) but has no method that consumes it,
-so no experiment can validate them as wired.
+These are the largest pieces of dead surface area. Since the engine/content split they
+live as **content** under `algorithms/components/` (no longer exported by the engine), but
+still have no method that consumes them, so no experiment can validate them as wired.
 
 ### Quasi-Newton hierarchy
 
-**Tag:** (framework). **Exports:** `HessianApprox`, `FullHessian`, `BFGS`,
-`SR1`, `LBFGS`, `DiagBFGS` ([src/variants.jl](../src/variants.jl)).
+**Tag:** (framework). **Types:** `HessianApprox`, `FullHessian`, `BFGS`,
+`SR1`, `LBFGS`, `DiagBFGS` ([algorithms/components/hessian_approx.jl](../algorithms/components/hessian_approx.jl)).
 
 These are declared as empty structs. There is no `step!` method that takes a
 `HessianApprox` and computes a Newton/quasi-Newton direction. To make this
@@ -136,9 +136,9 @@ shifts from line search to the update.
 
 ### Minor-update hierarchy
 
-**Tag:** (framework). **Exports:** `MinorUpdate`, `NoMinorUpdate`,
+**Tag:** (framework). **Types:** `MinorUpdate`, `NoMinorUpdate`,
 `MomentumStep`, `NesterovStep`, `CorrectionStep`
-([src/variants.jl](../src/variants.jl)).
+([algorithms/components/minor_updates.jl](../algorithms/components/minor_updates.jl)).
 
 Same shape as the quasi-Newton gap — the type hierarchy is paid for, no
 method composes it into a step. Until a method takes a `MinorUpdate` field
@@ -185,11 +185,13 @@ specific class of validations that 2D Rosenbrock cannot reach.
 ### Linear least squares — dimension and conditioning sweeps
 
 **Tag:** (problem-family). **Unlocks:** `LeastSquares`, `LeastSquaresKernel`
-(already in [src/problems.jl](../src/problems.jl) but never invoked from an
+(now in [problems/least_squares/least_squares.jl](../problems/least_squares/least_squares.jl),
+exercised by the `:quadratic` family + tests but not yet by a scaling/conditioning
 experiment), dimension scaling, condition-number sweeps, the
 `@core_timed`-vs-wall measurement as a real ordering signal.
 
-The kernel exists; only a registration and a stage are missing. Sketch:
+The kernel and a basic `:quadratic` registration exist; the conditioning `:linear_ls`
+generator and the scaling/conditioning stage are missing. Sketch:
 
 ```julia
 register_random_problem!(:linear_ls, (rng, params) -> begin

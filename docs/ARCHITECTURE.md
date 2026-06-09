@@ -1241,6 +1241,11 @@ end
 `finalize!(logger, method, state)` returns a `MethodResult{typeof(state)}`, preserving
 the concrete state type through the parametric wrapper.
 
+`iter_logs` begins with an `iter=0` snapshot recorded by `log_init!` (so trajectory plots
+and warm-up x₀ invariants can see the starting point), followed by one entry per iteration.
+`n_iters` counts only the actual iterations — entries with `iter > 0`, excluding that init
+snapshot. (`run_sub_method` counts the same way via its loop counter.)
+
 ### Result Hierarchy (Overview)
 
 ```
@@ -1428,6 +1433,9 @@ Every `manifest.json` carries:
   This is derived from `MethodResult.n_iters` / `.stop_reason` and the
   final `IterationLog` entry. It makes `jq '.method_results.BB1[0]'`
   enough to know how a method terminated without loading the JLD2.
+  Non-finite metrics serialize as JSON `null` (e.g. `dist_final` is `null`
+  when the problem has no known `x_opt`, so `dist_to_opt = Inf`) — JSON has
+  no `Inf`/`NaN`, so the manifest sanitizes them on write.
 - `csv_skipped_extras` (only present when non-empty) — keys whose values
   were non-scalar and therefore omitted from the CSV sidecar.
 
@@ -1836,15 +1844,20 @@ df  = vcat(df1, df2)
 
 ## 13. Directory & File Structure
 
-The source tree is consolidated into **9 files**. Each file groups tightly related
-concerns; none is so large as to become unwieldy.
+The **engine** (`src/`) contains only abstractions, machinery, and dependency-free
+utilities — no concrete problem, method, or regularizer. Concrete **content** lives under
+`algorithms/` and `problems/`, extends the engine via `import .TestEngine`, and is
+assembled together with the engine by `experiments/_bootstrap.jl` (which experiments and
+tests `include`). This keeps the engine standalone and dependency-lean.
 
 ```
 TestEngine.jl/
 ├── src/
-│   ├── TestEngine.jl     # Module entry; includes all src files; exports public API
+│   ├── TestEngine.jl     # Module entry; includes the src/ engine files only (NO content);
+│   │                     #   exports the public API
 │   │
-│   ├── problems.jl       # Objective abstract type & built-ins; Hessian abstraction
+│   ├── problems.jl       # Objective / Regularizer / Hessian abstractions (no concrete
+│   │                     #   problems/regularizers — those are content); Hessian reps
 │   │                     #   (MatrixHessian, OperatorHessian, DiagonalHessian);
 │   │                     #   Regularizer; Problem (with optional gs and x_opt) +
 │   │                     #   convenience constructors; total_objective; ProblemSpec
@@ -1863,10 +1876,10 @@ TestEngine.jl/
 │   │                     #   CompositeCriteria; stop_when_any / stop_when_all;
 │   │                     #   DistanceToOptimal
 │   │
-│   ├── variants.jl       # Pluggable component abstractions (DescentDirection,
-│   │                     #   StepSize / LineSearch); concrete subtypes; VariantAxis,
-│   │                     #   VariantGrid, VariantSpec; expand(); ABBREVIATIONS;
-│   │                     #   register_abbreviation!; build_names()
+│   ├── variants.jl       # VariantAxis, VariantGrid, VariantSpec; expand(); ABBREVIATIONS;
+│   │                     #   register_abbreviation!  (the method/component *vocabulary* —
+│   │                     #   StepSize, DescentDirection, MinorUpdate, HessianApprox — is
+│   │                     #   content under algorithms/components/, not here)
 │   │
 │   ├── logging.jl        # IterationLog (incl. dist_to_opt); Logger; log_init!,
 │   │                     #   log_iter!, log_event!, attach_sub_logs!, finalize!;
@@ -1893,49 +1906,37 @@ TestEngine.jl/
 │                         #   get_method_color(); register_method_color!;
 │                         #   PlotSpec; FigureLayout; render_figure(); save_figure()
 │
-├── problems/
-│   └── rosenbrock/
-│       ├── rosenbrock.md          # spec — see rosenbrock.md
-│       └── rosenbrock.jl
-│
-├── algorithms/
+├── algorithms/                   # CONTENT — concrete methods + shared components
+│   ├── components/               #   shared method-construction vocabulary (extend engine)
+│   │   ├── descent_directions.{md,jl}   # DescentDirection, SteepestDescent, compute_direction
+│   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
+│   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov/Correction
+│   │   └── hessian_approx.jl            # HessianApprox + BFGS/SR1/LBFGS/DiagBFGS (prune candidates)
 │   ├── conventional/
-│   │   └── gradient_descent/
-│   │       ├── gradient_descent.md       # spec — see gradient_descent.md
-│   │       ├── gradient_descent.jl
-│   │       └── components/
-│   │           ├── descent_directions.md  # see descent_directions.md
-│   │           ├── descent_directions.jl
-│   │           ├── step_sizes.md          # see step_sizes.md (covers StepSize/LineSearch)
-│   │           └── step_sizes.jl
-│   └── experimental/
-│       └── (added later)
+│   │   └── gradient_descent.jl
+│   └── experimental/             # (added later)
 │
-├── experiments/
-│   └── exp_baseline.jl           # GradientDescent step-size sweep on Rosenbrock
+├── problems/                     # CONTENT — concrete problem families (self-register on load)
+│   ├── rosenbrock/               # rosenbrock.{md,jl} — RosenbrockObjective; :rosenbrock
+│   ├── least_squares/            # least_squares.jl  — LeastSquares; :quadratic family
+│   └── regularizers/             # regularizers.jl   — L1Norm/L2Norm/ZeroRegularizer + prox
+│
+├── experiments/                  # load engine + content via _bootstrap.jl
+│   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
+│   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
+│   ├── exp_stage1.jl … exp_stage8.jl   # the staged comparison experiments
+│   ├── smoke_test.jl
+│   └── basic_experiments.md, Experiment_TODOs.md
 │
 ├── logs/                         # Git-ignored; written at runtime
-│   └── 20260417/
-│       ├── 001/
-│       │   ├── manifest.json
-│       │   ├── result.jld2
-│       │   └── run1_GradientDescent[step_size=Armijo].csv
-│       └── 002/
+│   └── <date>/<NNN>/             #   manifest.json, result.jld2, run{N}_{method}.csv
 │
-└── test/
-    ├── test_problems.jl          # Objective, Hessian, Problem interface, x_opt,
-    │                             #   make_problem, seed propagation
-    ├── test_core.jl              # runner, state groups, @core_timed, exception safety
-    ├── test_stopping.jl          # all StoppingCriteria subtypes, DistanceToOptimal,
-    │                             #   TimeLimit
-    ├── test_variants.jl          # expand(), naming, filters, abbreviations
-    ├── test_warmup.jl            # NoWarmup, IterativeWarmup, FunctionWarmup;
-    │                             #   x0 propagation
-    ├── test_debug.jl             # all DebugCheck subtypes, trigger modes,
-    │                             #   numerical_gradient
-    ├── test_analysis.jl          # to_dataframe (incl. dist_to_opt col),
-    │                             #   aggregate_runs, PlotSpec
-    └── test_integration.jl       # full run_experiment on Rosenbrock; serialize+reload
+└── test/                         # load engine + content via ../experiments/_bootstrap.jl
+    ├── runtests.jl               # step sizes, core runner, nesting, variant grid; includes ↓
+    ├── test_module5.jl           # experiment orchestration (resolve_methods, run_experiment)
+    ├── test_module7.jl           # verbosity system
+    ├── test_module8.jl           # persistence (save/load, manifest, CSV)
+    └── test_module9.jl           # problem factory: LeastSquares / regularizer content
 ```
 
 ---
