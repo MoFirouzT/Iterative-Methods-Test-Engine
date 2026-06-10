@@ -423,6 +423,18 @@ Each state (outer and sub) has its own independent `TimingGroup`. The sub-solver
 accumulated `core_time_ns` is reported in `SubResult.core_time_ns` and tracked
 separately from the outer timing.
 
+**Core-time attribution convention (settled by `TrustRegion`, Item 4).** When an
+outer `step!` runs a sub-solver, the recommended convention is: **fold the inner
+solve's total core time into the outer step's `core_time_ns`** (so cumulative-core
+plots reflect *all* real work), **and** also expose it per-step in the log extras
+(`:inner_core_ns`) for an inner/outer breakdown. Concretely the outer `step!` adds
+`sub.core_time_ns` to `state.timing.core_time_ns` directly — it does **not** wrap
+`run_sub_method` in `@core_timed`, which would wrongly count the inner *wall*
+(scaffolding) time. `TrustRegion` does exactly this, and `test_trust_region.jl`
+asserts `outer.core_time_ns ≥ inner_core_ns > 0`. Per-outer-iteration inner traces
+are attached to each entry's `extras[:sub_logs]` by the outer method (rather than
+relying on `finalize!`, which only attaches the *last* pending sub-log batch).
+
 ### `extract_log_entry` — Default Implementation
 
 Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default
@@ -1962,7 +1974,8 @@ TestEngine.jl/
 │   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
 │   ├── conventional/
 │   │   ├── gradient_descent.jl
-│   │   └── proximal_gradient/    # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
+│   │   ├── proximal_gradient/    # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
+│   │   └── trust_region/         # trust_region.{md,jl} — QuadraticModel + SteihaugCG + TrustRegion
 │   └── experimental/
 │       └── preconditioned_gradient/ # preconditioned_gradient.{md,jl} — PreconditionedGradient
 │
@@ -1982,6 +1995,7 @@ TestEngine.jl/
 │   ├── exp_ls1_dimension.jl               #   Stage LS-1: dimension scaling + timing pillar
 │   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
 │   ├── exp_precond1_grid.jl               #   Stage EXP-1: VariantGrid + dual routing; Jacobi≈Newton
+│   ├── exp_tr1.jl                          #   Stage TR-1: TrustRegion + Steihaug-CG (nested optimization)
 │   ├── smoke_test.jl
 │   └── basic_experiments.md, Experiment_TODOs.md
 │
@@ -1997,7 +2011,8 @@ TestEngine.jl/
     ├── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
     ├── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
     ├── test_preconditioned_gradient.jl # Jacobi=Newton, dual-bucket routing, diagonal contract
-    └── test_external_validation.jl # cross-check solutions vs Optim.jl + ProximalAlgorithms.jl
+    ├── test_external_validation.jl # cross-check solutions vs Optim.jl + ProximalAlgorithms.jl
+    └── test_trust_region.jl      # Steihaug-CG branches, TR convergence, nesting + core-time attribution
 ```
 
 ---

@@ -16,6 +16,7 @@ const SCRIPTS = [
     ("experiments/exp_ls1_dimension.jl",     "figures/ls1_dimension.png      (dimension scaling + timing pillar)"),
     ("experiments/exp_ls2_conditioning.jl",  "figures/ls2_conditioning.png   (GD rate vs conditioning: slope 1 vs √κ)"),
     ("experiments/exp_precond1_grid.jl",     "figures/precond1_grid.png      (Jacobi ≈ Newton: variant-grid sweep)"),
+    ("experiments/exp_tr1.jl",               "figures/tr1_trust_region.png   (trust-region + Steihaug-CG: nested optimization)"),
 ]
 
 function main()

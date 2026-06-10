@@ -29,6 +29,7 @@ if !isdefined(Main, :_TESTENGINE_LOADED)
 	# 3. Methods — compose the components above
 	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "gradient_descent.jl"))
 	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "proximal_gradient", "proximal_gradient.jl"))
+	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "trust_region", "trust_region.jl"))
 	include(joinpath(_BOOT_ROOT, "algorithms", "experimental", "preconditioned_gradient", "preconditioned_gradient.jl"))
 
 	# 4. Regularizers + problem families — register themselves with the engine on load

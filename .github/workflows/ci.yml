@@ -31,9 +31,9 @@ jobs:
         uses: julia-actions/cache@v2
 
       # This is a script-style project (no package name/UUID), so tests run via
-      # `test/runtests.jl` rather than Pkg.test(). Instantiate resolves the deps
-      # fresh from Project.toml — Manifest.toml is intentionally git-ignored, so
-      # this also verifies a clean checkout builds.
+      # `test/runtests.jl` rather than Pkg.test(). Manifest.toml is committed, so
+      # instantiate installs the exact pinned versions — CI is reproducible and
+      # matches `scripts/reproduce.jl`.
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
 

@@ -170,16 +170,19 @@ preconditioned direction.
 **Tag:** (framework — soft). **Exports:** `run_sub_method`, `SubRunConfig`,
 `SubResult`, `attach_sub_logs!`.
 
-These are exercised by [test/runtests.jl](../test/runtests.jl) but no stage in
-`experiments/` uses them. The mechanism exists for nested optimization
-(inner solves inside outer iterations); validating it in flight requires a
-method that actually calls `run_sub_method`. Options:
-
-- Implement a `TrustRegion` method whose subproblem is a bounded quadratic
-  minimization — natural fit, and gives the sub-method log-attachment a real
-  use case.
-- Or implement `IterativeWarmup`'s warm-up as a sub-method run rather than a
-  bare `run_method` call, so Stage 6 exercises the sub-method path too.
+**✅ Resolved (portfolio Item 4).** `TrustRegion`
+([algorithms/conventional/trust_region/](../algorithms/conventional/trust_region/))
+calls `run_sub_method` every outer step: it builds a `QuadraticModel` at the
+current iterate and solves the bounded subproblem `min_{‖p‖≤Δ} m(p)` with
+`SteihaugCG` as a genuine sub-method on a genuine `Problem`. New composable
+`StoppingCriteria` (`NegativeCurvature`, `TrustRegionBoundary`) join the existing
+ones for the inner solve. [exp_tr1.jl](exp_tr1.jl) shows trust-region-Newton
+reaching high accuracy on Rosenbrock in ~24 outer iters (vs first-order baselines),
+and `test/test_trust_region.jl` asserts the nesting (sub-logs attached,
+`SubResult.core_time_ns > 0`) and the boundary / negative-curvature branches. The
+**core-time attribution** question below is settled: inner core time is folded into
+the outer step's `core_time_ns` AND exposed per-step as `:inner_core_ns`
+(architecture.md §7).
 
 ---
 
@@ -368,10 +371,11 @@ through the cracks.
   smooth. A test on a non-quadratic, anisotropic problem would catch
   step-size selection bugs in the central-difference computation that
   Rosenbrock would not surface.
-- **`elapsed_core_s` / `elapsed_wall_s` semantics under sub-methods.** Whether
-  inner-loop core time is attributed to the outer step's `core_time_ns` or
-  kept separate is undocumented. Once `run_sub_method` is used in an
-  experiment, an explicit assertion on the attribution would be useful.
+- ✅ **`elapsed_core_s` / `elapsed_wall_s` semantics under sub-methods** —
+  **resolved (Item 4).** `TrustRegion` folds the inner solve's core time into the
+  outer step's `core_time_ns` and also exposes it per-step as `:inner_core_ns`;
+  documented in architecture.md §7 and asserted in `test_trust_region.jl`
+  (`outer.core_time_ns ≥ inner_core_ns > 0`).
 
 ---
 

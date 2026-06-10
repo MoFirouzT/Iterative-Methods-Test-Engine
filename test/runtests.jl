@@ -235,3 +235,4 @@ include(joinpath(@__DIR__, "test_proximal_gradient.jl"))   # ProximalGradient: I
 include(joinpath(@__DIR__, "test_least_squares.jl"))       # LeastSquares Hessian modes, :linear_ls conditioning, Cauchy-guard regression
 include(joinpath(@__DIR__, "test_preconditioned_gradient.jl"))   # PreconditionedGradient: Jacobi=Newton, dual-bucket routing, diagonal contract
 include(joinpath(@__DIR__, "test_external_validation.jl"))       # cross-check converged solutions vs Optim.jl + ProximalAlgorithms.jl
+include(joinpath(@__DIR__, "test_trust_region.jl"))              # TrustRegion + Steihaug-CG: branches, nesting, core-time attribution

@@ -13,7 +13,7 @@ reproducible harness.
 > `min ½‖Ax−b‖² + λ‖x‖₁`. *Left:* FISTA's `O(1/k²)` convergence visibly beats ISTA's
 > `O(1/k)` — a ~1000× smaller objective gap by iteration 50. *Right:* the recovered
 > solution lands exactly on the planted ±1 spikes, with a clean zero baseline.
-> Reproduce it (and three more figures) with **one command** below.
+> Reproduce it (and four more figures) with **one command** below.
 
 ## Reproduce everything in one command
 
@@ -23,13 +23,13 @@ julia --project -e 'using Pkg; Pkg.instantiate()'   # one-time: fetch deps
 julia --project scripts/reproduce.jl                 # writes all figures to figures/
 ```
 
-`reproduce.jl` runs each portfolio experiment in its own process and writes the four
+`reproduce.jl` runs each portfolio experiment in its own process and writes the five
 figures into `figures/` (money figure first).
 
 ## What it demonstrates
 
 Each capability has exactly one clean, working demonstrator you can watch run — no
-method zoo. The four shipped experiments:
+method zoo. The five shipped experiments:
 
 | Capability | Demonstrator | Figure |
 |---|---|---|
@@ -37,6 +37,7 @@ method zoo. The four shipped experiments:
 | A scalable second problem family; matrix-free `OperatorHessian`; dimension scaling; the timing pillar as a real signal | Linear least squares + dimension sweep | `ls1_dimension.png` |
 | Conditioning controls the rate: `O(κ)` vs `O(√κ)` | Least squares + conditioning sweep | `ls2_conditioning.png` |
 | The signature workflow: define one experimental method, sweep it in a `VariantGrid`, route experimental vs conventional buckets; `DiagonalHessian` + Jacobi preconditioning ≈ Newton | `PreconditionedGradient` swept vs a baseline | `precond1_grid.png` |
+| Nested optimization: an inner solver minimizing a local model inside each outer step (`run_sub_method` / sub-log attachment / inner-vs-outer core time) | `TrustRegion` with a Steihaug-CG inner solve | `tr1_trust_region.png` |
 
 Correctness is **externally cross-checked**: converged solutions are matched against
 `A\b`, [`Optim.jl`](https://github.com/JuliaNLSolvers/Optim.jl) (GradientDescent / LBFGS),
@@ -65,7 +66,7 @@ See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or
 ## Run the tests
 
 ```bash
-julia --project test/runtests.jl     # 175 tests
+julia --project test/runtests.jl     # 200 tests
 ```
 
 ## Layout
@@ -73,7 +74,7 @@ julia --project test/runtests.jl     # 175 tests
 ```
 src/                 TestEngine module — abstractions + machinery only
 algorithms/          content: components/ (step sizes, preconditioners, …),
-                     conventional/ (GradientDescent, ProximalGradient),
+                     conventional/ (GradientDescent, ProximalGradient, TrustRegion),
                      experimental/ (PreconditionedGradient)
 problems/            content: rosenbrock, least_squares, lasso,
                      separable_quadratic, regularizers
@@ -90,9 +91,8 @@ are called out here rather than left as empty exported stubs:
 - **Quasi-Newton** (BFGS / L-BFGS / SR1) — would plug into the `Hessian` hierarchy with an
   internal secant `update!`; the representation contract is already exercised by
   `OperatorHessian` and `DiagonalHessian`.
-- **Trust-region with a Steihaug-CG inner solve** — the nested-method machinery
-  (`run_sub_method` / `attach_sub_logs!`) is implemented and tested; it awaits this consumer.
 
 CI runs the full suite on every push via [GitHub Actions](.github/workflows/ci.yml)
-(`julia --project test/runtests.jl`, 175 tests), instantiating from `Project.toml` so a
-clean checkout is verified each time.
+(`julia --project test/runtests.jl`, 200 tests). `Manifest.toml` is committed, so CI and
+`scripts/reproduce.jl` install the exact pinned dependency versions — the build is
+reproducible, not "latest that happens to resolve."

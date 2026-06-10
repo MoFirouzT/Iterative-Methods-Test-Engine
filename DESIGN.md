@@ -88,6 +88,7 @@ step-size curvature guard that misfired as `‖∇f‖→0`, and a missing-impor
 ## Where to go next
 
 - Run it: `julia --project scripts/reproduce.jl` (see [README.md](README.md)).
-- The other three figures (dimension scaling + timing pillar, conditioning sweep, Jacobi
-  preconditioning ≈ Newton) are in `figures/` and `experiments/exp_*.jl`.
+- The other four figures (dimension scaling + timing pillar, conditioning sweep, Jacobi
+  preconditioning ≈ Newton, and trust-region + Steihaug-CG nested optimization) are in
+  `figures/` and `experiments/exp_*.jl`.
 - Full internals: [docs/architecture.md](docs/architecture.md).

@@ -96,6 +96,37 @@ end
 
 
 """
+    _tr_status(state) -> Symbol
+
+Trust-region inner-solver status accessor. Default `:none`; a method that
+produces trust-region inner steps (e.g. `SteihaugCG`) overrides this to expose
+`:boundary` or `:negative_curvature`, which `TrustRegionBoundary` /
+`NegativeCurvature` then read. Kept as a dispatch point so the engine criteria
+stay decoupled from any concrete inner-solver state layout.
+"""
+_tr_status(state) = :none
+
+
+"""
+    NegativeCurvature()
+
+Terminate when the inner solver reports negative curvature along its search
+direction (`_tr_status(state) === :negative_curvature`). Composable inner
+criterion for truncated-CG trust-region solves.
+"""
+struct NegativeCurvature <: StoppingCriterion end
+
+
+"""
+    TrustRegionBoundary()
+
+Terminate when the inner solver's step reaches the trust-region boundary
+(`_tr_status(state) === :boundary`).
+"""
+struct TrustRegionBoundary <: StoppingCriterion end
+
+
+"""
     CompositeCriterion(; criteria::Vector{StoppingCriterion}, mode::Symbol = :any)
 
 Combine multiple criteria: :any (first satisfied wins) or :all (all must hold).
@@ -192,6 +223,18 @@ end
 # so this criterion is automatically inert in that case.
 function should_stop(c::DistanceToOptimal, state, iter::Int, logger)
     state.metrics.dist_to_opt <= c.tol ? (true, :optimal_reached) : (false, :none)
+end
+
+
+# NegativeCurvature dispatch — reads the inner-solver status accessor.
+function should_stop(c::NegativeCurvature, state, iter::Int, logger)
+    _tr_status(state) === :negative_curvature ? (true, :negative_curvature) : (false, :none)
+end
+
+
+# TrustRegionBoundary dispatch
+function should_stop(c::TrustRegionBoundary, state, iter::Int, logger)
+    _tr_status(state) === :boundary ? (true, :boundary_reached) : (false, :none)
 end
 
 
