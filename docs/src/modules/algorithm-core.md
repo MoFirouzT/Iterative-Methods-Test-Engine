@@ -15,7 +15,7 @@ abstract type ExperimentalMethod <: IterativeMethod end
 
 Each method is a `@kwdef` struct carrying its own fixed hyperparameters.
 **Stopping criteria** are supplied separately at experiment definition time
-(see Module 3). This keeps the algorithm struct a pure description of the method,
+(see [Stopping Criteria](@ref)). This keeps the algorithm struct a pure description of the method,
 not of how long to run it.
 
 ```julia
@@ -217,7 +217,7 @@ sees a single-step measurement.
 
 The runner owns the loop. Algorithms never hold a logger reference — the logger is
 passed as an explicit parameter to `step!` on every iteration. A `StoppingCriteria`
-object controls termination (see Module 3). If `problem.x_opt` is set, the runner
+object controls termination (see [Stopping Criteria](@ref)). If `problem.x_opt` is set, the runner
 computes `dist_to_opt` after each step and stores it in `state.metrics` before
 `extract_log_entry` is called, so algorithms remain unaware of the optimal point.
 Debug checks run after logging, before the stopping check.

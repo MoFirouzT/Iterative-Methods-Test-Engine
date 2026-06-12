@@ -2,7 +2,7 @@
 
 
 **Audience.** This document is the contributor / maintainer reference. If you only want
-to use the framework, start with the user guide and `gradient_descent.md`.
+to use the framework, start with the [README](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine#readme) and the [five-minute tour](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md), then the co-located method and problem specs (e.g. `gradient_descent.md`).
 
 **Terminology.** The framework is organized into a number of cohesive *modules*.
 Earlier drafts used the word "layer," but the structure is hub-and-spoke (the
@@ -64,7 +64,7 @@ The framework is built on four Julia-native principles:
 
 Modules 2 and 5 are co-located in `core.jl` to avoid circular includes: both depend on
 the same base types and the nested infrastructure (`run_sub_method`) calls `init_state`
-and `step!` defined in Module 2.
+and `step!` defined in [Algorithm Abstraction & Core Timing](@ref).
 
 ---
 

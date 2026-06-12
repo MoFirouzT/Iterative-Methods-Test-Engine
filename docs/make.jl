@@ -38,9 +38,6 @@ makedocs(
         "Repository Internals" => "internals.md",
         "Extension Guide"      => "extending.md",
     ],
-    # Scaffold-friendly: the prose carries textual "(see Module N)" cross-references
-    # rather than @ref links, so don't fail the build on cross-reference checks.
-    warnonly = [:cross_references],
 )
 
 deploydocs(

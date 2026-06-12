@@ -106,7 +106,7 @@ end
 
 > **Builder return type is `IterativeMethod`, not `ExperimentalMethod`.** Grids
 > can produce conventional methods (e.g. exploring step-size variants of
-> `GradientDescent`) just as readily as experimental ones. `resolve_methods` (Module 7)
+> `GradientDescent`) just as readily as experimental ones. `resolve_methods` (see [Experiment Orchestration](@ref))
 > sorts each produced method into the conventional or experimental bucket based on
 > its concrete type.
 

@@ -66,7 +66,7 @@ algorithm to populate `extras` while sharing the common log schema.
 ## Verbosity Levels
 
 Verbosity is a first-class, orthogonal concern — not scattered `if verbose` checks.
-It is **independent of debug mode** (Module 9): verbosity controls what is printed
+It is **independent of debug mode** (see [Debug Mode](@ref)): verbosity controls what is printed
 from normal iteration data; debug mode controls diagnostic calculations triggered by
 threshold violations.
 

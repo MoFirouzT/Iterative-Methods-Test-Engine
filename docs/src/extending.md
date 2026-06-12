@@ -20,7 +20,7 @@ has pluggable components (directions, step-size rules, ...), give each a dedicat
 
 Embed a `SubRunConfig{M}` field in the outer algorithm struct (typed concretely for
 type stability). Call `run_sub_method` inside `step!`, forwarding the `logger` and
-`rng` that the runner injected. See Module 5 for the schematic.
+`rng` that the runner injected. See [Nested Algorithm Infrastructure](@ref) for the schematic.
 
 ## Adding a new stopping criterion
 

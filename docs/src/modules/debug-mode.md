@@ -6,7 +6,7 @@ be expensive (such as numerical gradient checks) and are never run in normal
 operation. When a check's condition triggers, a configurable action is taken:
 a warning is printed, the error is raised, or the event is recorded silently.
 
-Debug mode is **orthogonal to verbosity** (Module 6): verbosity controls what is
+Debug mode is **orthogonal to verbosity** (see [Logging & Verbosity](@ref)): verbosity controls what is
 printed from normal iteration data; debug mode controls diagnostic calculations
 triggered by threshold violations. Both can be active simultaneously at independent
 levels.
