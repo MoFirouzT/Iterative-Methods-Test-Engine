@@ -3,10 +3,8 @@
 # Stage 8 — Cross-cutting validations on Rosenbrock
 # -----------------------------------------------------------------------------
 # After Stage 7, the planned Rosenbrock-meaningful list is closed. This file
-# bundles the four "doesn't fit a single earlier stage" items called out in
-# experiments/Experiment_TODOs.md ("Cross-cutting validations not yet
-# covered"). All four are pure Rosenbrock checks — no new problem family is
-# needed.
+# bundles four "doesn't fit a single earlier stage" cross-cutting validations.
+# All four are pure Rosenbrock checks — no new problem family is needed.
 #
 #   8.a — logger.events roundtrip through save_experiment / load_experiment.
 #         (Previously dropped: MethodResult didn't carry events; Stage 8

@@ -470,5 +470,5 @@ println("""
 
   Together with Stages 0–4 and 5–6, every Rosenbrock-meaningful
   architectural block has now been validated. Remaining untested blocks
-  need other problem types — see Experiment_TODOs.md.
+  need other problem types — see experiments/README.md planned work.
 """)

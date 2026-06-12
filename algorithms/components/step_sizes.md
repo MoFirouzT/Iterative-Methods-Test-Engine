@@ -342,6 +342,35 @@ two-dimensional case and R-linearly in higher dimensions. For non-quadratic
 functions convergence is not guaranteed without additional safeguards, but in
 practice BB performs very well on smooth problems.
 
+The `[α_min, α_max]` clamp is **not** that safeguard. An empirical `α_max`
+sweep on Rosenbrock from x₀ = (−1.2, 1) shows the clamp has no useful
+problem-independent default:
+
+| `α_max`              | n_iters     | result                                   |
+|----------------------|-------------|------------------------------------------|
+| 10                   | 2000 (DNF)  | clamp active — **breaks convergence**    |
+| 30, 50, 100, 1e6, ∞  | 76          | clamp transparent — BB1 converges        |
+
+BB1 takes a step at iter 6 with α ≈ 28 that sends `f` to ~10⁹, then contracts
+and recovers over ~40 iters. That excursion is **load-bearing** — clipping it
+interrupts the recovery and BB1 gets stuck. Tight enough to catch the spike
+breaks BB; loose enough to let BB work catches nothing. Hence the default
+`α_max = 1e6` is a pure overflow net, not a convergence safeguard.
+
+**The principled safeguard is a nonmonotone line search** (Grippo–Lampariello–
+Lucidi 1986; Raydan 1997 for BB). It permits non-monotone `f` but requires, for
+a window of size `M` (typically 5–10) and small `γ` (typically 1e-4):
+
+$$f_k \le \max\bigl(f_{k-M}, \dots, f_{k-1}\bigr) - \gamma\,\alpha\,\lVert \nabla f_k \rVert^2$$
+
+and backtracks only when violated — so BB's recovering excursions survive while
+genuinely diverging ones are caught. *Sketch:* give `GradientDescentNumerics` a
+`nonmonotone_window` circular buffer of recent `f` values, let
+`compute_step_size` for BB peek at it and the candidate `α`, and backtrack
+inside the rule when the condition fails — or wrap BB in a higher-order
+`NonmonotoneSafeguard(BarzilaiBorwein(...))` rule. Either is ~30 lines; not yet
+implemented (see [experiments/README.md](../../experiments/README.md) planned work).
+
 ### 5.3 Julia Struct
 
 ```julia

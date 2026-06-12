@@ -1545,12 +1545,23 @@ to be `grep`-able / `jq`-able and compressing them would defeat that.
 detects the codec from the file header, no matching kwarg needed. Old
 files written under either default load without change.
 
-**Future work.** The realistic path to shrinking `result.jld2` is to
-change the on-disk layout, not the codec — pack the dense scalar
-columns into struct-of-arrays form per method rather than the current
-array-of-structs (one IterationLog per iter, each with its own
-Dict-typed extras). That's a persistence-schema migration, tracked in
-[experiments/Experiment_TODOs.md](../experiments/Experiment_TODOs.md).
+**Future work — schema migration.** The realistic path to shrinking
+`result.jld2` is to change the on-disk layout, not the codec.
+
+- *Current (array-of-structs):* one `IterationLog` per iter, each carrying
+  its own `Dict{Symbol,Any}` extras — JLD2 stores the dict's type machinery
+  per row, which is what defeats the codec.
+- *Proposed (struct-of-arrays per method):* one column-major struct per
+  method holding `iter::Vector{Int}`, `objective::Vector{Float64}`,
+  `gradient_norm::Vector{Float64}`, … plus a single
+  `extras::Dict{Symbol,Vector{Any}}` keyed by extras name (one cell per
+  iter, `missing` where absent).
+
+Estimated payoff: **5–10×** on Rosenbrock-style payloads where the columns
+are uniformly typed and densely populated. Cost: a versioned-manifest
+persistence migration plus `to_dataframe` / `iter_logs` rewrites — deferred,
+not blocking. (Listed under planned work in
+[experiments/README.md](../experiments/README.md).)
 
 ---
 
@@ -2004,6 +2015,7 @@ TestEngine.jl/
 │   └── regularizers/             # regularizers.jl   — L1/L2/Zero, prox via ProximalOperators.jl
 │
 ├── experiments/                  # load engine + content via _bootstrap.jl
+│   ├── README.md                # folder guide: portfolio track, stages, planned work
 │   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
 │   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
 │   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
@@ -2011,12 +2023,11 @@ TestEngine.jl/
 │   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
 │   ├── exp_precond1_grid.jl               #   Stage EXP-1: VariantGrid + dual routing; Jacobi≈Newton
 │   ├── exp_tr1.jl                          #   Stage TR-1: TrustRegion + Steihaug-CG (nested optimization)
-│   ├── stages/                            # demoted dev scaffold: staged Rosenbrock build log
-│   │   ├── stage1.jl … stage8.jl          #   per-stage validation of one architectural block each
-│   │   ├── smoke_test.jl                  #   Stage 0: end-to-end runner-contract smoke check (in CI)
-│   │   ├── figures/                       #   stage2_trajectories.png (surfaced in the README)
-│   │   └── README.md                      #   the build-log writeup
-│   └── Experiment_TODOs.md
+│   └── stages/                            # demoted dev scaffold: staged Rosenbrock build log
+│       ├── stage1.jl … stage8.jl          #   per-stage validation of one architectural block each
+│       ├── smoke_test.jl                  #   Stage 0: end-to-end runner-contract smoke check (in CI)
+│       ├── figures/                       #   stage2_trajectories.png (surfaced in the README)
+│       └── README.md                      #   the build-log writeup
 │
 ├── logs/                         # Git-ignored; written at runtime
 │   └── <date>/<NNN>/             #   manifest.json, result.jld2, run{N}_{method}.csv
