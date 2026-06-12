@@ -1,4 +1,4 @@
-# experiments/exp_stage5.jl
+# experiments/stages/stage5.jl
 # =============================================================================
 # Stage 5 — Orchestrator debut: run_experiment + VariantGrid + fair-comparison
 #                                plots
@@ -39,7 +39,7 @@
 
 # Match the Stages 1–4 include pattern. TestEngine is a local module under
 # src/, not a registered package; `using TestEngine` would fail.
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using CairoMakie
 using Statistics
@@ -47,7 +47,7 @@ using Printf
 
 # COLORS / PLOT_ORDER live here; Stage 5 reuses them so legend colors stay
 # consistent across Stages 1–5.
-include("_shared.jl")
+include("../_shared.jl")
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 

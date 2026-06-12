@@ -1,4 +1,4 @@
-# experiments/exp_stage2.jl
+# experiments/stages/stage2.jl
 #
 # Stage 2 — the Rosenbrock-iconic plot.
 # Same five GradientDescent variants as Stage 1, but instead of convergence
@@ -11,15 +11,15 @@
 #     than it helps at this stage.
 #
 # To run, from project root:
-#     julia --project=. experiments/exp_stage2.jl
+#     julia --project=. experiments/stages/stage2.jl
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
 using DataFrames
 using CairoMakie
 
 # Canonical trajectory-plot recipe, shared with Stage 3.
-include("_shared.jl")
+include("../_shared.jl")
 
 # ---------------------------------------------------------------------------
 # Configuration — mirrors Stage 1 so trajectories overlay the same runs we
@@ -121,8 +121,12 @@ function main()
     @assert n_with_xiter == n_total ("x_iter missing on $(n_total - n_with_xiter)/$(n_total) rows — " *
                                      "has the extract_log_entry patch been applied?")
 
+    # PNG into stages/figures/ — this is the figure surfaced in the repo README's
+    # "Going deeper" gateway, so it regenerates from this script alone.
+    figdir = joinpath(@__DIR__, "figures")
+    mkpath(figdir)
     plot_trajectories(df, problem;
-        outpath    = "stage2_trajectories.pdf",
+        outpath    = joinpath(figdir, "stage2_trajectories.png"),
         plot_order = PLOT_ORDER,
         colors     = COLORS,
         title      = "Stage 2 — GradientDescent on Rosenbrock(ρ=100): trajectories from x₀=(−1.2, 1)",

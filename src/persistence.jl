@@ -17,7 +17,7 @@ using JSON3
 
 # ── JLD2 serialization shim for VariantGrid ────────────────────────────────
 # `VariantGrid.builder` is `Function` and is most often supplied as a closure
-# (see exp_stage5.jl: `(; step_size, kwargs...) -> GradientDescent(...)`).
+# (see experiments/stages/stage5.jl: `(; step_size, kwargs...) -> GradientDescent(...)`).
 # JLD2 cannot reliably round-trip closures (`#14#15` etc.) and emits a
 # warning during `save_experiment`. Round-tripped closures would also be
 # unsafe to call — the captured environment is gone.

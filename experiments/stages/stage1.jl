@@ -1,19 +1,19 @@
-# experiments/exp_stage1.jl
+# experiments/stages/stage1.jl
 #
 # Stage 1 of the test plan — first comparison figure.
 # Five GradientDescent variants on Rosenbrock (ρ=100, x₀=(-1.2, 1)),
 # stopping on max-iter OR gradient tolerance.
 #
 # To run, from project root:
-#     julia --project=. experiments/exp_stage1.jl
+#     julia --project=. experiments/stages/stage1.jl
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
 using DataFrames
 using CairoMakie
 
 # PLOT_ORDER / COLORS / build_standard_methods come from here.
-include("_shared.jl")
+include("../_shared.jl")
 
 # ---------------------------------------------------------------------------
 # Configuration

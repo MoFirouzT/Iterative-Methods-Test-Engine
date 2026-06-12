@@ -1,4 +1,4 @@
-# experiments/exp_stage7.jl
+# experiments/stages/stage7.jl
 # =============================================================================
 # Stage 7 — Debug mode + extended stopping criteria + range-gated verbosity
 # -----------------------------------------------------------------------------
@@ -43,7 +43,7 @@
 #     `ExperimentConfig`'s `debug::DebugConfig` field resolves at parse time.
 # =============================================================================
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using LinearAlgebra
 using Printf

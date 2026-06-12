@@ -1,21 +1,24 @@
-# Basic Experiments — Rosenbrock Validation Plan
+# Development Stages — the Rosenbrock build log
 
-Each stage validates a specific block of the framework against a single 2D Rosenbrock problem (ρ = 100, x₀ = (−1.2, 1) unless otherwise noted).
-After Stage 7, every architectural block that *can* be validated on Rosenbrock has been;
-the remaining blocks require other problem types (see `Experiment_TODOs.md`).
+![Five GradientDescent step-size variants tracing Rosenbrock's curved valley toward x*, overlaid on log-spaced contours, with a zoom inset near the optimum](figures/stage2_trajectories.png)
 
-> **Two experiment tracks.** This file documents the `exp_stageN` track — the
-> Rosenbrock build-up that rehearses the engine contract. A second,
-> problem-named track (`exp_<problem>N`, e.g. `exp_lasso1_ista_fista.jl`) carries
-> the portfolio items from `portfolio_roadmap.md`, each lighting up a subsystem
-> Rosenbrock structurally can't reach (composite `f + g`, conditioning sweeps,
-> nesting). The two tracks coexist; stage numbering is not shared.
+*Stage 2: five step-size rules (Fixed, Armijo, Cauchy, BB1, BB2) navigating the
+banana valley from x₀ = (−1.2, 1). Regenerate with `julia --project=. experiments/stages/stage2.jl`.*
 
-The build-up is intentional.
-Stages 0–4 hand-roll the per-method rng derivation and the run loop, rehearsing
-the orchestrator's contract before depending on the orchestrator.
-Stage 5 is the orchestrator's debut;
-Stages 6–7 build on it.
+The engine wasn't built all at once. It grew capability-by-capability across nine
+stages on a single 2D Rosenbrock problem (ρ = 100, x₀ = (−1.2, 1) unless noted) —
+each stage validating one architectural block before the next depends on it. This
+directory is that build log; it is **development scaffold, not a portfolio result**.
+
+The curated, problem-named experiments that produce the figures in the top-level
+README live one level up (`experiments/exp_<problem>N.jl`) and are the project's
+headline deliverables. These stages are the rehearsal behind them.
+
+> The build-up is intentional. Stages 0–4 hand-roll the per-method RNG derivation
+> and run loop, rehearsing the orchestrator's contract before depending on it.
+> Stage 5 is the orchestrator's debut; Stages 6–8 build on it. After Stage 7,
+> every block that *can* be validated on Rosenbrock has been; the rest require
+> other problem types (see `../Experiment_TODOs.md`).
 
 ---
 
@@ -42,7 +45,7 @@ end-to-end.
 ## Stage 1 — Convergence panels
 
 **Status:** done.
-**File:** `exp_stage1.jl`.
+**File:** `stage1.jl`.
 
 Five `GradientDescent` variants (Fixed, Armijo, Cauchy, BB1, BB2) on Rosenbrock,
 each stopped on `stop_when_any(MaxIterations(2000), GradientTolerance(1e-9))`.
@@ -75,7 +78,7 @@ per-method rng stream but does not change deterministic-`step!` results.
 ## Stage 2 — Trajectories on the contour map
 
 **Status:** done.
-**File:** `exp_stage2.jl`.
+**File:** `stage2.jl`.
 
 Same five methods, visualized as (x₁, x₂) trajectories overlaid on log-spaced contours of f.
 The figure that makes the Rosenbrock geometry visible.
@@ -99,7 +102,7 @@ more than it helps).
 ## Stage 3 — Persistence roundtrip
 
 **Status:** done.
-**File:** `exp_stage3.jl`.
+**File:** `stage3.jl`.
 
 Same five methods, but now everything goes through `save_experiment` → `load_experiment` → `to_dataframe` → plot.
 Plotting from the in-memory result is forbidden — all figures are produced from the loaded copy.
@@ -130,7 +133,7 @@ If `assert_roundtrip` fails on `:x_iter` specifically, the JLD2 writer is droppi
 ## Stage 4 — Stopping criteria coverage
 
 **Status:** done.
-**File:** `exp_stage4.jl`.
+**File:** `stage4.jl`.
 
 Same five methods, now stopping on `stop_when_any(MaxIterations(20_000), DistanceToOptimal(1e-8), GradientTolerance(1e-10))`.
 Produces a bar chart of *iterations to milestone* (first time `‖x − x*‖ ≤ 1e-6`)
@@ -170,7 +173,7 @@ the stopping check.
 ## Stage 5 — Orchestrator debut: `run_experiment` + `VariantGrid` + fair-comparison plots
 
 **Status:** done.
-**File:** `exp_stage5.jl`.
+**File:** `stage5.jl`.
 
 First experiment that drives the framework through its actual user-facing entry
 point — `run_experiment` — rather than a hand-rolled loop.
@@ -249,7 +252,7 @@ assertion silently becomes vacuous.
 ## Stage 6 — Multi-run with randomized x₀ + warm-up
 
 **Status:** done.
-**File:** `exp_stage6.jl`.
+**File:** `stage6.jl`.
 
 Sample x₀ uniformly in [−2, 2]² (registered as a new `RandomProblem(:rosenbrock_random_x0)`). Set `n_runs = 20`.
 Plot median curves with shaded 25–75% IQR via `aggregate_runs(df, :median)`.
@@ -309,7 +312,7 @@ Add one configuration with `IterativeWarmup(GradientDescent(FixedStep(α=1e-3)),
 ## Stage 7 — Debug mode + extended stopping criteria + range-gated verbosity
 
 **Status:** done.
-**File:** `exp_stage7.jl`.
+**File:** `stage7.jl`.
 
 The "research tooling" stage.
 Three orthogonal but related observability blocks bundled into one experiment, since they're all auxiliary verification machinery.
@@ -410,7 +413,7 @@ both `:any` and `:all` composite modes; `method_criteria` dispatch; the
 ## Stage 8 — Cross-cutting validations
 
 **Status:** done.
-**File:** `exp_stage8.jl`.
+**File:** `stage8.jl`.
 
 The four "doesn't fit a single earlier stage" checks called out in
 `Experiment_TODOs.md` § "Cross-cutting validations not yet covered". All

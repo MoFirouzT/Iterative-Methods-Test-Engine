@@ -1,4 +1,4 @@
-# experiments/exp_stage6.jl
+# experiments/stages/stage6.jl
 # =============================================================================
 # Stage 6 — Multi-run with randomized x₀ + warm-up
 # -----------------------------------------------------------------------------
@@ -46,7 +46,7 @@
 #     for any single run_id when warm-up is active.
 # =============================================================================
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using CairoMakie
 using Statistics
@@ -56,7 +56,7 @@ using Random
 
 # COLORS / PLOT_ORDER live here; reuse so legend colours stay consistent
 # across Stages 1–6.
-include("_shared.jl")
+include("../_shared.jl")
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
@@ -342,7 +342,7 @@ end
 # Step-size panel intentionally dropped from the multi-run figure: median of
 # Armijo's discrete β^j values is nonsense; median of Fixed's constant is a
 # constant; aggregating BB's values smooths out the very non-monotonicity
-# that makes BB BB. See basic_experiments.md Stage 6 caveats.
+# that makes BB BB. See the stages README Stage 6 caveats.
 
 println("\n=== Plotting median + IQR ===")
 plot_iqr_panel(to_dataframe(result_cold);

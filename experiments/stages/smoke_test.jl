@@ -7,7 +7,7 @@
 
 using Random, LinearAlgebra, Printf
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 
 # ── Build problem and method ────────────────────────────────────────────────────
 problem = make_problem(
@@ -59,3 +59,10 @@ println()
         final_f < result.iter_logs[1].objective ? "✓" : "✗",
         result.iter_logs[1].objective, final_f)
 println("────────────────────────────────────────────────────────────────")
+
+# ── Gate ─────────────────────────────────────────────────────────────────────────
+# Assert the pass criteria so a regression exits nonzero (this runs in CI).
+@assert result.n_iters == 100 "smoke: expected 100 iters, got $(result.n_iters)"
+@assert n_increases == 0 "smoke: objective not monotone (n_increases = $n_increases)"
+@assert final_f < result.iter_logs[1].objective "smoke: f did not decrease"
+println("smoke test PASSED")

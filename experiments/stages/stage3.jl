@@ -1,4 +1,4 @@
-# experiments/exp_stage3.jl
+# experiments/stages/stage3.jl
 #
 # Stage 3 — Persistence + roundtrip.
 #
@@ -10,14 +10,14 @@
 # never directly from the in-memory result.
 #
 # Validation workflow:
-#   1)   julia --project=. experiments/exp_stage3.jl
+#   1)   julia --project=. experiments/stages/stage3.jl
 #        → runs five methods, writes logs/YYYYMMDD/NNN/{result.jld2,
 #          run1_*.csv, manifest.json}, then loads back from disk and plots
 #          into the same directory. An assertion block confirms the
 #          DataFrame round-trips identically.
 #
 #   2)   <quit Julia, restart fresh>
-#        julia --project=. -e 'include("experiments/exp_stage3.jl"); \
+#        julia --project=. -e 'include("experiments/stages/stage3.jl"); \
 #                              replot("logs/YYYYMMDD/NNN/")'
 #        → loads from disk, regenerates the same two figures. They must be
 #          visually identical to the ones from step 1; the underlying CSVs
@@ -35,16 +35,16 @@
 # the writer after a few weeks of accumulated logs is unpleasant.
 #
 # To run, from project root:
-#     julia --project=. experiments/exp_stage3.jl
+#     julia --project=. experiments/stages/stage3.jl
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
 using Dates
 using DataFrames
 using CairoMakie
 
 # Canonical trajectory-plot recipe, shared with Stage 2.
-include("_shared.jl")
+include("../_shared.jl")
 
 # ---------------------------------------------------------------------------
 # Configuration — same problem, methods, seed, and stopping rule as Stages 1+2.
@@ -291,7 +291,7 @@ function main()
     println("Experiment saved to: ", exp_path)
     println("Cold-restart validation:")
     println("  1) quit Julia")
-    println("  2) julia --project=. -e 'include(\"experiments/exp_stage3.jl\"); replot(\"$exp_path\")'")
+    println("  2) julia --project=. -e 'include(\"experiments/stages/stage3.jl\"); replot(\"$exp_path\")'")
     println("     → produces convergence.pdf / trajectories.pdf identical to the ones above.")
     println()
     return exp_result

@@ -1,4 +1,4 @@
-# experiments/exp_stage8.jl
+# experiments/stages/stage8.jl
 # =============================================================================
 # Stage 8 — Cross-cutting validations on Rosenbrock
 # -----------------------------------------------------------------------------
@@ -34,13 +34,13 @@
 #     trips events through JLD2 automatically.
 # =============================================================================
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using DataFrames, DataFramesMeta
 using Random
 using LinearAlgebra
 using Printf
 
-include("_shared.jl")
+include("../_shared.jl")
 
 register_abbreviation!("GradientDescent", "GD")
 register_abbreviation!("FixedStep",       "Fix")
@@ -289,7 +289,7 @@ println("╚══════════════════════�
 println("""
   Coverage in this script:
     persistence.jl : ExperimentResult roundtrip of MethodResult.events
-                     (new field; see basic_experiments.md Stage 8 gaps).
+                     (new field; see the stages README Stage 8 gaps).
     analysis.jl    : aggregate_runs :all branch + run-id collapse on :median.
     analysis.jl    : METHOD_COLOR_REGISTRY in-session contract under
                      save_experiment / load_experiment.

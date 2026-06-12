@@ -9,7 +9,7 @@ reproducible harness.
 
 ![ISTA vs FISTA on the lasso: FISTA's O(1/k²) acceleration over ISTA's O(1/k), and exact support recovery](figures/lasso_ista_fista.png)
 
-> **The money figure (above).** Proximal gradient on the sparse-recovery lasso
+> **The flagship figure (above).** Proximal gradient on the sparse-recovery lasso
 > `min ½‖Ax−b‖² + λ‖x‖₁`. *Left:* FISTA's `O(1/k²)` convergence visibly beats ISTA's
 > `O(1/k)` — a ~1000× smaller objective gap by iteration 50. *Right:* the recovered
 > solution lands exactly on the planted ±1 spikes, with a clean zero baseline.
@@ -24,7 +24,7 @@ julia --project scripts/reproduce.jl                 # writes all figures to fig
 ```
 
 `reproduce.jl` runs each portfolio experiment in its own process and writes the five
-figures into `figures/` (money figure first).
+figures into `figures/` (flagship figure first).
 
 ## What it demonstrates
 
@@ -78,10 +78,22 @@ algorithms/          content: components/ (step sizes, preconditioners, …),
                      experimental/ (PreconditionedGradient)
 problems/            content: rosenbrock, least_squares, lasso,
                      separable_quadratic, regularizers
-experiments/         exp_*.jl scripts (+ _bootstrap.jl loader, _shared.jl helpers)
+experiments/         exp_*.jl portfolio scripts (+ _bootstrap.jl loader, _shared.jl helpers)
+experiments/stages/  the staged Rosenbrock build log (dev scaffold, not figures)
 scripts/reproduce.jl one command → all figures
 test/                runtests.jl + per-area test files
 ```
+
+## Going deeper
+
+The engine wasn't built all at once. It grew capability-by-capability across nine
+stages on Rosenbrock — first figure, then trajectories, persistence, stopping
+criteria, the orchestrator, multi-run, observability, cross-cutting validation.
+That staged build log lives in **[experiments/stages](experiments/stages/)**.
+
+[![GradientDescent step-size variants tracing Rosenbrock's valley toward the optimum, on log-spaced contours](experiments/stages/figures/stage2_trajectories.png)](experiments/stages/)
+
+*Stage 2: five step-size rules navigating the banana valley. ↑ click through to the build log.*
 
 ## Stretch goals (scaffolding, not shipped)
 

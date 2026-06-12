@@ -9,9 +9,9 @@
 #           ISTA's O(1/k).
 #   (right) recovered x̂ (FISTA) vs the planted sparse signal x_star.
 #
-# Naming: there are two experiment tracks. `exp_stageN` is the GD-on-Rosenbrock
-# narrative (see basic_experiments.md); `exp_<problem>N` (this file) is the
-# portfolio-item track (see portfolio_roadmap.md). They coexist deliberately.
+# Naming: `exp_<problem>N` (this file) is the portfolio-item track — the curated
+# figures from portfolio_roadmap.md. The earlier GD-on-Rosenbrock build log was
+# demoted to dev scaffold under experiments/stages/ (see stages/README.md).
 #
 # To run, from project root:
 #     julia --project=. experiments/exp_lasso1_ista_fista.jl

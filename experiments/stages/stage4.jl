@@ -1,4 +1,4 @@
-# experiments/exp_stage4.jl
+# experiments/stages/stage4.jl
 #
 # Stage 4 — Stopping-criteria coverage.
 #
@@ -29,9 +29,9 @@
 #   Fixed (α=8e-4)    — DNF; :max_iterations
 #
 # To run, from project root:
-#     julia --project=. experiments/exp_stage4.jl
+#     julia --project=. experiments/stages/stage4.jl
 
-include("_bootstrap.jl")   # engine + all content (problems, methods, components)
+include("../_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
 using Dates
 using DataFrames
@@ -39,7 +39,7 @@ using Printf
 using CairoMakie
 
 # PLOT_ORDER, COLORS, build_standard_methods live in _shared.jl.
-include("_shared.jl")
+include("../_shared.jl")
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -204,7 +204,7 @@ end
 
 # ---------------------------------------------------------------------------
 # Timing report — sums per-iter core_time_ns vs. captured wall-time and checks
-# the doc's 50–110% band (basic_experiments.md, Stage 0 rationale). Stage 4
+# the doc's 50–110% band (the stages README, Stage 0 rationale). Stage 4
 # is the right place for this assertion: 20_000 iters / method amortizes the
 # per-iter scaffolding (extract_log_entry, should_stop, dispatch) and JIT is
 # already warm by the time we enter the timed loop.
@@ -505,7 +505,7 @@ function main()
 
     println("Experiment saved to: ", exp_path)
     println("Cold-restart validation:")
-    println("  julia --project=. -e 'include(\"experiments/exp_stage4.jl\"); replot(\"$exp_path\")'")
+    println("  julia --project=. -e 'include(\"experiments/stages/stage4.jl\"); replot(\"$exp_path\")'")
     println()
     return exp_disk
 end

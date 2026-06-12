@@ -39,3 +39,8 @@ jobs:
 
       - name: Run test suite
         run: julia --project=. test/runtests.jl
+
+      # End-to-end smoke check: exercises the full runner contract on Rosenbrock
+      # and asserts monotone, decreasing convergence (exits nonzero on regression).
+      - name: Smoke test
+        run: julia --project=. experiments/stages/smoke_test.jl

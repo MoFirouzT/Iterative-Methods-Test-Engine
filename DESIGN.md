@@ -67,7 +67,7 @@ applies the `prox` of `λ‖x‖₁` (soft-thresholding):
 - a *zero* regularizer ⇒ the same method is (accelerated) gradient descent on a smooth
   problem — so one method also tells the smooth-acceleration story.
 
-**Result (the money figure).**
+**Result (the flagship figure).**
 
 ![ISTA vs FISTA](figures/lasso_ista_fista.png)
 

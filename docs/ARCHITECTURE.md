@@ -2006,14 +2006,17 @@ TestEngine.jl/
 ├── experiments/                  # load engine + content via _bootstrap.jl
 │   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
 │   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
-│   ├── exp_stage1.jl … exp_stage8.jl      # staged comparison track (Rosenbrock narrative)
 │   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
 │   ├── exp_ls1_dimension.jl               #   Stage LS-1: dimension scaling + timing pillar
 │   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
 │   ├── exp_precond1_grid.jl               #   Stage EXP-1: VariantGrid + dual routing; Jacobi≈Newton
 │   ├── exp_tr1.jl                          #   Stage TR-1: TrustRegion + Steihaug-CG (nested optimization)
-│   ├── smoke_test.jl
-│   └── basic_experiments.md, Experiment_TODOs.md
+│   ├── stages/                            # demoted dev scaffold: staged Rosenbrock build log
+│   │   ├── stage1.jl … stage8.jl          #   per-stage validation of one architectural block each
+│   │   ├── smoke_test.jl                  #   Stage 0: end-to-end runner-contract smoke check (in CI)
+│   │   ├── figures/                       #   stage2_trajectories.png (surfaced in the README)
+│   │   └── README.md                      #   the build-log writeup
+│   └── Experiment_TODOs.md
 │
 ├── logs/                         # Git-ignored; written at runtime
 │   └── <date>/<NNN>/             #   manifest.json, result.jld2, run{N}_{method}.csv

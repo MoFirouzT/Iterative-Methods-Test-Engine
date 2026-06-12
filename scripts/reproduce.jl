@@ -4,15 +4,15 @@
 #     julia --project scripts/reproduce.jl
 #
 # Runs each portfolio experiment in its own process (so the scripts can't clash
-# on globals) and writes the figures into figures/. The lasso money figure is
+# on globals) and writes the figures into figures/. The lasso flagship figure is
 # produced first. The first run pays Julia's compile/load cost for each script;
 # subsequent figures are quicker.
 
 const PROJECT = dirname(@__DIR__)
 
-# Ordered so the money figure (lasso) lands first.
+# Ordered so the flagship figure (lasso) lands first.
 const SCRIPTS = [
-    ("experiments/exp_lasso1_ista_fista.jl", "figures/lasso_ista_fista.png  (★ money figure: ISTA vs FISTA + support recovery)"),
+    ("experiments/exp_lasso1_ista_fista.jl", "figures/lasso_ista_fista.png  (★ flagship figure: ISTA vs FISTA + support recovery)"),
     ("experiments/exp_ls1_dimension.jl",     "figures/ls1_dimension.png      (dimension scaling + timing pillar)"),
     ("experiments/exp_ls2_conditioning.jl",  "figures/ls2_conditioning.png   (GD rate vs conditioning: slope 1 vs √κ)"),
     ("experiments/exp_precond1_grid.jl",     "figures/precond1_grid.png      (Jacobi ≈ Newton: variant-grid sweep)"),

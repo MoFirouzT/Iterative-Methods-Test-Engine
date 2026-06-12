@@ -1,6 +1,6 @@
 # Experiment TODOs — What's Left After the Rosenbrock Stages
 
-Companion to `basic_experiments.md`. Stages 0–7 validate every architectural
+Companion to `stages/README.md`. Stages 0–7 validate every architectural
 block that *can* be validated on a single, smooth, well-conditioned 2D problem.
 This file enumerates what they cannot reach and why.
 
