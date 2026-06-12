@@ -252,6 +252,32 @@ function _render_lines!(ax, spec::PlotSpec)
 end
 
 
+"""
+	render_plot!(gridpos, spec::PlotSpec) -> Makie.Axis
+
+Render one `PlotSpec` into a grid position (e.g. `fig[1, 1]`) and return the
+created `Axis` so the caller can annotate it further. This is the composable
+building block `render_figure` is assembled from: an experiment that needs a
+bespoke panel *alongside* a standard engine-rendered one can build its own
+`Figure` and call `render_plot!` for the convergence panel only, hand-rolling
+the rest into the same figure.
+"""
+function render_plot!(gridpos, spec::PlotSpec)
+	ax = Axis(gridpos,
+		title = spec.title,
+		xlabel = isempty(spec.xlabel) ? string(spec.x) : spec.xlabel,
+		ylabel = isempty(spec.ylabel) ? string(spec.y) : spec.ylabel,
+		yscale = spec.yscale == :log10 ? log10 : identity,
+		xscale = spec.xscale == :log10 ? log10 : identity,
+	)
+
+	_render_lines!(ax, spec)
+	!isnothing(spec.xlim) && xlims!(ax, spec.xlim...)
+	!isnothing(spec.ylim) && ylims!(ax, spec.ylim...)
+	return ax
+end
+
+
 function render_figure(layout::FigureLayout)::Makie.Figure
 	# `resolution` is deprecated in Makie ≥0.20 — use `size` (still pixels;
 	# the rename signals "this is a unitless canvas size, not a DPI").
@@ -260,18 +286,7 @@ function render_figure(layout::FigureLayout)::Makie.Figure
 	for row in 1:size(layout.plots, 1), col in 1:size(layout.plots, 2)
 		spec = layout.plots[row, col]
 		isnothing(spec) && continue
-
-		ax = Axis(fig[row, col],
-			title = spec.title,
-			xlabel = isempty(spec.xlabel) ? string(spec.x) : spec.xlabel,
-			ylabel = isempty(spec.ylabel) ? string(spec.y) : spec.ylabel,
-			yscale = spec.yscale == :log10 ? log10 : identity,
-			xscale = spec.xscale == :log10 ? log10 : identity,
-		)
-
-		_render_lines!(ax, spec)
-		!isnothing(spec.xlim) && xlims!(ax, spec.xlim...)
-		!isnothing(spec.ylim) && ylims!(ax, spec.ylim...)
+		render_plot!(fig[row, col], spec)
 	end
 
 	isempty(layout.title) || Label(fig[0, :], layout.title, fontsize = 18)

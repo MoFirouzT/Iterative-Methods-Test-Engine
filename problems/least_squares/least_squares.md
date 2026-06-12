@@ -14,10 +14,22 @@ floor; an `n = 1000` matvec does not).
     ∇²f    = AᵀA          (constant)
 
 ```julia
-struct LeastSquaresKernel; A::Matrix{Float64}; b::Vector{Float64}; end
+struct LeastSquaresKernel; A::Matrix{Float64}; b::Vector{Float64}; residual::Vector{Float64}; end
+LeastSquaresKernel(A, b) = LeastSquaresKernel(A, b, similar(b))   # all call sites use this 2-arg form
 struct LeastSquares <: Objective; kernel::LeastSquaresKernel; hessian_mode::Symbol; end
 LeastSquares(kernel) = LeastSquares(kernel, :matrix)   # default preserves prior behavior
 ```
+
+`value`/`grad!` are **allocation-free**: both write the residual `A x − b` through
+`mul!` into the kernel's preallocated length-`m` `residual` buffer rather than
+allocating `A*x` and `A*x − b` each call (`grad!` then does `g ← Aᵀ·residual`
+in place). This is the per-step hot kernel — it runs every iteration for every
+method — so on `n = 1000` the change drops `GradientDescent` from ~10 length-`n`
+temporaries/step to ~2 (the residual buffer is single-threaded scratch; the
+engine runs methods sequentially). Per-step allocation is `O(n)` bytes while the
+dense matvec is `O(n²)` FLOPs, so the allocation share vanishes at the scale
+where the timing pillar speaks. The `:operator` Hessian's `apply` (used by
+`CauchyStep`) still allocates its matvec intermediates by the `Hessian` contract.
 
 ### Selectable Hessian representation (`hessian_mode`)
 

@@ -32,8 +32,6 @@ const RUN_ID = 1
 # Wong palette, consistent with the Stage figures.
 const C_ISTA  = "#E69F00"   # orange
 const C_FISTA = "#0072B2"   # blue
-const PG_COLORS = Dict("ISTA" => C_ISTA, "FISTA" => C_FISTA)
-const PG_ORDER  = ["ISTA", "FISTA"]
 
 # Instance chosen so the O(1/k) vs O(1/k²) gap is visible before both curves
 # reach machine precision (see the probe in the Item-2 write-up).
@@ -109,18 +107,28 @@ function plot_lasso1(df::DataFrame, problem, results;
     fig = Figure(size = (1280, 540))
 
     # ── Left: f − f* vs iteration (log-y) ──────────────────────────────────
-    axL = Axis(fig[1, 1],
+    # Rendered through the engine's own plotting layer (`PlotSpec` +
+    # `render_plot!`) — a standard multi-method convergence panel is exactly
+    # what that layer is for. The bespoke support panel below stays hand-rolled
+    # in the same figure; `render_plot!` is the composable building block that
+    # makes mixing the two clean.
+    df_conv = copy(df)
+    df_conv.gap = max.(df_conv.gap, 1e-15)   # floor for log scale once converged
+    convergence = TestEngine.PlotSpec(
+        data   = df_conv,
+        x      = :iter,
+        y      = :gap,
+        group_by = :method_name,
         xlabel = "iteration  k",
         ylabel = "f(xₖ) − f*",
-        yscale = log10,
+        yscale = :log10,
         title  = "Convergence: FISTA O(1/k²) vs ISTA O(1/k)",
+        method_styles = Dict(
+            "ISTA"  => MethodStyle(color = C_ISTA,  linewidth = 2.5),
+            "FISTA" => MethodStyle(color = C_FISTA, linewidth = 2.5),
+        ),
     )
-    for name in PG_ORDER
-        sub = sort(filter(:method_name => ==(name), df), :iter)
-        ys  = max.(sub.gap, 1e-15)   # floor for log scale once converged
-        lines!(axL, sub.iter, ys; color = PG_COLORS[name], linewidth = 2.5, label = name)
-    end
-    axislegend(axL; position = :rt, framevisible = true)
+    render_plot!(fig[1, 1], convergence)
 
     # ── Right: recovered support vs planted signal ─────────────────────────
     axR = Axis(fig[1, 2],
@@ -137,7 +145,7 @@ function plot_lasso1(df::DataFrame, problem, results;
     scatter!(axR, idx, x_star;
         color = (:red, 0.0), strokecolor = :red, strokewidth = 1.5,
         marker = :circle, markersize = 11, label = "planted x⋆")
-    axislegend(axR; position = :rt, framevisible = true)
+    axislegend(axR; position = :rb, framevisible = true)
 
     Label(fig[0, :],
         "Lasso (m=$(LASSO_PARAMS.m), n=$(LASSO_PARAMS.n), k=$(LASSO_PARAMS.k) nonzeros, " *

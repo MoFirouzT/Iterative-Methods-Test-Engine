@@ -1836,21 +1836,28 @@ end
     padding     :: Int = 20
 end
 
+# Composable building block: render one PlotSpec into a grid position and
+# return the Axis. render_figure is assembled from this.
+function render_plot!(gridpos, spec::PlotSpec)
+    ax = Axis(gridpos,
+        title  = spec.title,
+        xlabel = isempty(spec.xlabel) ? string(spec.x) : spec.xlabel,
+        ylabel = isempty(spec.ylabel) ? string(spec.y) : spec.ylabel,
+        yscale = spec.yscale == :log10 ? log10 : identity,
+        xscale = spec.xscale == :log10 ? log10 : identity,
+    )
+    _render_lines!(ax, spec)
+    !isnothing(spec.xlim) && xlims!(ax, spec.xlim...)
+    !isnothing(spec.ylim) && ylims!(ax, spec.ylim...)
+    return ax
+end
+
 function render_figure(layout::FigureLayout)::Makie.Figure
     fig = Figure(size=layout.figure_size)
     for row in 1:size(layout.plots, 1), col in 1:size(layout.plots, 2)
         spec = layout.plots[row, col]
         isnothing(spec) && continue
-        ax = Axis(fig[row, col],
-            title  = spec.title,
-            xlabel = isempty(spec.xlabel) ? string(spec.x) : spec.xlabel,
-            ylabel = isempty(spec.ylabel) ? string(spec.y) : spec.ylabel,
-            yscale = spec.yscale == :log10 ? log10 : identity,
-            xscale = spec.xscale == :log10 ? log10 : identity,
-        )
-        _render_lines!(ax, spec)
-        !isnothing(spec.xlim) && xlims!(ax, spec.xlim...)
-        !isnothing(spec.ylim) && ylims!(ax, spec.ylim...)
+        render_plot!(fig[row, col], spec)
     end
     isempty(layout.title) || Label(fig[0, :], layout.title, fontsize=18)
     return fig
@@ -1860,6 +1867,15 @@ function save_figure(fig::Makie.Figure, path::String)
     save(path, fig)
 end
 ```
+
+`render_figure` handles the all-standard case (a grid of `PlotSpec`s). When a
+figure mixes a standard convergence panel with a **bespoke** one — e.g. the
+flagship lasso figure pairs an `f − f*`-vs-iteration panel with a hand-rolled
+support-recovery stem plot — build the `Figure` yourself, call `render_plot!`
+for the standard panel(s), and draw the custom panel into the same figure.
+`render_plot!` returns the `Axis`, so the engine's plotting layer stays the one
+clean consumer for convergence curves without forcing every panel through a
+general API (see `experiments/exp_lasso1_ista_fista.jl`).
 
 ### End-to-End Plotting Example
 

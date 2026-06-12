@@ -32,7 +32,7 @@ Each capability has exactly one clean, working demonstrator you can watch run �
 method zoo. The five shipped experiments:
 
 | Capability | Demonstrator | Figure |
-|---|---|---|
+| --- | --- | --- |
 | Composite `f + g`, `prox` dispatch, Nesterov acceleration | `ProximalGradient` (ISTA → FISTA) on the lasso | `lasso_ista_fista.png` |
 | A scalable second problem family; matrix-free `OperatorHessian`; dimension scaling; the timing pillar as a real signal | Linear least squares + dimension sweep | `ls1_dimension.png` |
 | Conditioning controls the rate: `O(κ)` vs `O(√κ)` | Least squares + conditioning sweep | `ls2_conditioning.png` |
@@ -71,7 +71,7 @@ julia --project test/runtests.jl     # 200 tests
 
 ## Layout
 
-```
+```text
 src/                 TestEngine module — abstractions + machinery only
 algorithms/          content: components/ (step sizes, preconditioners, …),
                      conventional/ (GradientDescent, ProximalGradient, TrustRegion),

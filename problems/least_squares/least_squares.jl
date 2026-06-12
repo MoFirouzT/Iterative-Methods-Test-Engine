@@ -16,11 +16,24 @@ using Random: randn
 	LeastSquaresKernel
 
 Encapsulates the data matrix A and vector b for least-squares data fidelity.
+
+`residual` is a preallocated length-m scratch buffer (`m = length(b)`) reused by
+`value`/`grad!` so the per-step kernel allocates nothing — the matvecs write
+through `mul!` instead of allocating `A*x` and `A*x − b` each call. It is a
+single-threaded scratch: every call fully overwrites it from `x` before reading,
+so sequential reuse (the engine runs methods sequentially) is safe; do not share
+one kernel across threads.
 """
 struct LeastSquaresKernel
 	A::Matrix{Float64}
 	b::Vector{Float64}
+	residual::Vector{Float64}
 end
+
+# Convenience constructor: allocate the scratch buffer once. All call sites use
+# this 2-arg form; the 3-arg inner constructor is for completeness.
+LeastSquaresKernel(A::Matrix{Float64}, b::Vector{Float64}) =
+	LeastSquaresKernel(A, b, similar(b))
 
 
 """
@@ -49,14 +62,18 @@ LeastSquares(kernel::LeastSquaresKernel) = LeastSquares(kernel, :matrix)
 
 
 function value(f::LeastSquares, x::Vector{Float64})
-	residual = f.kernel.A * x - f.kernel.b
-	0.5 * norm(residual)^2
+	r = f.kernel.residual
+	mul!(r, f.kernel.A, x)        # r ← A x
+	r .-= f.kernel.b              # r ← A x − b   (in place, no temporary)
+	return 0.5 * sum(abs2, r)
 end
 
 
 function grad!(g::Vector{Float64}, f::LeastSquares, x::Vector{Float64})::Vector{Float64}
-	residual = f.kernel.A * x - f.kernel.b
-	mul!(g, adjoint(f.kernel.A), residual)
+	r = f.kernel.residual
+	mul!(r, f.kernel.A, x)             # r ← A x
+	r .-= f.kernel.b                   # r ← A x − b
+	mul!(g, adjoint(f.kernel.A), r)    # g ← Aᵀ r      (residual buffer reused, no alloc)
 	return g
 end
 
