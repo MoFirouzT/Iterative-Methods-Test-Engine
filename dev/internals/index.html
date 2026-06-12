@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Repository Internals · Iterative-Methods Test Engine</title><meta name="title" content="Repository Internals · Iterative-Methods Test Engine"/><meta property="og:title" content="Repository Internals · Iterative-Methods Test Engine"/><meta property="twitter:title" content="Repository Internals · Iterative-Methods Test Engine"/><meta name="description" content="Documentation for Iterative-Methods Test Engine."/><meta property="og:description" content="Documentation for Iterative-Methods Test Engine."/><meta property="twitter:description" content="Documentation for Iterative-Methods Test Engine."/><meta property="og:url" content="https://MoFirouzT.github.io/Iterative-Methods-Test-Engine/internals/"/><meta property="twitter:url" content="https://MoFirouzT.github.io/Iterative-Methods-Test-Engine/internals/"/><link rel="canonical" href="https://MoFirouzT.github.io/Iterative-Methods-Test-Engine/internals/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Iterative-Methods Test Engine</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../design/">Design Philosophy</a></li><li><span class="tocitem">Modules</span><ul><li><a class="tocitem" href="../modules/problem-interface/">Problem Interface</a></li><li><a class="tocitem" href="../modules/algorithm-core/">Algorithm &amp; Core Timing</a></li><li><a class="tocitem" href="../modules/stopping-criteria/">Stopping Criteria</a></li><li><a class="tocitem" href="../modules/variant-grid/">Variant Grid Engine</a></li><li><a class="tocitem" href="../modules/nested-algorithms/">Nested Algorithms</a></li><li><a class="tocitem" href="../modules/logging/">Logging &amp; Verbosity</a></li><li><a class="tocitem" href="../modules/orchestration/">Experiment Orchestration</a></li><li><a class="tocitem" href="../modules/persistence/">Persistence</a></li><li><a class="tocitem" href="../modules/debug-mode/">Debug Mode</a></li><li><a class="tocitem" href="../modules/analysis-plotting/">Analysis &amp; Plotting</a></li></ul></li><li class="is-active"><a class="tocitem" href>Repository Internals</a><ul class="internal"><li><a class="tocitem" href="#Directory-and-File-Structure"><span>Directory &amp; File Structure</span></a></li><li><a class="tocitem" href="#Data-Flow-Diagram"><span>Data Flow Diagram</span></a></li><li><a class="tocitem" href="#Key-Architectural-Decisions"><span>Key Architectural Decisions</span></a></li></ul></li><li><a class="tocitem" href="../extending/">Extension Guide</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Repository Internals</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Repository Internals</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/MoFirouzT/Iterative-Methods-Test-Engine" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/docs/src/internals.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Repository-Internals"><a class="docs-heading-anchor" href="#Repository-Internals">Repository Internals</a><a id="Repository-Internals-1"></a><a class="docs-heading-anchor-permalink" href="#Repository-Internals" title="Permalink"></a></h1><h2 id="Directory-and-File-Structure"><a class="docs-heading-anchor" href="#Directory-and-File-Structure">Directory &amp; File Structure</a><a id="Directory-and-File-Structure-1"></a><a class="docs-heading-anchor-permalink" href="#Directory-and-File-Structure" title="Permalink"></a></h2><p>The <strong>engine</strong> (<code>src/</code>) contains only abstractions, machinery, and dependency-free utilities — no concrete problem, method, or regularizer. Concrete <strong>content</strong> lives under <code>algorithms/</code> and <code>problems/</code>, extends the engine via <code>import .TestEngine</code>, and is assembled together with the engine by <code>experiments/_bootstrap.jl</code> (which experiments and tests <code>include</code>). This keeps the engine standalone and dependency-lean.</p><pre><code class="nohighlight hljs">TestEngine.jl/
+├── src/
+│   ├── TestEngine.jl     # Module entry; includes the src/ engine files only (NO content);
+│   │                     #   exports the public API
+│   │
+│   ├── problems.jl       # Objective / Regularizer / Hessian abstractions (no concrete
+│   │                     #   problems/regularizers — those are content); Hessian reps
+│   │                     #   (MatrixHessian, OperatorHessian, DiagonalHessian);
+│   │                     #   Regularizer; Problem (with optional gs and x_opt) +
+│   │                     #   convenience constructors; total_objective; ProblemSpec
+│   │                     #   hierarchy (AnalyticProblem, FileProblem with FILE_LOADERS,
+│   │                     #   RandomProblem); make_problem dispatch; register_problem!,
+│   │                     #   register_file_loader!, register_random_problem!
+│   │
+│   ├── core.jl           # Abstract types &amp; type hierarchy; state groups
+│   │                     #   (IterateGroup, MetricsGroup, TimingGroup); algorithm
+│   │                     #   interface (init_state, step!, extract_log_entry);
+│   │                     #   @core_timed macro; generic runner (run_method);
+│   │                     #   nested infrastructure (SubRunConfig{M}, SubResult{S},
+│   │                     #   run_sub_method)
+│   │
+│   ├── stopping.jl       # StoppingCriteria hierarchy; should_stop dispatch;
+│   │                     #   CompositeCriteria; stop_when_any / stop_when_all;
+│   │                     #   DistanceToOptimal
+│   │
+│   ├── variants.jl       # VariantAxis, VariantGrid, VariantSpec; expand(); ABBREVIATIONS;
+│   │                     #   register_abbreviation!  (the method/component *vocabulary* —
+│   │                     #   StepSize, DescentDirection, MinorUpdate, HessianApprox — is
+│   │                     #   content under algorithms/components/, not here)
+│   │
+│   ├── logging.jl        # IterationLog (incl. dist_to_opt); Logger; log_init!,
+│   │                     #   log_iter!, log_event!, attach_sub_logs!, finalize!;
+│   │                     #   elapsed_core_s, elapsed_wall_s; VerbosityLevel,
+│   │                     #   VerbosityConfig, maybe_print()
+│   │
+│   ├── experiment.jl     # ExperimentConfig; ExperimentResult / RunResult /
+│   │                     #   MethodResult{S}; WarmupStrategy (NoWarmup,
+│   │                     #   IterativeWarmup, FunctionWarmup); run_warmup();
+│   │                     #   resolve_methods(); run_experiment();
+│   │                     #   next_experiment_path()
+│   │
+│   ├── persistence.jl    # save_experiment(); load_experiment(); load_manifest();
+│   │                     #   list_experiments(); CSV sidecar writer
+│   │
+│   ├── debug.jl          # DebugConfig; DebugCheck hierarchy
+│   │                     #   (CheckObjectiveMonotonicity, CheckGradientNormBound,
+│   │                     #   CheckStepDecay, CheckNumericalGradient);
+│   │                     #   run_debug_checks!; debug_check! dispatch;
+│   │                     #   trigger_debug!; numerical_gradient()
+│   │
+│   └── analysis.jl       # to_dataframe(); filter_methods(); aggregate_runs();
+│                         #   MethodStyle; METHOD_PALETTE; METHOD_COLOR_REGISTRY;
+│                         #   get_method_color(); register_method_color!;
+│                         #   PlotSpec; FigureLayout; render_figure(); save_figure()
+│
+├── algorithms/                   # CONTENT — concrete methods + shared components
+│   ├── components/               #   shared method-construction vocabulary (extend engine)
+│   │   ├── descent_directions.{md,jl}   # DescentDirection, SteepestDescent, compute_direction
+│   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
+│   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov
+│   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
+│   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
+│   ├── conventional/
+│   │   ├── gradient_descent.jl
+│   │   ├── proximal_gradient/    # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
+│   │   └── trust_region/         # trust_region.{md,jl} — QuadraticModel + SteihaugCG + TrustRegion
+│   └── experimental/
+│       └── preconditioned_gradient/ # preconditioned_gradient.{md,jl} — PreconditionedGradient
+│
+├── problems/                     # CONTENT — concrete problem families (self-register on load)
+│   ├── rosenbrock/               # rosenbrock.{md,jl} — RosenbrockObjective; :rosenbrock
+│   ├── least_squares/            # least_squares.{md,jl} — LeastSquares (selectable
+│   │                             #   :matrix/:operator Hessian); :quadratic + :linear_ls
+│   ├── lasso/                    # lasso.{md,jl}     — :lasso sparse-recovery generator
+│   ├── separable_quadratic/      # separable_quadratic.{md,jl} — :separable_quadratic (DiagonalHessian)
+│   └── regularizers/             # regularizers.jl   — L1/L2/Zero, prox via ProximalOperators.jl
+│
+├── experiments/                  # load engine + content via _bootstrap.jl
+│   ├── README.md                # folder guide: portfolio track, stages, planned work
+│   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
+│   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
+│   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
+│   ├── exp_ls1_dimension.jl               #   Stage LS-1: dimension scaling + timing pillar
+│   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
+│   ├── exp_precond1_grid.jl               #   Stage EXP-1: VariantGrid + dual routing; Jacobi≈Newton
+│   ├── exp_tr1.jl                          #   Stage TR-1: TrustRegion + Steihaug-CG (nested optimization)
+│   └── stages/                            # demoted dev scaffold: staged Rosenbrock build log
+│       ├── stage1.jl … stage8.jl          #   per-stage validation of one architectural block each
+│       ├── smoke_test.jl                  #   Stage 0: end-to-end runner-contract smoke check (in CI)
+│       ├── figures/                       #   stage2_trajectories.png (surfaced in the README)
+│       └── README.md                      #   the build-log writeup
+│
+├── logs/                         # Git-ignored; written at runtime
+│   └── &lt;date&gt;/&lt;NNN&gt;/             #   manifest.json, result.jld2, run{N}_{method}.csv
+│
+└── test/                         # load engine + content via ../experiments/_bootstrap.jl
+    ├── runtests.jl               # step sizes, core runner, nesting, variant grid; includes ↓
+    ├── test_module5.jl           # experiment orchestration (resolve_methods, run_experiment)
+    ├── test_module7.jl           # verbosity system
+    ├── test_module8.jl           # persistence (save/load, manifest, CSV)
+    ├── test_module9.jl           # problem factory: LeastSquares / regularizer content
+    ├── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
+    ├── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
+    ├── test_preconditioned_gradient.jl # Jacobi=Newton, dual-bucket routing, diagonal contract
+    ├── test_external_validation.jl # cross-check solutions vs Optim.jl + ProximalAlgorithms.jl
+    └── test_trust_region.jl      # Steihaug-CG branches, TR convergence, nesting + core-time attribution</code></pre><hr/><h2 id="Data-Flow-Diagram"><a class="docs-heading-anchor" href="#Data-Flow-Diagram">Data Flow Diagram</a><a id="Data-Flow-Diagram-1"></a><a class="docs-heading-anchor-permalink" href="#Data-Flow-Diagram" title="Permalink"></a></h2><pre><code class="nohighlight hljs">┌─────────────────────────────────────────────────────────────────────────┐
+│  DEFINITION PHASE                                                       │
+│                                                                         │
+│  problems.jl        Objective / Hessian / Regularizer / Problem        │
+│       │             AnalyticProblem / FileProblem / RandomProblem       │
+│       │                                                                 │
+│  variants.jl        VariantAxis(:step_size, FixedStep=&gt;&quot;Fix&quot;, ...)     │
+│       │                   │                                             │
+│       └──────────► VariantGrid → expand() → [VariantSpec, ...]         │
+│                                     │                                   │
+│  stopping.jl        StoppingCriteria (per-experiment or per-method)    │
+│                                     │                                   │
+│                         ExperimentConfig                                │
+│                    (+ warmup :: WarmupStrategy)                         │
+│                    (+ debug  :: DebugConfig)                            │
+└─────────────────────────────────────┬───────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────┐
+│  EXECUTION PHASE                                                        │
+│                                                                         │
+│         run_experiment(config, log_root)                                │
+│                  │                                                      │
+│         next_experiment_path()  →  logs/YYYYMMDD/NNN/ (atomic mkdir)   │
+│         resolve_methods()       →  routes by ConventionalMethod /      │
+│                                     ExperimentalMethod                  │
+│                  │                                                      │
+│   ┌──── WARM-UP (once per run, if configured) ──────────────────────┐   │
+│   │  rng_warmup = Xoshiro(hash((seed, run_id, :warmup)))            │   │
+│   │  x0_warm   = run_warmup(config.warmup, problem, rng_warmup, …)  │   │
+│   │  problem   = Problem(…, x0=x0_warm, …)   ← shared by all       │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                  │                                                      │
+│        for each run × method:                                           │
+│         method_rng = Xoshiro(hash((seed, run_id, method_name)))         │
+│                  │                                                      │
+│      ┌───────────▼────────────┐                                         │
+│      │    run_method()        │  ◄── Logger + Criteria + DebugConfig    │
+│      │  init_state(…, rng)    │                                         │
+│      │  while true:           │                                         │
+│      │    core_time_ns = 0    │                                         │
+│      │    step!(…, logger,    │  ◄── logger &amp; rng explicit params       │
+│      │          rng)          │  ◄── @core_timed inside step!           │
+│      │    dist_to_opt         │  ──► runner computes from x_opt         │
+│      │    extract_log_entry() │  ──► entry.dist_to_opt copied           │
+│      │    log_iter!()         │  ──► logger.total_core_ns accumulated   │
+│      │    run_debug_checks!() │  ──► checks fire → warn/error/log       │
+│      │    should_stop()       │  ◄── DistanceToOptimal reads dist_to_opt│
+│      └───────────┬────────────┘                                         │
+│                  │  (if nested algorithm used)                          │
+│      ┌───────────▼────────────┐                                         │
+│      │  run_sub_method()      │  ◄── SubRunConfig{M}                    │
+│      │  sub_rng = Xoshiro(    │  ──► child RNG derived from outer_rng   │
+│      │    rand(outer_rng,…))  │  ──► independent core time tracking     │
+│      │  step!(…, sub_logger,  │  ──► sub logs → outer IterationLog      │
+│      │         sub_rng)       │                                         │
+│      └───────────┬────────────┘                                         │
+│                  │                                                      │
+│           finalize!() → MethodResult{S}                                 │
+│           collected into RunResult → ExperimentResult                   │
+└─────────────────────────────────────┬───────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────┐
+│  PERSISTENCE PHASE                                                      │
+│                                                                         │
+│   save_experiment()                                                     │
+│       ├── result.jld2              (full binary, fast reload)           │
+│       ├── run{N}_{method}.csv      (per-method, human-readable,        │
+│       │                            includes dist_to_opt column)        │
+│       └── manifest.json           (name, metadata, no binary needed)   │
+└─────────────────────────────────────┬───────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────┐
+│  ANALYSIS PHASE                                                         │
+│                                                                         │
+│   load_experiment()  ──►  to_dataframe()  (incl. :dist_to_opt col)     │
+│                                │                                        │
+│                      filter_methods() / aggregate_runs()                │
+│                                │                                        │
+│                      user transforms   (DataFrame -&gt; DataFrame)         │
+│                                │                                        │
+│                       METHOD_COLOR_REGISTRY + MethodStyle               │
+│                       PlotSpec / FigureLayout                           │
+│                                │                                        │
+│                      render_figure()  ──►  save_figure(.pdf / .png)    │
+└─────────────────────────────────────────────────────────────────────────┘</code></pre><hr/><h2 id="Key-Architectural-Decisions"><a class="docs-heading-anchor" href="#Key-Architectural-Decisions">Key Architectural Decisions</a><a id="Key-Architectural-Decisions-1"></a><a class="docs-heading-anchor-permalink" href="#Key-Architectural-Decisions" title="Permalink"></a></h2><table><tr><th style="text-align: right">Decision</th><th style="text-align: right">Rationale</th></tr><tr><td style="text-align: right"><code>Objective</code> abstract type (renamed from <code>DataFidelity</code>)</td><td style="text-align: right">Honest about what the abstraction is — the (typically smooth) main objective term — without inverse-problems jargon that misleads on problems like Rosenbrock</td></tr><tr><td style="text-align: right"><code>gs :: Vector{Regularizer}</code> with empty default + convenience constructors</td><td style="text-align: right">Pure (non-composite) problems remain expressible as <code>Problem(f, x0)</code>; composite problems carry explicit <code>gs</code>; no <code>Union{Nothing,Vector}</code> indirection</td></tr><tr><td style="text-align: right"><code>Hessian</code> abstract type with <code>apply</code> / <code>materialize</code> / <code>diagonal</code> interface</td><td style="text-align: right">Unifies exact Hessians, full quasi-Newton (BFGS, SR1), L-BFGS, and structured forms under one dispatch surface; each concrete type declares which operations are available</td></tr><tr><td style="text-align: right"><code>StepSize</code> umbrella with <code>LineSearch &lt;: StepSize</code> subset</td><td style="text-align: right">Type-honest: closed-form rules (Fixed, BB, Cauchy) and genuine 1D searches (Armijo) are both valid step-size strategies; the subset gives a real dispatch handle for code that needs to specifically target line searches</td></tr><tr><td style="text-align: right"><code>StoppingCriteria</code> hierarchy replaces <code>converged</code> + <code>for</code> loop</td><td style="text-align: right">Full control over termination: count, time, tolerance, composites, all independently testable</td></tr><tr><td style="text-align: right">Stopping criteria separated from algorithm struct</td><td style="text-align: right">Same algorithm, different run budgets across experiments; no code changes required</td></tr><tr><td style="text-align: right"><code>@core_timed</code> in algorithm code, exception-safe, accumulates into <code>state.timing.core_time_ns</code></td><td style="text-align: right">Scientific discipline: only the kernel is measured; bookkeeping invisible to the clock; error recovery does not corrupt timing</td></tr><tr><td style="text-align: right"><code>log_iter!</code> accumulates <code>entry.core_time_ns</code> into <code>logger.total_core_ns</code></td><td style="text-align: right"><code>TimeLimit</code> reads <code>elapsed_core_s(logger)</code> — per-iteration core time is logged, then summed; wall-clock never used as a stopping criterion</td></tr><tr><td style="text-align: right">Logger passed as explicit <code>step!</code> parameter — not stored in state</td><td style="text-align: right">Algorithm code is pure: no logging infrastructure in state structs; logger strategy controlled entirely by the runner</td></tr><tr><td style="text-align: right"><code>step!(method, state, problem, iter, logger, rng)</code> extended signature</td><td style="text-align: right">Logger and rng are injected by the runner and forwarded by algorithms to <code>run_sub_method</code> — clean, testable, no hidden state</td></tr><tr><td style="text-align: right">Four canonical state groups (<code>IterateGroup</code>, <code>MetricsGroup</code>, <code>TimingGroup</code>, method-specific <code>Numerics</code>)</td><td style="text-align: right">Clean separation of concerns; sub-routines can receive independent groups; <code>extract_log_entry</code> default is trivial; no field duplication permitted</td></tr><tr><td style="text-align: right"><code>VariantGrid.builder</code> returns <code>IterativeMethod</code> (not <code>ExperimentalMethod</code>)</td><td style="text-align: right">Grids work uniformly for conventional and experimental methods; <code>resolve_methods</code> routes each produced method to the right bucket based on its concrete type</td></tr><tr><td style="text-align: right"><code>SubRunConfig{M}</code> parametric over method type</td><td style="text-align: right">Type-stable <code>init_state</code> → <code>SubResult{S}</code> with concrete <code>S</code> → type-stable <code>final_state</code> access in <code>step!</code></td></tr><tr><td style="text-align: right">Child RNG <code>Xoshiro(rand(outer_rng, UInt64))</code> in <code>run_sub_method</code></td><td style="text-align: right">Deterministic, reproducible sub-runs; independent of outer rng&#39;s future draws</td></tr><tr><td style="text-align: right">Per-method RNG <code>Xoshiro(hash((seed, run_id, name)))</code></td><td style="text-align: right">Adding or removing a method does not alter any other method&#39;s RNG stream; full between-run and between-method independence</td></tr><tr><td style="text-align: right"><code>MethodResult{S}</code> parametric over state type</td><td style="text-align: right">Concrete <code>final_state</code> type preserved through the result hierarchy; <code>finalize!</code> is type-stable; warm-up can access <code>result.final_state.iterate.x</code> without Any-dispatch</td></tr><tr><td style="text-align: right"><code>Problem.x_opt</code> set by generator; <code>dist_to_opt</code> computed by runner</td><td style="text-align: right">Algorithms are unaware of optimality tracking; <code>DistanceToOptimal</code> criterion and <code>dist_to_opt</code> logging activate automatically when <code>x_opt</code> is non-nothing</td></tr><tr><td style="text-align: right"><code>DistanceToOptimal</code> returns <code>(false, :none)</code> when <code>x_opt</code> is nothing</td><td style="text-align: right">Criterion is safe to include in any stopping config regardless of problem type; never fires spuriously</td></tr><tr><td style="text-align: right"><code>WarmupStrategy</code> hierarchy with <code>run_warmup</code> dispatch</td><td style="text-align: right">Warm-up is optional, declarative, and serializable; warm-up result (x0) is shared across all methods in a run</td></tr><tr><td style="text-align: right"><code>IterativeWarmup</code> calls <code>run_method</code> and extracts <code>final_state.iterate.x</code></td><td style="text-align: right">Warm-up reuses the full runner machinery (logging, stopping, debug); relies on universal <code>iterate :: IterateGroup</code> convention</td></tr><tr><td style="text-align: right"><code>FunctionWarmup</code> uses <code>name :: Symbol</code> + <code>WARMUP_FUNCTIONS</code> registry</td><td style="text-align: right">Pure-function warm-ups remain JLD2-serializable</td></tr><tr><td style="text-align: right"><code>FileProblem.loader_name :: Symbol</code> + <code>FILE_LOADERS</code> registry</td><td style="text-align: right">Raw functions are not JLD2-serializable; symbol reference is</td></tr><tr><td style="text-align: right"><code>DebugConfig</code> in <code>ExperimentConfig</code>; checks run by runner after <code>log_iter!</code></td><td style="text-align: right">Debug mode is orthogonal to algorithms, verbosity, and logging; disabled by default; zero cost when <code>enabled = false</code></td></tr><tr><td style="text-align: right"><code>DebugCheck</code> dispatch with <code>prev_entry</code> parameter</td><td style="text-align: right">Checks that require two consecutive entries (e.g. <code>CheckObjectiveMonotonicity</code>) receive both; first-iteration check is a no-op via <code>isnothing(prev)</code> guard</td></tr><tr><td style="text-align: right"><code>ObjectiveStagnation</code> uses direct index access instead of slice</td><td style="text-align: right">Eliminates per-check array allocation</td></tr><tr><td style="text-align: right"><code>next_experiment_path</code> uses atomic <code>mkdir</code></td><td style="text-align: right">Eliminates TOCTOU race when two processes write to the same log root simultaneously</td></tr><tr><td style="text-align: right">Verbosity colocated with logging in <code>logging.jl</code></td><td style="text-align: right">Both share the <code>Logger</code> struct; separating into its own file would create artificial coupling</td></tr><tr><td style="text-align: right"><code>aggregate_runs</code> modes <code>:all</code>, <code>:mean</code>, <code>:median</code></td><td style="text-align: right"><code>:all</code> preserves every run for full distribution; <code>:mean</code>/<code>:median</code> reduce to a representative curve; <code>:best</code> omitted — cherry-picking runs has no sound benchmarking interpretation</td></tr><tr><td style="text-align: right"><code>FigureLayout</code> as <code>Matrix{Union{PlotSpec,Nothing}}</code></td><td style="text-align: right">Any grid formation expressible as a Julia matrix literal; blank cells are <code>nothing</code>; arbitrary sizes</td></tr><tr><td style="text-align: right">Transforms as <code>DataFrame -&gt; DataFrame</code></td><td style="text-align: right">No DSL to learn; composable with DataFramesMeta; independently unit-testable</td></tr><tr><td style="text-align: right">CSV sidecar holds scalar extras only; vector / composite extras are JLD2-only</td><td style="text-align: right">CSV is for grep-able tabular data; vectors and composites have no stable text encoding. JLD2 captures everything; the manifest records which keys were dropped so the omission is auditable without loading the binary.</td></tr></table><hr/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../modules/analysis-plotting/">« Analysis &amp; Plotting</a><a class="docs-footer-nextpage" href="../extending/">Extension Guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 12 June 2026 11:55">Friday 12 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

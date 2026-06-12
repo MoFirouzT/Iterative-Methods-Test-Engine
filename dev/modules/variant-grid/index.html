@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Variant Grid Engine · Iterative-Methods Test Engine</title><meta name="title" content="Variant Grid Engine · Iterative-Methods Test Engine"/><meta property="og:title" content="Variant Grid Engine · Iterative-Methods Test Engine"/><meta property="twitter:title" content="Variant Grid Engine · Iterative-Methods Test Engine"/><meta name="description" content="Documentation for Iterative-Methods Test Engine."/><meta property="og:description" content="Documentation for Iterative-Methods Test Engine."/><meta property="twitter:description" content="Documentation for Iterative-Methods Test Engine."/><meta property="og:url" content="https://MoFirouzT.github.io/Iterative-Methods-Test-Engine/modules/variant-grid/"/><meta property="twitter:url" content="https://MoFirouzT.github.io/Iterative-Methods-Test-Engine/modules/variant-grid/"/><link rel="canonical" href="https://MoFirouzT.github.io/Iterative-Methods-Test-Engine/modules/variant-grid/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Iterative-Methods Test Engine</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../design/">Design Philosophy</a></li><li><span class="tocitem">Modules</span><ul><li><a class="tocitem" href="../problem-interface/">Problem Interface</a></li><li><a class="tocitem" href="../algorithm-core/">Algorithm &amp; Core Timing</a></li><li><a class="tocitem" href="../stopping-criteria/">Stopping Criteria</a></li><li class="is-active"><a class="tocitem" href>Variant Grid Engine</a><ul class="internal"><li><a class="tocitem" href="#Component-Abstractions"><span>Component Abstractions</span></a></li><li><a class="tocitem" href="#VariantAxis-and-VariantGrid"><span>VariantAxis and VariantGrid</span></a></li><li><a class="tocitem" href="#Grid-Expansion"><span>Grid Expansion</span></a></li><li><a class="tocitem" href="#Naming-Convention"><span>Naming Convention</span></a></li><li><a class="tocitem" href="#Defining-a-Grid-(Usage-Example)"><span>Defining a Grid (Usage Example)</span></a></li></ul></li><li><a class="tocitem" href="../nested-algorithms/">Nested Algorithms</a></li><li><a class="tocitem" href="../logging/">Logging &amp; Verbosity</a></li><li><a class="tocitem" href="../orchestration/">Experiment Orchestration</a></li><li><a class="tocitem" href="../persistence/">Persistence</a></li><li><a class="tocitem" href="../debug-mode/">Debug Mode</a></li><li><a class="tocitem" href="../analysis-plotting/">Analysis &amp; Plotting</a></li></ul></li><li><a class="tocitem" href="../../internals/">Repository Internals</a></li><li><a class="tocitem" href="../../extending/">Extension Guide</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Modules</a></li><li class="is-active"><a href>Variant Grid Engine</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Variant Grid Engine</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/MoFirouzT/Iterative-Methods-Test-Engine" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/docs/src/modules/variant-grid.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Variant-Grid-Engine"><a class="docs-heading-anchor" href="#Variant-Grid-Engine">Variant Grid Engine</a><a id="Variant-Grid-Engine-1"></a><a class="docs-heading-anchor-permalink" href="#Variant-Grid-Engine" title="Permalink"></a></h1><p>This module models each <strong>dimension of variation</strong> as a typed component, then constructs all valid combinations automatically. Grids work uniformly over any <code>IterativeMethod</code> — conventional or experimental — and the routing into the right bucket happens later in <code>resolve_methods</code>.</p><h2 id="Component-Abstractions"><a class="docs-heading-anchor" href="#Component-Abstractions">Component Abstractions</a><a id="Component-Abstractions-1"></a><a class="docs-heading-anchor-permalink" href="#Component-Abstractions" title="Permalink"></a></h2><p>Each variation axis is an abstract type with concrete implementations. The framework ships several pluggable component hierarchies: <strong>descent direction</strong> and <strong>step-size rule</strong> (both consumed by <code>GradientDescent</code>), and a <strong>minor-update</strong> slot (consumed by <code>ProximalGradient</code> — see below):</p><pre><code class="language-julia hljs"># Descent direction (see descent_directions.md)
+abstract type DescentDirection end
+struct SteepestDescent &lt;: DescentDirection end
+
+# Step-size rule (see step_sizes.md)
+abstract type StepSize end
+abstract type LineSearch &lt;: StepSize end       # subset that performs an actual 1D search
+
+# Direct step-size rules (closed-form α from current state):
+@kwdef struct FixedStep       &lt;: StepSize ; α :: Float64 = 1e-3 end
+@kwdef struct CauchyStep      &lt;: StepSize ; fallback_α :: Float64 = 1e-3
+                                            ε_denom    :: Float64 = 1e-14 end
+@kwdef struct BarzilaiBorwein &lt;: StepSize ; variant    :: Symbol  = :BB1
+                                            fallback_α :: Float64 = 1e-3
+                                            ε_denom    :: Float64 = 1e-14 end
+
+# Genuine line searches (test trial points until a sufficient-decrease condition holds):
+@kwdef struct ArmijoLS &lt;: LineSearch
+    α₀       :: Float64 = 1.0
+    β        :: Float64 = 0.5
+    c₁       :: Float64 = 1e-4
+    max_iter :: Int     = 50
+end</code></pre><pre><code class="language-julia hljs"># Minor update — post-step correction / extrapolation (see minor_updates.jl)
+abstract type MinorUpdate end
+struct NoMinorUpdate &lt;: MinorUpdate end           # plain method (no extrapolation)
+@kwdef struct NesterovStep &lt;: MinorUpdate end     # FISTA momentum
+@kwdef struct MomentumStep &lt;: MinorUpdate; α::Float64 = 0.1 end   # heavy-ball
+
+# Consumed through two functions a method calls per step:
+#   extrapolate(mu, x, x_prev, t)  → gradient-evaluation point y
+#   advance_momentum(mu, t)        → next momentum parameter t</code></pre><p><code>ProximalGradient</code> (the composite-objective method) crosses a <strong>step-size</strong> axis with this <strong>minor-update</strong> axis: <code>NoMinorUpdate</code> ⇒ ISTA, <code>NesterovStep</code> ⇒ FISTA. With a zero/absent regularizer it reduces to (accelerated) gradient descent, so the same method tells the smooth-acceleration story for free. See <code>algorithms/conventional/proximal_gradient/proximal_gradient.md</code>.</p><pre><code class="language-julia hljs"># Preconditioner — supplies M⁻¹ for d = −M⁻¹∇f (see preconditioners.jl)
+abstract type Preconditioner end
+struct IdentityPreconditioner &lt;: Preconditioner end   # M⁻¹ = I  ⇒ plain GD
+struct JacobiPreconditioner   &lt;: Preconditioner end   # M⁻¹ = diag(∇²f)⁻¹
+
+precondition(M, g, problem, x) -&gt; M⁻¹·g</code></pre><p><code>PreconditionedGradient</code> (the <em>experimental</em> method) crosses this <strong>preconditioner</strong> axis with a step-size axis. <code>JacobiPreconditioner</code> reads <code>diagonal(hessian(f, x))</code> — so it is exact Newton where the Hessian is diagonal (<code>DiagonalHessian</code>), works on any <code>diagonal</code>-capable Hessian (<code>MatrixHessian</code>), and is <em>correctly inapplicable</em> on an <code>OperatorHessian</code> (clean <code>ArgumentError</code>, no silent fallback). This is the &quot;each <code>Hessian</code> declares which operations it supports&quot; contract made operational. See <code>components/preconditioners.md</code>.</p><p>Other component hierarchies (Hessian approximations, ...) can be added later. They follow the same pattern: an abstract type, concrete subtypes, a single dispatched function on the abstract.</p><h2 id="VariantAxis-and-VariantGrid"><a class="docs-heading-anchor" href="#VariantAxis-and-VariantGrid">VariantAxis and VariantGrid</a><a id="VariantAxis-and-VariantGrid-1"></a><a class="docs-heading-anchor-permalink" href="#VariantAxis-and-VariantGrid" title="Permalink"></a></h2><pre><code class="language-julia hljs"># One axis of variation: a parameter name, a list of values, and a label per value
+struct VariantAxis
+    param  :: Symbol
+    values :: Vector{Any}
+    labels :: Vector{String}
+end
+
+# Convenience constructor using Pair syntax: value =&gt; &quot;label&quot;
+function VariantAxis(param::Symbol, labeled_values::Pair...)
+    VariantAxis(param,
+        [p.first  for p in labeled_values],
+        [p.second for p in labeled_values])
+end
+
+# The full grid: axes + a builder function + optional exclusion filters
+@kwdef struct VariantGrid
+    base_name     :: String
+    axes          :: Vector{VariantAxis}
+    builder       :: Function          # (;param=value, ...) -&gt; IterativeMethod
+    filters       :: Vector{Function}  = []  # [(combo::NamedTuple) -&gt; Bool]
+    shared_params :: NamedTuple        = (;)
+end</code></pre><blockquote><p><strong>Builder return type is <code>IterativeMethod</code>, not <code>ExperimentalMethod</code>.</strong> Grids can produce conventional methods (e.g. exploring step-size variants of <code>GradientDescent</code>) just as readily as experimental ones. <code>resolve_methods</code> (Module 7) sorts each produced method into the conventional or experimental bucket based on its concrete type.</p></blockquote><h2 id="Grid-Expansion"><a class="docs-heading-anchor" href="#Grid-Expansion">Grid Expansion</a><a id="Grid-Expansion-1"></a><a class="docs-heading-anchor-permalink" href="#Grid-Expansion" title="Permalink"></a></h2><p><code>expand(grid)</code> takes the Cartesian product of all axes, applies filters, builds each method instance, and attaches auto-generated names. This function operates on a <strong>single</strong> <code>VariantGrid</code> and is independently callable and unit-testable.</p><pre><code class="language-julia hljs">struct VariantSpec
+    name       :: String              # full human-readable name
+    short_name :: String              # compact legend label
+    params     :: NamedTuple          # the exact parameter combination
+    method     :: IterativeMethod     # ready-to-run instance
+end
+
+function expand(grid::VariantGrid)::Vector{VariantSpec}
+    # Cartesian product → filter → build → name
+end</code></pre><h2 id="Naming-Convention"><a class="docs-heading-anchor" href="#Naming-Convention">Naming Convention</a><a id="Naming-Convention-1"></a><a class="docs-heading-anchor-permalink" href="#Naming-Convention" title="Permalink"></a></h2><table><tr><th style="text-align: right">Format</th><th style="text-align: right">Example</th></tr><tr><td style="text-align: right">Full (logging, filenames)</td><td style="text-align: right"><code>GradientDescent[step_size=Armijo]</code></td></tr><tr><td style="text-align: right">Short (plot legends)</td><td style="text-align: right"><code>GD/Arm</code></td></tr></table><pre><code class="language-julia hljs">const ABBREVIATIONS = Dict(
+    &quot;GradientDescent&quot; =&gt; &quot;GD&quot;,
+    &quot;SteepestDescent&quot; =&gt; &quot;SD&quot;,
+    &quot;FixedStep&quot;       =&gt; &quot;Fix&quot;,
+    &quot;CauchyStep&quot;      =&gt; &quot;Cau&quot;,
+    &quot;BarzilaiBorwein&quot; =&gt; &quot;BB&quot;,
+    &quot;ArmijoLS&quot;        =&gt; &quot;Arm&quot;,
+)
+
+# Register abbreviations for user-defined components
+register_abbreviation!(long::String, short::String) = (ABBREVIATIONS[long] = short)</code></pre><p><code>register_abbreviation!</code> must be called for any user-defined component name before <code>expand</code> is first called. It is documented in the Extension Guide.</p><h2 id="Defining-a-Grid-(Usage-Example)"><a class="docs-heading-anchor" href="#Defining-a-Grid-(Usage-Example)">Defining a Grid (Usage Example)</a><a id="Defining-a-Grid-(Usage-Example)-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-a-Grid-(Usage-Example)" title="Permalink"></a></h2><pre><code class="language-julia hljs">step_size_axis = VariantAxis(:step_size,
+    FixedStep(α=1e-3)              =&gt; &quot;Fixed&quot;,
+    ArmijoLS(α₀=1.0, β=0.5, c₁=1e-4) =&gt; &quot;Armijo&quot;,
+    BarzilaiBorwein(variant=:BB1)  =&gt; &quot;BB1&quot;,
+    BarzilaiBorwein(variant=:BB2)  =&gt; &quot;BB2&quot;,
+    CauchyStep()                   =&gt; &quot;Cauchy&quot;,
+)
+
+grid = VariantGrid(
+    base_name = &quot;GradientDescent&quot;,
+    axes      = [step_size_axis],
+    builder   = (; step_size, kwargs...) -&gt;
+                    GradientDescent(direction=SteepestDescent(), step_size=step_size),
+)
+# 5 combinations, all conventional GradientDescent variants.</code></pre><hr/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../stopping-criteria/">« Stopping Criteria</a><a class="docs-footer-nextpage" href="../nested-algorithms/">Nested Algorithms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 12 June 2026 11:55">Friday 12 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
