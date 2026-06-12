@@ -1,6 +1,7 @@
 # Iterative-Methods Test Engine
 
 [![CI](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/ci.yml)
+[![Docs](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/docs.yml/badge.svg)](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)
 
 A Julia framework for **side-by-side comparison of iterative optimization methods** —
 define a method once, sweep its variants, run them against conventional baselines on
@@ -60,8 +61,9 @@ and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorit
   `ExperimentConfig`; all randomness derives from a single seed.
 - **Spec-driven** — every problem and method ships a co-located `.md` spec.
 
-See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or
-**[docs/architecture.md](docs/architecture.md)** for the full maintainer reference.
+See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the
+**[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)**
+(one page per module) for the full maintainer view.
 
 ## Run the tests
 

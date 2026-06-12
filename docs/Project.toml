@@ -1,0 +1,8 @@
+# Docs build environment — intentionally minimal. The site renders hand-written
+# Markdown only (no @docs/@autodocs blocks), so it does NOT load the TestEngine
+# project or its runtime deps. That keeps the docs build fast and decoupled from CI.
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+
+[compat]
+Documenter = "1"
