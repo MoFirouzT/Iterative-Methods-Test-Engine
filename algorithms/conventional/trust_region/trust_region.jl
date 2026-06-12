@@ -157,7 +157,7 @@ end
 # run_sub_method, then accept/reject by the actual/predicted reduction ratio ρ
 # and update Δ. The inner solve's CORE time is folded into the outer step's
 # core_time_ns (so cumulative-core plots reflect ALL work) and also exposed
-# per-step via the log extras — see trust_region.md / architecture.md §10.
+# per-step via the log extras — see trust_region.md / docs/src/modules/persistence.md.
 # ═════════════════════════════════════════════════════════════════════════
 
 @kwdef struct TrustRegion <: ConventionalMethod

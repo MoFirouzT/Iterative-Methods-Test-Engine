@@ -87,7 +87,7 @@ end
 ```
 
 `RosenbrockObjective` subtypes the framework's `Objective` abstract type
-(see `architecture.md` §3 — Module 1).
+(see `docs/src/modules/problem-interface.md`).
 
 ### 3.2 Objective Value
 
@@ -123,7 +123,7 @@ end
 ### 3.4 Hessian
 
 The framework's `Objective` interface returns a `Hessian` object, not a single
-vector or matrix (see `architecture.md` §3 — Module 1). For Rosenbrock the matrix
+vector or matrix (see `docs/src/modules/problem-interface.md`). For Rosenbrock the matrix
 is 2×2, so the natural choice is `MatrixHessian` — both `apply(H, d)` and
 `materialize(H)` are essentially free.
 

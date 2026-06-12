@@ -89,12 +89,12 @@ TestEngine.jl/
 │   ├── README.md                # folder guide: portfolio track, stages, planned work
 │   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
 │   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
-│   ├── exp_lasso1_ista_fista.jl           # portfolio-item track: Stage LASSO-1 (flagship)
-│   ├── exp_ls1_dimension.jl               #   Stage LS-1: dimension scaling + timing pillar
-│   ├── exp_ls2_conditioning.jl            #   Stage LS-2: GD rate vs κ (slope 1 vs √κ)
-│   ├── exp_precond1_grid.jl               #   Stage EXP-1: VariantGrid + dual routing; Jacobi≈Newton
-│   ├── exp_tr1.jl                          #   Stage TR-1: TrustRegion + Steihaug-CG (nested optimization)
-│   └── stages/                            # demoted dev scaffold: staged Rosenbrock build log
+│   ├── exp_lasso_ista_fista.jl            # portfolio experiment: lasso (flagship)
+│   ├── exp_ls1_dimension.jl               #   ls1: dimension scaling + timing pillar
+│   ├── exp_ls2_conditioning.jl            #   ls2: GD rate vs κ (slope 1 vs √κ)
+│   ├── exp_precond_grid.jl                #   precond: VariantGrid + dual routing; Jacobi≈Newton
+│   ├── exp_tr_steihaug_cg.jl              #   tr: TrustRegion + Steihaug-CG (nested optimization)
+│   └── stages/                            # engine build log: capability-by-capability validation
 │       ├── stage1.jl … stage8.jl          #   per-stage validation of one architectural block each
 │       ├── smoke_test.jl                  #   Stage 0: end-to-end runner-contract smoke check (in CI)
 │       ├── figures/                       #   stage2_trajectories.png (surfaced in the README)

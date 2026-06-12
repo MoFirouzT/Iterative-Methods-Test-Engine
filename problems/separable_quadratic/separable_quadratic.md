@@ -37,7 +37,7 @@ preconditioners — no single global `α` is secretly tuned for one of them.
 
 `x0 = ones(n)`; `meta[:condition_number] = κ`, `meta[:L] = max(d) = 1`.
 
-## Win condition (Stage EXP-1)
+## Win condition (preconditioning experiment)
 
 Jacobi-preconditioned variants converge in `O(1–2)` iterations regardless of `κ`;
 Identity variants take `O(κ)` (Fixed/Armijo) or `O(√κ)` (BB). The two-decade gap

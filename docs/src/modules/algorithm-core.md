@@ -109,7 +109,7 @@ Each state (outer and sub) has its own independent `TimingGroup`. The sub-solver
 accumulated `core_time_ns` is reported in `SubResult.core_time_ns` and tracked
 separately from the outer timing.
 
-**Core-time attribution convention (settled by `TrustRegion`, Item 4).** When an
+**Core-time attribution convention (settled by `TrustRegion`).** When an
 outer `step!` runs a sub-solver, the recommended convention is: **fold the inner
 solve's total core time into the outer step's `core_time_ns`** (so cumulative-core
 plots reflect *all* real work), **and** also expose it per-step in the log extras

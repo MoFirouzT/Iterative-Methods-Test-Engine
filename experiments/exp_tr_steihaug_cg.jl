@@ -1,6 +1,6 @@
-# experiments/exp_tr1.jl
+# experiments/exp_tr_steihaug_cg.jl
 #
-# Stage TR-1 — nested optimization (portfolio Item 4).
+# Portfolio experiment: trust region — nested optimization.
 # TrustRegion with a Steihaug truncated-CG inner solve on Rosenbrock, compared to
 # the five Stage-1 GD baselines. This is the consumer that lights up the
 # nested-optimization subsystem (run_sub_method / SubResult / attach_sub_logs!):
@@ -12,7 +12,7 @@
 #   (right) the inner solver at work: trust radius Δ per outer step, marker
 #           colored by the inner CG stop reason and sized by inner CG iterations.
 #
-# Run:  julia --project=. experiments/exp_tr1.jl
+# Run:  julia --project=. experiments/exp_tr_steihaug_cg.jl
 
 include("_bootstrap.jl")
 using Random
@@ -32,7 +32,7 @@ const INNER_COLOR = Dict(:gradient_converged => "#0072B2", :boundary_reached => 
 # Driver
 # ---------------------------------------------------------------------------
 
-function run_tr1(; seed::Int = SEED)
+function run_tr(; seed::Int = SEED)
     p = make_problem(AnalyticProblem(name = :rosenbrock, params = (rho = 100.0,)),
                      Xoshiro(hash((seed, :data))))
 
@@ -67,7 +67,7 @@ end
 # Figure
 # ---------------------------------------------------------------------------
 
-function plot_tr1(tr, baselines, tr_logger; outpath::String = "figures/tr1_trust_region.png")
+function plot_tr(tr, baselines, tr_logger; outpath::String = "figures/tr_steihaug_cg.png")
     fig = Figure(size = (1280, 540))
 
     # ── Left: convergence vs outer iteration ──────────────────────────────────
@@ -99,7 +99,7 @@ function plot_tr1(tr, baselines, tr_logger; outpath::String = "figures/tr1_trust
     end
     axislegend(axR, "inner CG stop (size ∝ #CG iters)"; position = :rt, framevisible = true, labelsize = 10)
 
-    Label(fig[0, :], "Stage TR-1 — TrustRegion + Steihaug-CG inner solve", fontsize = 16, font = :bold)
+    Label(fig[0, :], "TrustRegion + Steihaug-CG inner solve", fontsize = 16, font = :bold)
     mkpath(dirname(outpath)); save(outpath, fig)
     @info "Saved figure" path = outpath
     return fig
@@ -109,7 +109,7 @@ end
 # Win-condition checks
 # ---------------------------------------------------------------------------
 
-function validate_tr1(tr, tr_logger, tr_indef)
+function validate_tr(tr, tr_logger, tr_indef)
     trreals = [e for e in tr.iter_logs if e.iter > 0]
 
     # 1. Trust-region-Newton converges to high accuracy in O(20–30) outer iters.
@@ -142,9 +142,9 @@ function validate_tr1(tr, tr_logger, tr_indef)
 end
 
 function main()
-    p, tr, tr_logger, baselines, tr_indef = run_tr1()
-    validate_tr1(tr, tr_logger, tr_indef)
-    plot_tr1(tr, baselines, tr_logger)
+    p, tr, tr_logger, baselines, tr_indef = run_tr()
+    validate_tr(tr, tr_logger, tr_indef)
+    plot_tr(tr, baselines, tr_logger)
     return tr
 end
 

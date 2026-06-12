@@ -4,7 +4,7 @@
 > - `problems/rosenbrock/rosenbrock.md` — problem interface, `Objective`, `grad!`, `hessian`
 > - `algorithms/conventional/gradient_descent/components/descent_directions.md` — `DescentDirection` abstraction
 > - `algorithms/conventional/gradient_descent/components/step_sizes.md` — `StepSize` / `LineSearch` abstractions
-> - `src/architecture.md` — state groups, runner contract, `@core_timed`, logger injection
+> - `docs/src/modules/algorithm-core.md` — state groups, runner contract, `@core_timed`, logger injection
 
 ---
 

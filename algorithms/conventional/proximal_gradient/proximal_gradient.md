@@ -68,7 +68,7 @@ Exactly **one** gradient evaluation and **one** `prox` call per step.
 - Supports **0 or 1** regularizer. A sum of several nonsmooth terms needs
   operator splitting and raises an `ArgumentError`.
 
-## 6. Win conditions (Stage LASSO-1)
+## 6. Win conditions (lasso experiment)
 
 - `prox` called once per step with step `γ`; `total_objective` sums `f + g`.
 - FISTA's `f − f*` curve visibly beats ISTA's (`O(1/k²)` vs `O(1/k)`).

@@ -186,7 +186,7 @@ end
 > bug until the `:linear_ls` family exercised the small-gradient regime.
 
 > **Hessian abstraction.** `hessian(problem.f, x)` returns a `Hessian` object
-> (see `architecture.md` §3 — Module 1). For Rosenbrock this is a `MatrixHessian`
+> (see `docs/src/modules/problem-interface.md`). For Rosenbrock this is a `MatrixHessian`
 > wrapping a 2×2 matrix; for higher-dimensional problems it may be an
 > `OperatorHessian` or a quasi-Newton approximation. `apply(H, d)` is the
 > required operation across all subtypes — `CauchyStep` does not need to know
@@ -280,7 +280,7 @@ end
 > `total_objective(problem, x_trial)` evaluates the composite objective
 > $f(x) + \sum_i g_i(x)$. For the pure Rosenbrock problem (no regularizer)
 > this reduces to `value(problem.f, x_trial)` because `problem.gs` is empty.
-> See `architecture.md` §3 — Module 1 for the helper definition.
+> See `docs/src/modules/problem-interface.md` for the helper definition.
 
 ### 4.4 Variable Mapping
 

@@ -27,23 +27,10 @@ julia --project scripts/reproduce.jl                 # writes all figures to fig
 `reproduce.jl` runs each portfolio experiment in its own process and writes the five
 figures into `figures/` (flagship figure first).
 
-## What it demonstrates
-
-Each capability has exactly one clean, working demonstrator you can watch run — no
-method zoo. The five shipped experiments:
-
-| Capability | Demonstrator | Figure |
-| --- | --- | --- |
-| Composite `f + g`, `prox` dispatch, Nesterov acceleration | `ProximalGradient` (ISTA → FISTA) on the lasso | `lasso_ista_fista.png` |
-| A scalable second problem family; matrix-free `OperatorHessian`; dimension scaling; the timing pillar as a real signal | Linear least squares + dimension sweep | `ls1_dimension.png` |
-| Conditioning controls the rate: `O(κ)` vs `O(√κ)` | Least squares + conditioning sweep | `ls2_conditioning.png` |
-| The signature workflow: define one experimental method, sweep it in a `VariantGrid`, route experimental vs conventional buckets; `DiagonalHessian` + Jacobi preconditioning ≈ Newton | `PreconditionedGradient` swept vs a baseline | `precond1_grid.png` |
-| Nested optimization: an inner solver minimizing a local model inside each outer step (`run_sub_method` / sub-log attachment / inner-vs-outer core time) | `TrustRegion` with a Steihaug-CG inner solve | `tr1_trust_region.png` |
-
-Correctness is **externally cross-checked**: converged solutions are matched against
-`A\b`, [`Optim.jl`](https://github.com/JuliaNLSolvers/Optim.jl) (GradientDescent / LBFGS),
-and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)
-(ForwardBackward / FastForwardBackward) — see `test/test_external_validation.jl`.
+For a catalog of these experiments — proximal-gradient on the lasso, least-squares
+dimension and conditioning sweeps, preconditioning, and a nested trust-region solve —
+with what each one demonstrates and all five figures, see
+**[experiments/README.md](experiments/README.md)**.
 
 ## Design in one breath
 
@@ -64,27 +51,6 @@ and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorit
 See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the
 **[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)**
 (one page per module) for the full maintainer view.
-
-## Run the tests
-
-```bash
-julia --project test/runtests.jl     # 200 tests
-```
-
-## Layout
-
-```text
-src/                 TestEngine module — abstractions + machinery only
-algorithms/          content: components/ (step sizes, preconditioners, …),
-                     conventional/ (GradientDescent, ProximalGradient, TrustRegion),
-                     experimental/ (PreconditionedGradient)
-problems/            content: rosenbrock, least_squares, lasso,
-                     separable_quadratic, regularizers
-experiments/         exp_*.jl portfolio scripts (+ _bootstrap.jl loader, _shared.jl helpers)
-experiments/stages/  the staged Rosenbrock build log (dev scaffold, not figures)
-scripts/reproduce.jl one command → all figures
-test/                runtests.jl + per-area test files
-```
 
 ## Going deeper
 
@@ -110,3 +76,24 @@ CI runs the full suite on every push via [GitHub Actions](.github/workflows/ci.y
 (`julia --project test/runtests.jl`, 200 tests). `Manifest.toml` is committed, so CI and
 `scripts/reproduce.jl` install the exact pinned dependency versions — the build is
 reproducible, not "latest that happens to resolve."
+
+## Run the tests
+
+```bash
+julia --project test/runtests.jl     # 200 tests
+```
+
+## Layout
+
+```text
+src/                 TestEngine module — abstractions + machinery only
+algorithms/          content: components/ (step sizes, preconditioners, …),
+                     conventional/ (GradientDescent, ProximalGradient, TrustRegion),
+                     experimental/ (PreconditionedGradient)
+problems/            content: rosenbrock, least_squares, lasso,
+                     separable_quadratic, regularizers
+experiments/         exp_*.jl portfolio scripts (+ _bootstrap.jl loader, _shared.jl helpers)
+experiments/stages/  the staged Rosenbrock build log (dev scaffold, not figures)
+scripts/reproduce.jl one command → all figures
+test/                runtests.jl + per-area test files
+```

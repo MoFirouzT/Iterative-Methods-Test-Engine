@@ -148,7 +148,7 @@ support-recovery stem plot — build the `Figure` yourself, call `render_plot!`
 for the standard panel(s), and draw the custom panel into the same figure.
 `render_plot!` returns the `Axis`, so the engine's plotting layer stays the one
 clean consumer for convergence curves without forcing every panel through a
-general API (see `experiments/exp_lasso1_ista_fista.jl`).
+general API (see `experiments/exp_lasso_ista_fista.jl`).
 
 ## End-to-End Plotting Example
 

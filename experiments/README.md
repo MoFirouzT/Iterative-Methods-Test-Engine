@@ -2,28 +2,58 @@
 
 Runnable scripts that drive the engine end-to-end. Two tracks live here:
 
-- **Portfolio experiments** (`exp_<problem>N.jl`) — the curated, problem-named
-  demonstrators that produce the figures in the [top-level README](../README.md).
-  One clean experiment per capability; these are the headline deliverables.
-- **[Development stages](stages/)** (`stages/stageN.jl`) — the demoted Rosenbrock
-  build log: scaffold that rehearsed the engine contract capability-by-capability.
-  Not portfolio results — see [stages/README.md](stages/README.md).
+- **Portfolio experiments** (`exp_<problem>.jl`) — the curated demonstrators,
+  named after their problem (the two least-squares experiments are `ls1`/`ls2`).
+  They produce the five figures in [`figures/`](../figures/), catalogued with what
+  each one demonstrates below. One clean experiment per capability — the headline
+  deliverables.
+- **[Development stages](stages/)** (`stages/stageN.jl`) — a capability-by-capability
+  validation of the engine, built in dependency order on a single 2D Rosenbrock
+  problem: each stage drives one architectural block and asserts its contract
+  before the next stage depends on it. Stage 0 runs in CI. These are the
+  integration checks behind the portfolio figures, not figures themselves — see
+  [stages/README.md](stages/README.md).
 
 `_bootstrap.jl` loads the engine + all content in dependency order; `_shared.jl`
 holds shared plotting recipes. Both are includes, not runnable scripts.
 
 ## Portfolio experiments
 
+Each capability has exactly one clean, working demonstrator you can watch run — no
+method zoo. The five shipped experiments:
+
 | Script | Figure | Demonstrates |
-|---|---|---|
-| [`exp_lasso1_ista_fista.jl`](exp_lasso1_ista_fista.jl) | `lasso_ista_fista.png` (flagship) | Composite `f + g`, `prox` dispatch, Nesterov acceleration (ISTA → FISTA) on the lasso |
+| --- | --- | --- |
+| [`exp_lasso_ista_fista.jl`](exp_lasso_ista_fista.jl) | `lasso_ista_fista.png` (flagship) | Composite `f + g`, `prox` dispatch, Nesterov acceleration (ISTA → FISTA) on the lasso |
 | [`exp_ls1_dimension.jl`](exp_ls1_dimension.jl) | `ls1_dimension.png` | Least-squares dimension sweep; matrix-free `OperatorHessian`; the core-time/wall-time timing pillar |
 | [`exp_ls2_conditioning.jl`](exp_ls2_conditioning.jl) | `ls2_conditioning.png` | Conditioning controls the rate: `O(κ)` vs `O(√κ)` |
-| [`exp_precond1_grid.jl`](exp_precond1_grid.jl) | `precond1_grid.png` | `VariantGrid` sweep + experimental/conventional routing; Jacobi preconditioning ≈ Newton |
-| [`exp_tr1.jl`](exp_tr1.jl) | `tr1_trust_region.png` | Nested optimization: `TrustRegion` with a Steihaug-CG inner solve |
+| [`exp_precond_grid.jl`](exp_precond_grid.jl) | `precond_grid.png` | `VariantGrid` sweep + experimental/conventional routing; Jacobi preconditioning ≈ Newton |
+| [`exp_tr_steihaug_cg.jl`](exp_tr_steihaug_cg.jl) | `tr_steihaug_cg.png` | Nested optimization: `TrustRegion` with a Steihaug-CG inner solve |
 
 Run any one with `julia --project=. experiments/exp_<name>.jl`, or regenerate
 every figure at once with [`scripts/reproduce.jl`](../scripts/reproduce.jl).
+
+Correctness is **externally cross-checked**: converged solutions are matched against
+`A\b`, [`Optim.jl`](https://github.com/JuliaNLSolvers/Optim.jl) (GradientDescent / LBFGS),
+and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)
+(ForwardBackward / FastForwardBackward) — see [`test/test_external_validation.jl`](../test/test_external_validation.jl).
+
+### Figures
+
+<img src="../figures/lasso_ista_fista.png" width="560" alt="ISTA vs FISTA on the lasso: FISTA's O(1/k²) acceleration over ISTA's O(1/k), and exact support recovery"><br>
+*`lasso_ista_fista` (flagship) — ISTA vs FISTA: `O(1/k²)` acceleration over `O(1/k)`, plus exact support recovery.*
+
+<img src="../figures/ls1_dimension.png" width="560" alt="Least-squares dimension sweep: convergence and the core-time/wall-time timing pillar across problem sizes"><br>
+*`ls1_dimension` — dimension sweep; matrix-free `OperatorHessian`; the core-time/wall-time timing pillar.*
+
+<img src="../figures/ls2_conditioning.png" width="560" alt="Least squares under a conditioning sweep: GD's rate degrades as O(κ) vs O(√κ)"><br>
+*`ls2_conditioning` — conditioning controls the rate: `O(κ)` vs `O(√κ)`.*
+
+<img src="../figures/precond_grid.png" width="560" alt="VariantGrid sweep of PreconditionedGradient vs a baseline; Jacobi preconditioning matches Newton on a diagonal quadratic"><br>
+*`precond_grid` — `VariantGrid` sweep + experimental/conventional routing; Jacobi preconditioning ≈ Newton.*
+
+<img src="../figures/tr_steihaug_cg.png" width="560" alt="TrustRegion with a Steihaug-CG inner solve: nested optimization with inner-vs-outer core time"><br>
+*`tr_steihaug_cg` — nested optimization: `TrustRegion` with a Steihaug-CG inner solve.*
 
 ## Planned — not yet built
 
@@ -43,6 +73,6 @@ is blocked on the noted work, not on the engine design.
 - **BB nonmonotone (GLL) safeguard** — the real fix for BB's clamp limitation
   (analysis in [`step_sizes.md §5.2`](../algorithms/components/step_sizes.md)).
 - **JLD2 struct-of-arrays schema migration** — ~5–10× smaller `result.jld2`
-  (analysis in [`architecture.md §10`](../docs/architecture.md#10-module-8--persistence--experiment-naming)).
+  (analysis in [`persistence.md`](../docs/src/modules/persistence.md)).
 - **Smaller swept variants** — a `MomentumStep` (heavy-ball) figure, a lasso
   sparsity-vs-λ sweep, and an `L2Norm` ridge demo are all cheap one-offs.

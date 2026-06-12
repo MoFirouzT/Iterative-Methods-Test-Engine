@@ -62,9 +62,9 @@ cumulative-core plots reflect *all* work — and **also** exposed per-step as
 `extras[:inner_core_ns]` for an inner/outer breakdown. `run_sub_method` is *not*
 wrapped in `@core_timed` (that would count inner wall/scaffolding time). Each
 outer entry also carries the inner CG trace in `extras[:sub_logs]`. See
-architecture.md §7.
+`docs/src/modules/nested-algorithms.md`.
 
-## Win conditions (Stage TR-1)
+## Win conditions (trust-region experiment)
 
 - Trust-region-Newton reaches high accuracy on Rosenbrock in **~24 outer
   iterations** (`gradient_converged`) — far fewer than the first-order baselines.

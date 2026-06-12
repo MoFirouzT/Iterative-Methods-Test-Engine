@@ -29,7 +29,7 @@ register_random_problem!(:lasso, (rng, p) -> begin
 
 	Problem(
 		LeastSquares(LeastSquaresKernel(A, b)),
-		Regularizer[L1Norm(λ)],                     # NB: Regularizer[...] — see Item-2 invariance gotcha
+		Regularizer[L1Norm(λ)],                     # NB: typed Regularizer[...], not a bare [...], so the field eltype stays invariant
 		zeros(n);
 		meta  = Dict{Symbol,Any}(:L => L, :support => sort(supp), :λ => λ),
 		x_opt = x_star,                             # the PLANTED signal, not the lasso minimizer (see lasso.md)

@@ -1,6 +1,6 @@
 # experiments/exp_ls2_conditioning.jl
 #
-# Stage LS-2 — conditioning sweep (portfolio Item 1).
+# Portfolio experiment: ls2 — conditioning sweep.
 # Five GD variants on consistent linear least squares ½‖Ax−b‖², FIXED dimension
 # n = 100, swept over the Hessian condition number κ = cond(AᵀA). Plot
 # iters-to-tolerance vs κ on log-log. The validation IS the slope difference:
@@ -75,7 +75,7 @@ function plot_ls2(df::DataFrame, slopes::Dict; outpath::String = "figures/ls2_co
     fig = Figure(size = (900, 640))
     ax  = Axis(fig[1, 1], xlabel = "condition number κ = cond(AᵀA)",
         ylabel = "iterations to ‖x−x*‖ ≤ 1e-6", xscale = log10, yscale = log10,
-        title = "Stage LS-2 — GD rate vs conditioning (n=$(LS2_N))")
+        title = "GD rate vs conditioning (n=$(LS2_N))")
 
     for name in PLOT_ORDER
         sub = sort(filter(:method_name => ==(name), df), :kappa)

@@ -1,6 +1,6 @@
-# experiments/exp_lasso1_ista_fista.jl
+# experiments/exp_lasso_ista_fista.jl
 #
-# Stage LASSO-1 — the flagship (portfolio Item 2).
+# Portfolio experiment: lasso — the flagship.
 # ISTA vs FISTA (ProximalGradient with NoMinorUpdate vs NesterovStep) on the
 # sparse-recovery lasso  min_x ½‖Ax−b‖² + λ‖x‖₁, at the textbook step γ = 1/L.
 #
@@ -9,12 +9,12 @@
 #           ISTA's O(1/k).
 #   (right) recovered x̂ (FISTA) vs the planted sparse signal x_star.
 #
-# Naming: `exp_<problem>N` (this file) is the portfolio-item track — the curated
-# figures from portfolio_roadmap.md. The earlier GD-on-Rosenbrock build log was
-# demoted to dev scaffold under experiments/stages/ (see stages/README.md).
+# Naming: `exp_<problem>.jl` (this file) is a portfolio experiment — one curated
+# figure per capability. The GD-on-Rosenbrock build log under experiments/stages/
+# is the capability-by-capability validation behind these (see stages/README.md).
 #
 # To run, from project root:
-#     julia --project=. experiments/exp_lasso1_ista_fista.jl
+#     julia --project=. experiments/exp_lasso_ista_fista.jl
 
 include("_bootstrap.jl")   # engine + all content (problems, methods, components)
 using Random
@@ -29,12 +29,12 @@ using LinearAlgebra: norm
 const SEED   = 42
 const RUN_ID = 1
 
-# Wong palette, consistent with the Stage figures.
+# Wong palette, consistent across the portfolio figures.
 const C_ISTA  = "#E69F00"   # orange
 const C_FISTA = "#0072B2"   # blue
 
 # Instance chosen so the O(1/k) vs O(1/k²) gap is visible before both curves
-# reach machine precision (see the probe in the Item-2 write-up).
+# reach machine precision.
 const LASSO_PARAMS = (m = 200, n = 512, k = 15, λ = 0.05)
 const K_PLOT = 200       # iterations shown / run for the comparison
 const K_REF  = 20_000    # long FISTA reference run to estimate f*
@@ -48,13 +48,13 @@ build_lasso_methods(L) = [
 # Driver
 # ---------------------------------------------------------------------------
 
-function run_lasso1(; seed::Int = SEED, run_id::Int = RUN_ID,
+function run_lasso(; seed::Int = SEED, run_id::Int = RUN_ID,
                       params = LASSO_PARAMS, K::Int = K_PLOT, K_ref::Int = K_REF)
     rng_data = Xoshiro(hash((seed, run_id, :data)))
     problem  = make_problem(RandomProblem(name = :lasso, params = params), rng_data)
     L = problem.meta[:L]
 
-    @info "Stage LASSO-1 — running" m=params.m n=params.n k=params.k λ=params.λ L=L
+    @info "lasso — running" m=params.m n=params.n k=params.k λ=params.λ L=L
 
     results = Pair{String, Any}[]
     for (name, method) in build_lasso_methods(L)
@@ -102,7 +102,7 @@ end
 # Money figure
 # ---------------------------------------------------------------------------
 
-function plot_lasso1(df::DataFrame, problem, results;
+function plot_lasso(df::DataFrame, problem, results;
                      outpath::String = "figures/lasso_ista_fista.png")
     fig = Figure(size = (1280, 540))
 
@@ -193,10 +193,10 @@ end
 # ---------------------------------------------------------------------------
 
 function main()
-    problem, results, fstar = run_lasso1()
+    problem, results, fstar = run_lasso()
     df = results_to_df(results, fstar)
     validate(df, problem, results, fstar)
-    plot_lasso1(df, problem, results)
+    plot_lasso(df, problem, results)
     return df
 end
 

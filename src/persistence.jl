@@ -249,7 +249,7 @@ extras were dropped.
   through verbatim. **Default is `false`** because on the Rosenbrock
   iter-log payload the built-in codec is a net loss (~5% overhead — the
   Dict{Symbol,Any} extras dominate and don't compress); see
-  [docs/architecture.md §10 JLD2 compression] for measurements and the
+  [docs/src/modules/persistence.md — JLD2 compression] for measurements and the
   scenarios where opting in pays off. `load_experiment` reads either form
   transparently — no matching kwarg required.
 - `extra_manifest::Dict{String,Any}` — keys merged into `manifest.json`

@@ -1,6 +1,6 @@
 # experiments/exp_ls1_dimension.jl
 #
-# Stage LS-1 — dimension scaling (portfolio Item 1).
+# Portfolio experiment: ls1 — dimension scaling.
 # Five GD variants on consistent linear least squares ½‖Ax−b‖², FIXED condition
 # number κ, swept over dimension n ∈ {10, 100, 1000} (m = 2n). Two things to see:
 #
@@ -92,7 +92,7 @@ function plot_ls1(df::DataFrame; outpath::String = "figures/ls1_dimension.png")
         scatterlines!(axR, sub.n, sub.wall_s;          color = COLORS[name], linewidth = 2, markersize = 10, label = name)
     end
     Legend(fig[1, 3], axL, "step size"; framevisible = true)
-    Label(fig[0, :], "Stage LS-1 — linear least squares, dimension scaling", fontsize = 16, font = :bold)
+    Label(fig[0, :], "Linear least squares — dimension scaling", fontsize = 16, font = :bold)
 
     mkpath(dirname(outpath)); save(outpath, fig)
     @info "Saved figure" path = outpath

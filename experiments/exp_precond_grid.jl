@@ -1,6 +1,6 @@
-# experiments/exp_precond1_grid.jl
+# experiments/exp_precond_grid.jl
 #
-# Stage EXP-1 — the signature workflow (portfolio Item 3).
+# Portfolio experiment: preconditioning — the signature workflow.
 # Define ONE experimental method (PreconditionedGradient), sweep its variants in
 # a VariantGrid, and compare against a conventional baseline — all in a single
 # `run_experiment`. This is the first exercise of:
@@ -20,7 +20,7 @@
 # variant converges in ~1 iteration regardless of κ, while every Identity variant
 # (and the baseline) crawls at O(κ). That ~5-orders-of-magnitude gap is the win.
 #
-# Run:  julia --project=. experiments/exp_precond1_grid.jl
+# Run:  julia --project=. experiments/exp_precond_grid.jl
 
 include("_bootstrap.jl")
 using Random
@@ -62,7 +62,7 @@ precond_grid() = VariantGrid(
 
 function precond_config()
     ExperimentConfig(
-        name = "exp_precond1_grid",
+        name = "exp_precond_grid",
         problem_spec = RandomProblem(name = :separable_quadratic,
                                      params = (n = PRECOND_N, condition_number = PRECOND_KAPPA)),
         conventional_methods = ConventionalMethod[GradientDescent(step_size = ArmijoLS())],
@@ -116,12 +116,12 @@ function _downsample(xs, ys; n = 400)
     return (xs[idx], ys[idx])
 end
 
-function plot_precond1(results::Dict, conventional, experimental;
-                       outpath::String = "figures/precond1_grid.png")
+function plot_precond(results::Dict, conventional, experimental;
+                       outpath::String = "figures/precond_grid.png")
     fig = Figure(size = (980, 660))
     ax  = Axis(fig[1, 1], xlabel = "iteration k", ylabel = "f(xₖ) − f*",
         xscale = log10, yscale = log10,
-        title = "Stage EXP-1 — Jacobi preconditioning ≈ Newton on a diagonal quadratic (κ=$(Int(PRECOND_KAPPA)))")
+        title = "Jacobi preconditioning ≈ Newton on a diagonal quadratic (κ=$(Int(PRECOND_KAPPA)))")
 
     plot_curve!(name, color, style) = begin
         logs = results[name].iter_logs
@@ -178,7 +178,7 @@ function main()
     result = run_experiment(config)
     results = result.run_results[1].method_results
     validate_iters(results, experimental)
-    plot_precond1(results, conventional, experimental)
+    plot_precond(results, conventional, experimental)
     return result
 end
 

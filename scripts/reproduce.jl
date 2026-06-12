@@ -12,11 +12,11 @@ const PROJECT = dirname(@__DIR__)
 
 # Ordered so the flagship figure (lasso) lands first.
 const SCRIPTS = [
-    ("experiments/exp_lasso1_ista_fista.jl", "figures/lasso_ista_fista.png  (★ flagship figure: ISTA vs FISTA + support recovery)"),
+    ("experiments/exp_lasso_ista_fista.jl",  "figures/lasso_ista_fista.png   (★ flagship figure: ISTA vs FISTA + support recovery)"),
     ("experiments/exp_ls1_dimension.jl",     "figures/ls1_dimension.png      (dimension scaling + timing pillar)"),
     ("experiments/exp_ls2_conditioning.jl",  "figures/ls2_conditioning.png   (GD rate vs conditioning: slope 1 vs √κ)"),
-    ("experiments/exp_precond1_grid.jl",     "figures/precond1_grid.png      (Jacobi ≈ Newton: variant-grid sweep)"),
-    ("experiments/exp_tr1.jl",               "figures/tr1_trust_region.png   (trust-region + Steihaug-CG: nested optimization)"),
+    ("experiments/exp_precond_grid.jl",      "figures/precond_grid.png       (Jacobi ≈ Newton: variant-grid sweep)"),
+    ("experiments/exp_tr_steihaug_cg.jl",    "figures/tr_steihaug_cg.png     (trust-region + Steihaug-CG: nested optimization)"),
 ]
 
 function main()

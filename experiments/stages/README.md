@@ -10,9 +10,9 @@ stages on a single 2D Rosenbrock problem (ρ = 100, x₀ = (−1.2, 1) unless no
 each stage validating one architectural block before the next depends on it. This
 directory is that build log; it is **development scaffold, not a portfolio result**.
 
-The curated, problem-named experiments that produce the figures in the top-level
-README live one level up (`experiments/exp_<problem>N.jl`) and are the project's
-headline deliverables. These stages are the rehearsal behind them.
+The curated, problem-named experiments that produce the portfolio figures live one
+level up (`experiments/exp_<problem>.jl`) and are the project's headline
+deliverables. These stages are the rehearsal behind them.
 
 > The build-up is intentional. Stages 0–4 hand-roll the per-method RNG derivation
 > and run loop, rehearsing the orchestrator's contract before depending on it.

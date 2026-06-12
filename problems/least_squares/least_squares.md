@@ -39,7 +39,7 @@ contract made concrete:
 
 | mode | returns | `apply` | `materialize` / `diagonal` | use |
 |---|---|---|---|---|
-| `:matrix` (default) | `MatrixHessian(AᵀA)` | matrix-vector | ✓ | small n; methods that read the diagonal (Jacobi preconditioner, Item 3) |
+| `:matrix` (default) | `MatrixHessian(AᵀA)` | matrix-vector | ✓ | small n; methods that read the diagonal (Jacobi preconditioner) |
 | `:operator` | `OperatorHessian(d → Aᵀ(A d), n)` | two O(mn) matvecs | ✗ | large n; the `:linear_ls` conditioning family |
 
 The default is `:matrix` so every existing call site (`:quadratic`, the lasso,
@@ -78,14 +78,14 @@ columns), `s = 10^range(0, −½log₁₀κ; length=n)`. The system is **consist
 Metadata: `meta[:condition_number] = κ`, `meta[:L] = σ_max² = 1` (the Lipschitz
 constant of `∇f`, ready for `FixedStep(α = 1/L)`), `meta[:m] = m`.
 
-## Experiments (the two-track `exp_ls*` files)
+## Experiments (the `exp_ls*` portfolio files)
 
-- **Stage LS-1 — dimension scaling** (`exp_ls1_dimension.jl`). Five GD variants,
+- **`ls1` — dimension scaling** (`exp_ls1_dimension.jl`). Five GD variants,
   fixed `κ`, sweep `n ∈ {10, 100, 1000}` (`m = 2n`). Iters-to-tolerance is ~flat
   in `n` (the rate depends on `κ`, not `n`); wall time grows ~`O(mn)` from the
   matvec. The **core_time/wall_time** ratio climbs into `[50%, 110%]` at
   `n = 1000`, retroactively validating the timing-discipline design pillar.
-- **Stage LS-2 — conditioning sweep** (`exp_ls2_conditioning.jl`). Fixed
+- **`ls2` — conditioning sweep** (`exp_ls2_conditioning.jl`). Fixed
   `n = 100`, sweep `κ`. Iters-to-tolerance vs `κ`, log-log: Fixed/Armijo/Cauchy
   scale `O(κ)` (slope ≈ 1); **BB is markedly flatter** (`O(√κ)`) — the slope
   difference is the validation.

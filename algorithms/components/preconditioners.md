@@ -49,4 +49,4 @@ For `f(x) = ½ xᵀ D x` with `D = diag(d)`: `∇f = D x`, `diag(∇²f) = d`, s
 `M⁻¹∇f = D⁻¹ D x = x` and a unit step gives `x − x = x* = 0` in **one
 iteration**, independent of the condition number `κ = max d / min d`. Plain
 gradient descent on the same problem crawls at rate `1 − 1/κ`. That gap — orders
-of magnitude in iteration count — is what Stage EXP-1 shows.
+of magnitude in iteration count — is what the preconditioning experiment shows.

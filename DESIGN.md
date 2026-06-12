@@ -1,8 +1,8 @@
 # DESIGN — a five-minute tour
 
-This is the short read. For the full maintainer reference see
-[docs/architecture.md](docs/architecture.md); for the one-command demo see
-[README.md](README.md).
+This is the short read. For the full maintainer reference see the
+[architecture docs site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)
+(one page per module); for the one-command demo see [README.md](README.md).
 
 ## The problem it solves
 
@@ -52,7 +52,7 @@ on faith.
 
 ## One experiment, annotated: ISTA → FISTA on the lasso
 
-The flagship experiment ([experiments/exp_lasso1_ista_fista.jl](experiments/exp_lasso1_ista_fista.jl))
+The flagship experiment ([experiments/exp_lasso_ista_fista.jl](experiments/exp_lasso_ista_fista.jl))
 exercises the whole composite-objective path with a single method.
 
 **Problem.** Sparse recovery: `min_x ½‖Ax − b‖² + λ‖x‖₁`, underdetermined (`m < n`) with a
@@ -91,4 +91,4 @@ step-size curvature guard that misfired as `‖∇f‖→0`, and a missing-impor
 - The other four figures (dimension scaling + timing pillar, conditioning sweep, Jacobi
   preconditioning ≈ Newton, and trust-region + Steihaug-CG nested optimization) are in
   `figures/` and `experiments/exp_*.jl`.
-- Full internals: [docs/architecture.md](docs/architecture.md).
+- Full internals: the [architecture docs site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine).
