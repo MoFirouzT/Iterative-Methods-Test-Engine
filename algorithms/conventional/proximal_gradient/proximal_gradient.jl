@@ -99,7 +99,7 @@ function init_state(method::ProximalGradient, problem, rng::AbstractRNG)
 			objective     = f0,
 			gradient_norm = norm(g0),
 			step_norm     = 0.0,
-			dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(x0 .- problem.x_opt),
+			dist_to_opt   = Inf,            # runner fills this from problem.x_opt
 		),
 		timing  = TimingGroup(core_time_ns = 0),
 		numerics = ProximalGradientNumerics(t = 1.0, x_trial = similar(x0)),
@@ -161,7 +161,6 @@ function step!(method::ProximalGradient, state::ProximalGradientState,
 	#    Report the smooth-part gradient at the evaluation point (no extra eval).
 	state.iterate.gradient = g
 	state.metrics.gradient_norm = norm(g)
-	state.metrics.dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(state.iterate.x .- problem.x_opt)
 end
 
 

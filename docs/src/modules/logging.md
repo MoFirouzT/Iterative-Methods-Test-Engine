@@ -60,8 +60,30 @@ function log_iter!(logger::Logger, entry::IterationLog)
 end
 ```
 
-`extract_log_entry(method, state, iter)` dispatches on the method type, allowing each
-algorithm to populate `extras` while sharing the common log schema.
+### `extract_log_entry` — the default
+
+`extract_log_entry(method, state, iter)` dispatches on the method type. Because
+`state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is
+trivial — it copies the metrics and core time straight across — so a method overrides
+it only to populate `extras`:
+
+```julia
+function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog
+    IterationLog(
+        iter          = iter,
+        core_time_ns  = state.timing.core_time_ns,
+        objective     = state.metrics.objective,
+        gradient_norm = state.metrics.gradient_norm,
+        step_norm     = state.metrics.step_norm,
+        dist_to_opt   = state.metrics.dist_to_opt,
+    )
+end
+# Methods override this to additionally populate the extras dict.
+```
+
+It is one of the algorithm interface's dispatch points (see
+[Algorithm Abstraction, Core Timing & the Runner](@ref)); it is documented here
+because the `IterationLog` it produces is owned by logging.
 
 ## Verbosity Levels
 

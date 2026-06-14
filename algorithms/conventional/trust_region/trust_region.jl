@@ -192,7 +192,7 @@ function init_state(method::TrustRegion, problem, rng::AbstractRNG)
 	return TrustRegionState(
 		iterate = IterateGroup(x = x0, gradient = g0, x_prev = Float64[]),
 		metrics = MetricsGroup(objective = f0, gradient_norm = norm(g0), step_norm = 0.0,
-			dist_to_opt = isnothing(problem.x_opt) ? Inf : norm(x0 .- problem.x_opt)),
+			dist_to_opt = Inf),            # runner fills this from problem.x_opt
 		timing  = TimingGroup(core_time_ns = 0),
 		numerics = TrustRegionNumerics(Δ = method.Δ0),
 	)
@@ -258,9 +258,8 @@ function step!(method::TrustRegion, st::TrustRegionState, problem::Problem,
 		nu.Δ = min(2 * nu.Δ, method.Δmax)
 	end
 
-	# ── Bookkeeping ────────────────────────────────────────────────────────────
+	# ── Bookkeeping (dist_to_opt is filled by the runner) ───────────────────────
 	st.metrics.gradient_norm = norm(st.iterate.gradient)
-	st.metrics.dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(st.iterate.x .- problem.x_opt)
 	nu.ρ = ρ; nu.accepted = accepted
 	nu.n_inner = sub.n_iters; nu.inner_core_ns = sub.core_time_ns
 	nu.inner_stop = sub.stop_reason; nu.sub_logs = sub.iter_logs

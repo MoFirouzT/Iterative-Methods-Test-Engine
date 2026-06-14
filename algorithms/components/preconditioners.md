@@ -14,6 +14,11 @@ abstract type Preconditioner end
 precondition(M::Preconditioner, g, problem, x) -> M⁻¹·g
 ```
 
+Timing: `precondition` is a **pure kernel** — it has no internal control flow to keep
+off the clock — so `PreconditionedGradient.step!` times it inside `@core_timed`, the
+same way it times `grad!`. (Components that own internal bookkeeping — line searches,
+or `compute_direction` for quasi-Newton forward-compatibility — self-time instead.)
+
 ## Concretes
 
 | type | `M⁻¹` | reduces to |

@@ -103,7 +103,7 @@ function init_state(method::GradientDescent, problem, rng::AbstractRNG)
 			objective     = f0,
 			gradient_norm = norm(g0),
 			step_norm     = 0.0,
-			dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(x0 .- problem.x_opt),
+			dist_to_opt   = Inf,            # runner fills this from problem.x_opt
 		),
 		timing  = TimingGroup(core_time_ns = 0),
 		numerics = GradientDescentNumerics(x_trial = similar(problem.x0)),
@@ -146,11 +146,9 @@ to its `fallback_α`.
 function step!(method::GradientDescent, state::GradientDescentState,
                problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
-	# ── Core: gradient and descent direction at x_k ───────────────────────────
+	# ── Descent direction at x_k (the direction rule self-times its kernel) ───
 	# 	 ∇f(x_k) already computed in init/last step
-	@core_timed state begin
-		state.numerics.direction = compute_direction(method.direction, state, problem)
-	end
+	state.numerics.direction = compute_direction(method.direction, state, problem)
 
 	# ── Step-size selection ──────────────────────────────────────────────────
 	#    BB reads (x_prev, grad_prev) here, which still hold (x_{k-1}, ∇f(x_{k-1})).
@@ -185,10 +183,9 @@ function step!(method::GradientDescent, state::GradientDescentState,
 		grad!(state.iterate.gradient, problem.f, state.iterate.x)
 	end
 
-	# ── Bookkeeping (untimed) ─────────────────────────────────────────────────
+	# ── Bookkeeping (untimed; dist_to_opt is filled by the runner) ────────────
 	state.metrics.gradient_norm = norm(state.iterate.gradient)
 	state.metrics.step_norm     = abs(α_k) * norm(state.numerics.direction)
-	state.metrics.dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(state.iterate.x .- problem.x_opt)
 end
 
 

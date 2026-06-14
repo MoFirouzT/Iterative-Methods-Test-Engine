@@ -69,7 +69,7 @@ function init_state(method::PreconditionedGradient, problem, rng::AbstractRNG)
 			objective     = f0,
 			gradient_norm = norm(g0),
 			step_norm     = 0.0,
-			dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(x0 .- problem.x_opt),
+			dist_to_opt   = Inf,            # runner fills this from problem.x_opt
 		),
 		timing  = TimingGroup(core_time_ns = 0),
 		numerics = PreconditionedGradientNumerics(x_trial = similar(x0)),
@@ -125,10 +125,9 @@ function step!(method::PreconditionedGradient, state::PreconditionedGradientStat
 		grad!(state.iterate.gradient, problem.f, state.iterate.x)
 	end
 
-	# ── Bookkeeping (untimed) ─────────────────────────────────────────────────
+	# ── Bookkeeping (untimed; dist_to_opt is filled by the runner) ────────────
 	state.metrics.gradient_norm = norm(state.iterate.gradient)
 	state.metrics.step_norm     = abs(α_k) * norm(state.numerics.direction)
-	state.metrics.dist_to_opt   = isnothing(problem.x_opt) ? Inf : norm(state.iterate.x .- problem.x_opt)
 end
 
 

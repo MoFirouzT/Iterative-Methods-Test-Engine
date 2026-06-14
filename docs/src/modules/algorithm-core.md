@@ -1,11 +1,9 @@
-# Algorithm Abstraction & Core Timing
+# Algorithm Abstraction, Core Timing & the Runner
 
 ## Type Hierarchy
 
-Every algorithm, conventional or experimental, is a concrete subtype of
-`IterativeMethod`. The hierarchy separates conventional baselines from the experimental
-family — the methods you are developing and testing in-engine — enabling dispatch and
-experiment-level filtering.
+Every algorithm, conventional or experimental, is a concrete subtype of `IterativeMethod`.
+The hierarchy separates conventional baselines from the experimental family — the methods you are developing and testing in-engine — enabling dispatch and experiment-level filtering.
 
 ```julia
 abstract type IterativeMethod end
@@ -14,9 +12,8 @@ abstract type ExperimentalMethod <: IterativeMethod end
 ```
 
 Each method is a `@kwdef` struct carrying its own fixed hyperparameters.
-**Stopping criteria** are supplied separately at experiment definition time
-(see [Stopping Criteria](@ref)). This keeps the algorithm struct a pure description of the method,
-not of how long to run it.
+**Stopping criteria** are supplied separately at experiment definition time (see [Stopping Criteria](@ref)).
+This keeps the algorithm struct a pure description of the method, not of how long to run it.
 
 ```julia
 @kwdef struct GradientDescent <: ConventionalMethod
@@ -27,9 +24,9 @@ end
 
 ## State Parameter Groups — Composable Modules
 
-A method's state can carry many heterogeneous fields: the current iterate, convergence
-metrics, timing, and references to sub-solver states. The solution is to partition
-state into **reusable, independently typed modules** that compose together.
+A method's state can carry many heterogeneous fields:
+the current iterate, convergence metrics, timing, and references to sub-solver states.
+The solution is to partition state into **reusable, independently typed modules** that compose together.
 
 **Three canonical shared modules** (identical across all methods):
 
@@ -46,7 +43,7 @@ end
     objective     :: Float64 = Inf
     gradient_norm :: Float64 = Inf
     step_norm     :: Float64 = Inf
-    dist_to_opt   :: Float64 = Inf  # ‖x − x*‖; set by runner when x_opt is known
+    dist_to_opt   :: Float64 = Inf
 end
 
 # Per-step core computation time; reset by runner before each step!
@@ -55,7 +52,19 @@ end
 end
 ```
 
-**Method-specific numerics module** (one per concrete method):
+`TimingGroup` is kept separate from `MetricsGroup` even though it holds a single
+field — the reason is categorical, not structural. `MetricsGroup` holds *convergence
+mathematics the algorithm produces* (objective, gradient norm, …); `core_time_ns` is
+a *measurement*, and honest measurement is this framework's whole thesis, so it earns
+its own home rather than being folded into the math. The two also have different
+lifecycles: the runner **resets** `timing` to zero before every `step!`, whereas
+metrics are overwritten in place. (`IterationLog` likewise keeps `core_time_ns`
+distinct from its metric fields.)
+
+**Method-specific numerics module** (one per concrete method). "Numerics" is a
+*naming convention*, not a type: there is no abstract `Numerics` supertype. Each
+method defines its own concrete struct named `<Method>Numerics` (e.g.
+`GradientDescentNumerics`) and stores it in the state's `numerics` field.
 
 ```julia
 # Example for GradientDescent: the descent direction buffer and any
@@ -67,12 +76,10 @@ end
 end
 ```
 
-> **Convention — no field duplication across groups.** A `Numerics` struct must never
-> declare a field already present in a shared group. In particular, do **not** add a
-> `gradient` or `objective` field to `Numerics`; always read and write these through
-> `state.iterate.gradient` and `state.metrics.objective`. If the method needs a
-> *separate* gradient buffer (e.g. for a sub-problem or a previous-step copy), name
-> the field explicitly: `sub_gradient`, `grad_prev`, etc.
+> **Convention — no field duplication across groups.**
+> A numerics struct must never declare a field already present in a shared group.
+> In particular, do **not** add a `gradient` or `objective` field to `Numerics`; always read and write these through `state.iterate.gradient` and `state.metrics.objective`.
+> If the method needs a *separate* gradient buffer (e.g. for a sub-problem or a previous-step copy), name the field explicitly: `sub_gradient`, `grad_prev`, etc.
 
 **Optional sub-solver modules** — embed a concrete sub-solver state directly:
 
@@ -95,50 +102,21 @@ end
 end
 ```
 
-The state struct carries **no logger reference**. The runner injects the logger as an
-explicit parameter to `step!` on every call, keeping algorithm code free of
-logging infrastructure.
+**LOGGING:**
+The state struct carries **no logger reference**.
+The runner injects the logger as an explicit parameter to `step!` on every call, keeping algorithm code free of logging infrastructure.
 
-**Sub-routine state reuse.** When a method uses a nested solver, the outer state
-struct includes a field typed as the sub-solver's concrete state type. However,
-`run_sub_method` **creates and manages a fresh sub-state instance** each time it is
-called in `step!` — the outer state can optionally store the final sub-state for
-inspection, but it is **not used to initialize or control** the sub-run.
+**Sub-routine state reuse.**
+When a method uses a nested solver, the outer state struct includes a field typed as the sub-solver's concrete state type.
+However, `run_sub_method` **creates and manages a fresh sub-state instance** each time it is
+called in `step!` —
+the outer state can optionally store the final sub-state for inspection, but it is **not used to initialize or control** the sub-run.
 
-Each state (outer and sub) has its own independent `TimingGroup`. The sub-solver's
-accumulated `core_time_ns` is reported in `SubResult.core_time_ns` and tracked
-separately from the outer timing.
-
-**Core-time attribution convention (settled by `TrustRegion`).** When an
-outer `step!` runs a sub-solver, the recommended convention is: **fold the inner
-solve's total core time into the outer step's `core_time_ns`** (so cumulative-core
-plots reflect *all* real work), **and** also expose it per-step in the log extras
-(`:inner_core_ns`) for an inner/outer breakdown. Concretely the outer `step!` adds
-`sub.core_time_ns` to `state.timing.core_time_ns` directly — it does **not** wrap
-`run_sub_method` in `@core_timed`, which would wrongly count the inner *wall*
-(scaffolding) time. `TrustRegion` does exactly this, and `test_trust_region.jl`
-asserts `outer.core_time_ns ≥ inner_core_ns > 0`. Per-outer-iteration inner traces
-are attached to each entry's `extras[:sub_logs]` by the outer method (rather than
-relying on `finalize!`, which only attaches the *last* pending sub-log batch).
-
-## `extract_log_entry` — Default Implementation
-
-Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default
-implementation is trivial:
-
-```julia
-function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog
-    IterationLog(
-        iter          = iter,
-        core_time_ns  = state.timing.core_time_ns,
-        objective     = state.metrics.objective,
-        gradient_norm = state.metrics.gradient_norm,
-        step_norm     = state.metrics.step_norm,
-        dist_to_opt   = state.metrics.dist_to_opt,
-    )
-end
-# Methods override this to additionally populate the extras dict.
-```
+Each state (outer and sub) has its own independent `TimingGroup`.
+The sub-solver's accumulated `core_time_ns` is reported in `SubResult.core_time_ns`
+and tracked separately from the outer timing. How an outer step *attributes* that
+inner time to its own clock is a timing rule — see **Timing a nested solve** in the
+Core Timing section below.
 
 ## The Three Dispatch Points
 
@@ -159,13 +137,17 @@ function step!(method::IterativeMethod, state, problem, iter::Int,
 function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog end
 ```
 
+`extract_log_entry` has a trivial default — it copies `state.metrics` and
+`state.timing.core_time_ns` into an `IterationLog` — so a method implements it only to
+add entries to the `extras` dict. That default, and the `IterationLog` shape it
+targets, are documented in [Logging & Verbosity](logging.md).
+
 ## Core Timing — `@core_timed`
 
 Scientific timing measures **only the mathematical kernel** of each step.
 The `@core_timed` macro is the single entry point for this.
-It accumulates elapsed nanoseconds into `state.timing.core_time_ns` and is
-**exception-safe**: if the wrapped expression throws, the elapsed time up to the
-exception is still recorded before the error is re-thrown.
+It accumulates elapsed nanoseconds into `state.timing.core_time_ns` and is **exception-safe**:
+if the wrapped expression throws, the elapsed time up to the exception is still recorded before the error is re-thrown.
 
 ```julia
 """
@@ -189,49 +171,79 @@ macro core_timed(state, expr)
 end
 ```
 
-Usage inside `step!` — the algorithm author controls exactly what counts:
+**What counts.** The rule of thumb: **time the mathematics that produces the next
+iterate; do not time quantities computed only to populate metrics for logging or
+stopping.** A norm is timed when the *update* uses it (a normalized-gradient step
+divides by ‖g‖) and left untimed when it is computed solely for a convergence metric.
+
+**Components self-time; `step!` does not wrap them.** A descent direction
+(`compute_direction`) and a step size (`compute_step_size`) each wrap their own core
+operations in `@core_timed`, so a component with internal bookkeeping — a line
+search's trial loop, a quasi-Newton two-loop recursion — counts only its kernel, not
+its scaffolding. The caller must therefore **not** wrap these calls (that would
+double-count). `grad!` and the iterate update have no such component, so `step!`
+times them directly:
 
 ```julia
 function step!(m::GradientDescent, state, problem, iter, logger, rng)
     @core_timed state begin
-        grad!(state.iterate.gradient, problem.f, state.iterate.x)
-        d = compute_direction(m.direction, state, problem)
-        state.numerics.direction = d
+        grad!(state.iterate.gradient, problem.f, state.iterate.x)   # gradient kernel — timed by step!
     end
 
-    # Step-size rule may itself call @core_timed for its core operations:
-    α = compute_step_size(m.step_size, state, problem, d)
+    d = compute_direction(m.direction, state, problem)   # direction rule self-times
+    state.numerics.direction = d
+
+    α = compute_step_size(m.step_size, state, problem, d) # step-size rule self-times
 
     @core_timed state begin
-        state.iterate.x .+= α .* d
+        state.iterate.x .+= α .* d                        # iterate update — timed by step!
     end
-    state.metrics.step_norm = norm(α .* d)
+    state.metrics.step_norm = norm(α .* d)                # metric only — NOT timed
 end
 ```
 
-Every concrete state struct contains a `TimingGroup` field named `timing`. The runner
-resets `state.timing.core_time_ns = 0` before each `step!` call so the logger always
-sees a single-step measurement.
+**Timing a nested solve.** When a `step!` runs a sub-solver via `run_sub_method`, fold
+the sub-solver's reported core time into the outer step directly —
+`state.timing.core_time_ns += sub.core_time_ns` — and do **not** wrap the
+`run_sub_method` call in `@core_timed`, which would count the sub-run's wall /
+scaffolding time instead of its measured kernel. Each state keeps its own
+`TimingGroup`, so the inner core time also stays available separately for an
+inner/outer breakdown.
+
+Every concrete state struct contains a `TimingGroup` field named `timing`.
+The runner resets `state.timing.core_time_ns = 0` before each `step!` call so the logger always sees a single-step measurement.
 
 ## The Generic Runner
 
-The runner owns the loop. Algorithms never hold a logger reference — the logger is
-passed as an explicit parameter to `step!` on every iteration. A `StoppingCriteria`
-object controls termination (see [Stopping Criteria](@ref)). If `problem.x_opt` is set, the runner
-computes `dist_to_opt` after each step and stores it in `state.metrics` before
-`extract_log_entry` is called, so algorithms remain unaware of the optimal point.
-Debug checks run after logging, before the stopping check.
+The runner owns the loop. *"The runner"* (`run_method`) is the per-method iteration
+loop that drives **one** method to termination — not to be confused with **a run**,
+one seeded repetition of a whole experiment indexed by `run_id` (see
+[Experiment Orchestration](orchestration.md)).
+
+Algorithms never hold a logger reference — the logger is passed as an explicit
+parameter to `step!` on every iteration. A `StoppingCriteria` object controls
+termination (see [Stopping Criteria](@ref)). If `problem.x_opt` is set, the runner
+computes `dist_to_opt` — for the initial snapshot and after each step — and stores it
+in `state.metrics` before `extract_log_entry`, so algorithms never read
+`problem.x_opt`. Debug checks run after logging, before the stopping check. A `step!`
+error is **not** caught: it propagates out of `run_method` as a clean failure.
 
 ```julia
 function run_method(method   :: IterativeMethod,
                     problem,
                     criteria :: StoppingCriteria,
                     logger   :: Logger,
-                    rng      :: AbstractRNG,
-                    debug    :: DebugConfig = DebugConfig())
+                    rng      :: AbstractRNG;
+                    debug    = nothing)   # untyped: core.jl is loaded before debug.jl
 
     state = init_state(method, problem, rng)
+
+    # Runner owns dist_to_opt — algorithms never access problem.x_opt.
+    if !isnothing(problem.x_opt)
+        state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
+    end
     log_init!(logger, method, state)
+
     iter       = 0
     prev_entry = nothing
 
@@ -239,28 +251,22 @@ function run_method(method   :: IterativeMethod,
         iter += 1
         state.timing.core_time_ns = 0           # reset per-step accumulator
 
-        local entry
-        try
-            step!(method, state, problem, iter, logger, rng)
-            # ↑ logger and rng forwarded; only this call contributes to core_time_ns
+        step!(method, state, problem, iter, logger, rng)   # logger & rng forwarded
+        # ↑ an error here propagates out (clean failure, not a silent fallback)
 
-            # Runner computes dist_to_opt — algorithms never access problem.x_opt
-            if !isnothing(problem.x_opt)
-                state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
-            end
-
-            entry = extract_log_entry(method, state, iter)
-            log_iter!(logger, entry)
-            run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
-
-        catch e
-            log_event!(logger, :step_error, iter)
-            break
+        if !isnothing(problem.x_opt)
+            state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
         end
 
+        entry = extract_log_entry(method, state, iter)
+        log_iter!(logger, entry)
+
+        if debug !== nothing && debug.enabled
+            run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
+        end
         prev_entry = entry
 
-        # Stopping check happens AFTER logging — never timed
+        # Stopping check happens AFTER logging — never timed.
         stop, reason = should_stop(criteria, state, iter, logger)
         if stop
             log_event!(logger, reason, iter)
@@ -273,4 +279,3 @@ end
 ```
 
 ---
-

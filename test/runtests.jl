@@ -13,7 +13,10 @@ include(joinpath(@__DIR__, "test_problem_contract.jl"))
 struct DummyProblem
     n::Int
     x0::Vector{Float64}
+    x_opt::Union{Nothing,Vector{Float64}}
 end
+# Back-compatible 2-arg form; the runner now reads problem.x_opt (no known optimum here).
+DummyProblem(n::Int, x0::Vector{Float64}) = DummyProblem(n, x0, nothing)
 
 f(problem::DummyProblem, x::Vector{Float64}) = sum(abs2, x)
 

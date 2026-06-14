@@ -29,6 +29,9 @@ abstract type Preconditioner end
 
 Apply the inverse preconditioner to the gradient: return `M⁻¹·g`. The
 preconditioned descent direction is then `−M⁻¹·g`.
+
+A pure kernel (no internal control flow): `PreconditionedGradient.step!` times it
+inside `@core_timed`, like `grad!`, rather than the kernel self-timing.
 """
 function precondition end
 

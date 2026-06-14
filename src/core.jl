@@ -6,6 +6,7 @@ dispatch points, `@core_timed`, and the generic `run_method` loop.
 """
 
 using Random: AbstractRNG, Xoshiro, rand
+using LinearAlgebra: norm
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -288,15 +289,30 @@ function run_method(method::IterativeMethod, problem, criteria, logger, rng::Abs
                     debug = nothing)
 	state = init_state(method, problem, rng)
 
+	# The runner owns dist_to_opt: when the problem carries a known optimum, the
+	# runner fills state.metrics.dist_to_opt — here for the iter=0 snapshot and
+	# after each step! below. Algorithms therefore never read problem.x_opt;
+	# DistanceToOptimal and the dist_to_opt log column activate automatically.
+	if !isnothing(problem.x_opt)
+		state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
+	end
+
 	log_init!(logger, method, state)
 	iter = 0
 	prev_entry = nothing
 
 	while true
 		iter += 1
+		state.timing.core_time_ns = 0           # reset per-step accumulator
 
-		state.timing.core_time_ns = 0
 		step!(method, state, problem, iter, logger, rng)
+		# step! errors propagate out of run_method by design — a clean failure,
+		# not a silent fallback (see test_preconditioned_gradient.jl).
+
+		# Runner computes dist_to_opt — algorithms never access problem.x_opt.
+		if !isnothing(problem.x_opt)
+			state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
+		end
 
 		entry = extract_log_entry(method, state, iter)
 		log_iter!(logger, entry)
@@ -304,13 +320,14 @@ function run_method(method::IterativeMethod, problem, criteria, logger, rng::Abs
 		# Debug checks fire after the log entry is recorded so the check has
 		# access to a consistent (entry, prev_entry, state) triple. `debug`
 		# is left untyped here to avoid a hard dependency from src/core.jl
-		# on src/debug.jl; the orchestrator passes a `DebugConfig` when it
-		# wants checks to run, `nothing` otherwise.
+		# on src/debug.jl (included later); the orchestrator passes a
+		# `DebugConfig` when it wants checks to run, `nothing` otherwise.
 		if debug !== nothing && debug.enabled
 			run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
 		end
 		prev_entry = entry
 
+		# Stopping check happens AFTER logging — never timed.
 		stop, reason = should_stop(criteria, state, iter, logger)
 		if stop
 			log_event!(logger, reason, iter)

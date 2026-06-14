@@ -131,21 +131,18 @@ one that needs the full matrix calls `materialize`;
 one that needs the diagonal (e.g. Jacobi preconditioning) calls `diagonal`.
 Each concrete `Hessian` subtype declares which of these it can supply — `OperatorHessian`, for instance, offers only `apply`, and consumers detect the absence rather than forcing a materialization.
 
-The same hierarchy is designed to admit stateful quasi-Newton approximations (BFGS, SR1, L-BFGS) — see [Stretch Goals](../stretch-goals.md).
+The same hierarchy is designed to admit stateful quasi-Newton approximations (BFGS, SR1,L-BFGS) — see [Stretch Goals](../stretch-goals.md).
 
 ## ProblemSpec — Declarative Construction
 
-Declarative construction is one of the framework's core principles. A problem is not
-built by calling a function and capturing the result — it is *described* by a plain,
-serializable value, a `ProblemSpec`, carried inside the `ExperimentConfig`. Because
-the description is data, **defining, running, saving, and reloading an experiment are
-independent operations**, and the whole run is reproducible: the single
-`ExperimentConfig.seed` derives the `rng`, and `make_problem(spec, rng)` turns the
-spec into a concrete `Problem` deterministically.
+Declarative construction is one of the framework's core principles.
+A problem is not built by calling a function and capturing the result — it is *described* by a plain, serializable value, a `ProblemSpec`, carried inside the `ExperimentConfig`.
+Because the description is data, **defining, running, saving, and reloading an experiment are independent operations**, and the whole run is reproducible:
+the single `ExperimentConfig.seed` derives the `rng`, and `make_problem(spec, rng)` turns the spec into a concrete `Problem` deterministically.
 
-This is also why every registry keys on a `Symbol`, never a raw `Function`: a symbol
-survives a JLD2 round-trip, a closure does not. A spec records *which* registered
-builder to call, not the builder itself.
+This is also why every registry keys on a `Symbol`, never a raw `Function`:
+a symbol survives a JLD2 round-trip, a closure does not.
+A spec records *which* registered builder to call, not the builder itself.
 
 ```julia
 abstract type ProblemSpec end
@@ -170,8 +167,7 @@ make_problem(s::AnalyticProblem, rng::AbstractRNG) =
     ANALYTIC_PROBLEMS[s.name](s.params, rng)
 ```
 
-Content self-registers at load time, e.g.
-`register_analytic_problem!(:rosenbrock, (params, rng) -> ...)`.
+Content self-registers at load time, e.g. `register_analytic_problem!(:rosenbrock, (params, rng) -> ...)`.
 
 ### Data-driven problems
 

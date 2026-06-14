@@ -63,7 +63,7 @@ The framework is built on four Julia-native principles:
 
 Modules 2 and 5 are co-located in `core.jl` to avoid circular includes: both depend on
 the same base types and the nested infrastructure (`run_sub_method`) calls `init_state`
-and `step!` defined in [Algorithm Abstraction & Core Timing](@ref).
+and `step!` defined in [Algorithm Abstraction, Core Timing & the Runner](@ref).
 
 ---
 
