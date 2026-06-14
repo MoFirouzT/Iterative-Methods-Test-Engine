@@ -121,12 +121,13 @@ Declarative experiment definition.
 @kwdef struct ExperimentConfig
 	name::String
 	problem_spec::ProblemSpec
-	# Either `conventional_methods` (the Stages 1–4 imperative path) or
-	# `variant_grids` (Stage 5+'s VariantGrid orchestrator path) — at least one
-	# must produce a non-empty method list, but neither is individually
-	# required, so both default to empty.
-	conventional_methods::Vector{ConventionalMethod} = ConventionalMethod[]
-	experimental_methods::Vector{ExperimentalMethod} = ExperimentalMethod[]
+	# Methods are split by their comparison **role**, not by type: a method is a
+	# `baseline` (reference) or `experimental` (under study) purely by which list
+	# it is placed in. `variant_grids` route by each grid's own `role`. None is
+	# individually required (at least one must produce a non-empty method list),
+	# so all default to empty.
+	baseline_methods::Vector{IterativeMethod} = IterativeMethod[]
+	experimental_methods::Vector{IterativeMethod} = IterativeMethod[]
 	variant_grids::Vector{VariantGrid} = VariantGrid[]
 	stopping_criteria::StoppingCriterion = stop_when_any(
 		MaxIterations(n = 1000),
@@ -195,36 +196,33 @@ _method_name(method::IterativeMethod) = string(typeof(method))
 """
 	resolve_methods(config::ExperimentConfig)
 
-Returns `(conventional, experimental)` where each element is a vector of
-`(name, method)` pairs. Variant grids are expanded and each produced
-`VariantSpec` is routed into the conventional or experimental bucket based
-on its concrete `method` type — a `VariantGrid` over `GradientDescent`
-step-size variants produces conventional methods; a grid over an
-`ExperimentalMethod` produces experimental ones.
+Returns `(baseline, experimental)` where each element is a vector of
+`(name, method)` pairs. Direct methods are placed by which config list they
+came from (`baseline_methods` / `experimental_methods`); each variant grid is
+expanded and all of its produced specs are routed into the bucket named by the
+grid's `role` (`:baseline` or `:experimental`). Role is experiment-level
+metadata, never inferred from the method's type.
 """
 function resolve_methods(config::ExperimentConfig)
-	conventional = Tuple{String,ConventionalMethod}[
-		(_method_name(method), method) for method in config.conventional_methods
+	baseline = Tuple{String,IterativeMethod}[
+		(_method_name(method), method) for method in config.baseline_methods
 	]
 
-	experimental = Tuple{String,ExperimentalMethod}[
+	experimental = Tuple{String,IterativeMethod}[
 		(_method_name(method), method) for method in config.experimental_methods
 	]
 
 	for grid in config.variant_grids
+		bucket = grid.role === :baseline     ? baseline     :
+				 grid.role === :experimental ? experimental :
+				 throw(ArgumentError("VariantGrid role must be :baseline or " *
+					":experimental; got :$(grid.role)"))
 		for spec in expand(grid)
-			if spec.method isa ConventionalMethod
-				push!(conventional, (spec.name, spec.method))
-			elseif spec.method isa ExperimentalMethod
-				push!(experimental, (spec.name, spec.method))
-			else
-				throw(ArgumentError("VariantSpec method must be a ConventionalMethod " *
-					"or ExperimentalMethod; got $(typeof(spec.method))"))
-			end
+			push!(bucket, (spec.name, spec.method))
 		end
 	end
 
-	return conventional, experimental
+	return baseline, experimental
 end
 
 
@@ -303,9 +301,9 @@ function run_experiment(config::ExperimentConfig,
 	exp_path = next_experiment_path(log_root)
 	mkpath(exp_path)
 
-	conventional, experimental = resolve_methods(config)
+	baseline, experimental = resolve_methods(config)
 	all_methods = vcat(
-		Tuple{String,IterativeMethod}[(name, method) for (name, method) in conventional],
+		Tuple{String,IterativeMethod}[(name, method) for (name, method) in baseline],
 		Tuple{String,IterativeMethod}[(name, method) for (name, method) in experimental],
 	)
 

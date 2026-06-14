@@ -50,7 +50,7 @@ hessian(m::QuadraticModel, p::Vector{Float64})::Hessian = m.H
 # negative curvature, or hitting the trust-region boundary.
 # ═════════════════════════════════════════════════════════════════════════
 
-@kwdef struct SteihaugCG <: ConventionalMethod
+@kwdef struct SteihaugCG <: IterativeMethod
 	Δ::Float64 = 1.0       # trust radius for this solve
 end
 
@@ -177,7 +177,7 @@ end
 # per-step via the log extras — see trust_region.md / docs/src/modules/persistence.md.
 # ═════════════════════════════════════════════════════════════════════════
 
-@kwdef struct TrustRegion <: ConventionalMethod
+@kwdef struct TrustRegion <: IterativeMethod
 	Δ0::Float64        = 1.0       # initial trust radius
 	Δmax::Float64      = 100.0     # max trust radius
 	η::Float64         = 0.1       # accept the step when ρ > η

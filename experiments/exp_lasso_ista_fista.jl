@@ -1,7 +1,7 @@
 # experiments/exp_lasso_ista_fista.jl
 #
 # Portfolio experiment: lasso — the flagship.
-# ISTA vs FISTA (ProximalGradient with NoMinorUpdate vs NesterovStep) on the
+# ISTA vs FISTA (ProximalGradient with NoExtrapolation vs NesterovStep) on the
 # sparse-recovery lasso  min_x ½‖Ax−b‖² + λ‖x‖₁, at the textbook step γ = 1/L.
 #
 # Two-panel money figure:
@@ -40,8 +40,8 @@ const K_PLOT = 200       # iterations shown / run for the comparison
 const K_REF  = 20_000    # long FISTA reference run to estimate f*
 
 build_lasso_methods(L) = [
-    "ISTA"  => ProximalGradient(step_size = FixedStep(α = 1/L), minor_update = NoMinorUpdate()),
-    "FISTA" => ProximalGradient(step_size = FixedStep(α = 1/L), minor_update = NesterovStep()),
+    "ISTA"  => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NoExtrapolation()),
+    "FISTA" => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NesterovStep()),
 ]
 
 # ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ function run_lasso(; seed::Int = SEED, run_id::Int = RUN_ID,
     end
 
     # f* from a long FISTA reference run (NOT f(x_star) — see lasso.md).
-    fref    = ProximalGradient(step_size = FixedStep(α = 1/L), minor_update = NesterovStep())
+    fref    = ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NesterovStep())
     lg_ref  = make_logger("ref", run_id, "", VerbosityConfig(level = SILENT))
     res_ref = run_method(fref, problem, MaxIterations(n = K_ref), lg_ref,
                          Xoshiro(hash((seed, run_id, :ref))))

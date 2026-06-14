@@ -65,7 +65,7 @@ function build_config()
         name              = "stage3_rosenbrock_gd_stepsize_sweep",
         problem_spec      = AnalyticProblem(name = :rosenbrock,
                                             params = (rho = 100.0, dim = 2)),
-        conventional_methods = [m for (_, m) in build_methods()],
+        baseline_methods = [m for (_, m) in build_methods()],
         stopping_criteria = stop_when_any(
             MaxIterations(n   = 2000),
             GradientTolerance(tol = 1e-9),

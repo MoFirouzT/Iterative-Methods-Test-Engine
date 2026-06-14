@@ -5,11 +5,11 @@ using Random: AbstractRNG
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
 import .TestEngine: init_state, step!   # engine dispatch points these tests extend
 
-@kwdef struct TinyGD <: ConventionalMethod
+@kwdef struct TinyGD <: IterativeMethod
     step_size::StepSize = FixedStep(α = 0.2)
 end
 
-@kwdef struct TinyExp <: ExperimentalMethod
+@kwdef struct TinyExp <: IterativeMethod
     step_size::StepSize = FixedStep(α = 0.2)
 end
 
@@ -60,7 +60,7 @@ end
     cfg_resolve = ExperimentConfig(
         name = "resolve check",
         problem_spec = quad_spec,
-        conventional_methods = [TinyGD()],
+        baseline_methods = [TinyGD()],
         variant_grids = [VariantGrid(
             base_name = "TinyExp",
             axes = [VariantAxis(:step_size, FixedStep(α = 0.1) => "s1", FixedStep(α = 0.2) => "s2")],
@@ -69,16 +69,16 @@ end
         n_runs = 1,
     )
 
-    conventional, experimental = resolve_methods(cfg_resolve)
-    @test length(conventional) == 1
-    @test length(experimental) == 2
-    @test conventional[1][1] == "TinyGD"
+    baseline, experimental = resolve_methods(cfg_resolve)
+    @test length(baseline) == 1
+    @test length(experimental) == 2          # grid defaults to role = :experimental
+    @test baseline[1][1] == "TinyGD"
     @test startswith(experimental[1][1], "TinyExp[")
 
     cfg_run = ExperimentConfig(
         name = "module5 run",
         problem_spec = quad_spec,
-        conventional_methods = [TinyGD()],
+        baseline_methods = [TinyGD()],
         experimental_methods = [TinyExp()],
         stopping_criteria = MaxIterations(n = 3),
         method_criteria = Dict("TinyGD" => MaxIterations(n = 1)),
@@ -111,7 +111,7 @@ end
     cfg_default = ExperimentConfig(
         name = "default method_criteria",
         problem_spec = quad_spec,
-        conventional_methods = [TinyGD()],
+        baseline_methods = [TinyGD()],
         n_runs = 1,
     )
     @test isempty(cfg_default.method_criteria)

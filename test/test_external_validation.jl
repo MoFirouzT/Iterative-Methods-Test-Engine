@@ -41,7 +41,7 @@ _extlog() = TestEngine.make_logger("ext", 1, "", VerbosityConfig(level = SILENT)
         @test norm(x_normal - p.x_opt) < 1e-6 # consistent system ⇒ equals the planted x*
 
         # Our FISTA (ProximalGradient, no regularizer ⇒ accelerated GD on the smooth f).
-        fista = ProximalGradient(step_size = FixedStep(α = 1 / L), minor_update = NesterovStep())
+        fista = ProximalGradient(step_size = FixedStep(α = 1 / L), extrapolation = NesterovStep())
         res = run_method(fista, p,
                          stop_when_any(MaxIterations(n = 50_000), GradientTolerance(tol = 1e-10)),
                          _extlog(), Xoshiro(3))
@@ -70,9 +70,9 @@ _extlog() = TestEngine.make_logger("ext", 1, "", VerbosityConfig(level = SILENT)
         obj(x) = total_objective(p, x)        # ½‖Ax−b‖² + λ‖x‖₁
 
         solve_mine(mu) = run_method(
-            ProximalGradient(step_size = FixedStep(α = 1 / L), minor_update = mu),
+            ProximalGradient(step_size = FixedStep(α = 1 / L), extrapolation = mu),
             p, MaxIterations(n = 50_000), _extlog(), Xoshiro(3)).final_state.iterate.x
-        x_ista  = solve_mine(NoMinorUpdate())
+        x_ista  = solve_mine(NoExtrapolation())
         x_fista = solve_mine(NesterovStep())
 
         # Reference solvers on the same instance.

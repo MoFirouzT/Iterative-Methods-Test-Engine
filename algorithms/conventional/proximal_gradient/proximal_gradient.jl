@@ -1,9 +1,9 @@
 """
     Proximal Gradient (ISTA / FISTA)
 
-A conventional composite-objective method for  min_x f(x) + g(x)  with `f`
-smooth and `g` proximable. Composes a `StepSize` rule with a `MinorUpdate`
-slot: `NoMinorUpdate` ⇒ ISTA, `NesterovStep` ⇒ FISTA. With a zero / absent
+A composite-objective method for  min_x f(x) + g(x)  with `f`
+smooth and `g` proximable. Composes a `StepSize` rule with a `Extrapolation`
+slot: `NoExtrapolation` ⇒ ISTA, `NesterovStep` ⇒ FISTA. With a zero / absent
 regularizer it reduces to (accelerated) gradient descent on `f`.
 
 See `proximal_gradient.md` for the full spec.
@@ -20,15 +20,15 @@ import .TestEngine: init_state, step!, extract_log_entry   # engine dispatch poi
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-    ProximalGradient <: ConventionalMethod
+    ProximalGradient <: IterativeMethod
 
 Proximal-gradient method. Fields:
 - step_size    :: StepSize    — step-size rule (use `FixedStep(α = 1/L)`).
-- minor_update :: MinorUpdate — `NoMinorUpdate()` ⇒ ISTA, `NesterovStep()` ⇒ FISTA.
+- extrapolation :: Extrapolation — `NoExtrapolation()` ⇒ ISTA, `NesterovStep()` ⇒ FISTA.
 """
-@kwdef struct ProximalGradient <: ConventionalMethod
+@kwdef struct ProximalGradient <: IterativeMethod
 	step_size::StepSize       = FixedStep()
-	minor_update::MinorUpdate = NoMinorUpdate()
+	extrapolation::Extrapolation = NoExtrapolation()
 end
 
 
@@ -127,7 +127,7 @@ function step!(method::ProximalGradient, state::ProximalGradientState,
 	#    ISTA: y = x. FISTA: y = x + β(x − x_prev). One gradient eval per step.
 	local y, g
 	@core_timed state begin
-		y = extrapolate(method.minor_update, state.iterate.x, state.iterate.x_prev, nu.t)
+		y = extrapolate(method.extrapolation, state.iterate.x, state.iterate.x_prev, nu.t)
 		g = grad(problem.f, y)                          # ∇f(y)
 		nu.direction = -g                               # for step-size rules; FixedStep ignores
 	end
@@ -155,7 +155,7 @@ function step!(method::ProximalGradient, state::ProximalGradientState,
 	end
 
 	# ── Advance FISTA momentum (no-op for ISTA) ───────────────────────────────
-	nu.t = advance_momentum(method.minor_update, nu.t)
+	nu.t = advance_momentum(method.extrapolation, nu.t)
 
 	# ── Bookkeeping (untimed) ─────────────────────────────────────────────────
 	#    Report the smooth-part gradient at the evaluation point (no extra eval).

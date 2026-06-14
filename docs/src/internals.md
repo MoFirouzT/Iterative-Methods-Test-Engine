@@ -35,7 +35,7 @@ TestEngine.jl/
 │   │
 │   ├── variants.jl       # VariantAxis, VariantGrid, VariantSpec; expand(); ABBREVIATIONS;
 │   │                     #   register_abbreviation!  (the method/component *vocabulary* —
-│   │                     #   StepSize, DescentDirection, MinorUpdate, HessianApprox — is
+│   │                     #   StepSize, DescentDirection, Extrapolation, HessianApprox — is
 │   │                     #   content under algorithms/components/, not here)
 │   │
 │   ├── logging.jl        # IterationLog (incl. dist_to_opt); Logger; log_init!,
@@ -67,7 +67,7 @@ TestEngine.jl/
 │   ├── components/               #   shared method-construction vocabulary (extend engine)
 │   │   ├── descent_directions.{md,jl}   # DescentDirection, SteepestDescent, compute_direction
 │   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
-│   │   ├── minor_updates.jl             # MinorUpdate + NoMinorUpdate/Momentum/Nesterov
+│   │   ├── extrapolation.jl             # Extrapolation + NoExtrapolation/Momentum/Nesterov
 │   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
 │   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
 │   ├── conventional/
@@ -144,8 +144,8 @@ TestEngine.jl/
 │         run_experiment(config, log_root)                                │
 │                  │                                                      │
 │         next_experiment_path()  →  logs/YYYYMMDD/NNN/ (atomic mkdir)   │
-│         resolve_methods()       →  routes by ConventionalMethod /      │
-│                                     ExperimentalMethod                  │
+│         resolve_methods()       →  routes by role metadata             │
+│                                     (baseline / experimental)          │
 │                  │                                                      │
 │   ┌──── WARM-UP (once per run, if configured) ──────────────────────┐   │
 │   │  rng_warmup = Xoshiro(hash((seed, run_id, :warmup)))            │   │
@@ -225,7 +225,7 @@ TestEngine.jl/
 | Logger passed as explicit `step!` parameter — not stored in state | Algorithm code is pure: no logging infrastructure in state structs; logger strategy controlled entirely by the runner |
 | `step!(method, state, problem, iter, logger, rng)` extended signature | Logger and rng are injected by the runner and forwarded by algorithms to `run_sub_method` — clean, testable, no hidden state |
 | Four canonical state groups (`IterateGroup`, `MetricsGroup`, `TimingGroup`, method-specific `Numerics`) | Clean separation of concerns; sub-routines can receive independent groups; `extract_log_entry` default is trivial; no field duplication permitted |
-| `VariantGrid.builder` returns `IterativeMethod` (not `ExperimentalMethod`) | Grids work uniformly for conventional and experimental methods; `resolve_methods` routes each produced method to the right bucket based on its concrete type |
+| `VariantGrid.builder` returns `IterativeMethod`; the grid carries a `role` | Grids work uniformly for any method; `resolve_methods` routes a grid's expanded specs to the baseline or experimental bucket by the grid's `role`, not by method type |
 | `SubRunConfig{M}` parametric over method type | Type-stable `init_state` → `SubResult{S}` with concrete `S` → type-stable `final_state` access in `step!` |
 | Child RNG `Xoshiro(rand(outer_rng, UInt64))` in `run_sub_method` | Deterministic, reproducible sub-runs; independent of outer rng's future draws |
 | Per-method RNG `Xoshiro(hash((seed, run_id, name)))` | Adding or removing a method does not alter any other method's RNG stream; full between-run and between-method independence |

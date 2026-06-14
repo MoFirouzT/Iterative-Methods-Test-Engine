@@ -62,6 +62,7 @@ const FULL_GRID = VariantGrid(
     axes      = [STEP_AXIS],
     builder   = (; step_size, kwargs...) ->
                     GradientDescent(direction=SteepestDescent(), step_size=step_size),
+    role = :baseline,
 )
 
 const ROSEN = AnalyticProblem(name=:rosenbrock,

@@ -2,14 +2,14 @@
 #
 # Portfolio experiment: preconditioning — the signature workflow.
 # Define ONE experimental method (PreconditionedGradient), sweep its variants in
-# a VariantGrid, and compare against a conventional baseline — all in a single
-# `run_experiment`. This is the first exercise of:
-#   • the experimental method bucket + dual routing in resolve_methods,
+# a VariantGrid (role = :experimental), and compare against a baseline — all in a
+# single `run_experiment`. This is the first exercise of:
+#   • the experimental bucket + role-based dual routing in resolve_methods,
 #   • a genuine ≥2-axis VariantGrid Cartesian product,
 #   • DiagonalHessian (via the separable quadratic) and the Jacobi preconditioner.
 #
 # Grid: preconditioner ∈ {Identity, Jacobi} × step_size ∈ {Fixed, Armijo, Cauchy}
-# (2×3 = 6 experimental variants) + a conventional GradientDescent baseline.
+# (2×3 = 6 experimental variants) + a GradientDescent baseline.
 #
 # step-size axis note: Fixed/Armijo/Cauchy all compose with an arbitrary descent
 # direction (Cauchy = exact line search ALONG d). BarzilaiBorwein is deliberately
@@ -42,7 +42,7 @@ register_abbreviation!("Fixed",    "Fix")
 register_abbreviation!("Cauchy",   "Cau")   # "Armijo" ↦ "Arm" already registered
 
 # ---------------------------------------------------------------------------
-# Config: the VariantGrid + a conventional baseline
+# Config: the VariantGrid + a baseline
 # ---------------------------------------------------------------------------
 
 precond_grid() = VariantGrid(
@@ -58,6 +58,7 @@ precond_grid() = VariantGrid(
     ],
     builder = (; preconditioner, step_size) ->
         PreconditionedGradient(preconditioner = preconditioner, step_size = step_size),
+    role = :experimental,
 )
 
 function precond_config()
@@ -65,7 +66,7 @@ function precond_config()
         name = "exp_precond_grid",
         problem_spec = RandomProblem(name = :separable_quadratic,
                                      params = (n = PRECOND_N, condition_number = PRECOND_KAPPA)),
-        conventional_methods = ConventionalMethod[GradientDescent(step_size = ArmijoLS())],
+        baseline_methods = IterativeMethod[GradientDescent(step_size = ArmijoLS())],
         variant_grids = VariantGrid[precond_grid()],
         stopping_criteria = stop_when_any(MaxIterations(n = PRECOND_CAP),
                                           DistanceToOptimal(tol = 1e-8)),
@@ -79,14 +80,14 @@ end
 # ---------------------------------------------------------------------------
 
 function validate_routing(config)
-    conventional, experimental = resolve_methods(config)
-    conv_names = [n for (n, _) in conventional]
-    exp_names  = [n for (n, _) in experimental]
+    baseline, experimental = resolve_methods(config)
+    baseline_names = [n for (n, _) in baseline]
+    exp_names      = [n for (n, _) in experimental]
 
-    @info "resolve_methods buckets" conventional=conv_names n_experimental=length(exp_names)
-    # The GradientDescent baseline → conventional; all 6 PreconditionedGradient
-    # variants → experimental. This is the first real exercise of the dual routing.
-    @assert conv_names == ["GradientDescent"] "baseline not routed to conventional: $conv_names"
+    @info "resolve_methods buckets" baseline=baseline_names n_experimental=length(exp_names)
+    # The GradientDescent baseline → baseline bucket; all 6 PreconditionedGradient
+    # variants → experimental (the grid's role). The first exercise of role routing.
+    @assert baseline_names == ["GradientDescent"] "baseline not routed to baseline bucket: $baseline_names"
     @assert length(exp_names) == 6 "expected 6 experimental variants, got $(length(exp_names))"
     @assert all(occursin("PreconditionedGradient", n) for n in exp_names)
 
@@ -98,7 +99,7 @@ function validate_routing(config)
         @assert expected in shorts "missing short-name $expected in $(sort(collect(shorts)))"
     end
     @info "grid expansion" short_names=sort(collect(shorts))
-    return conventional, experimental
+    return baseline, experimental
 end
 
 # ---------------------------------------------------------------------------
@@ -116,7 +117,7 @@ function _downsample(xs, ys; n = 400)
     return (xs[idx], ys[idx])
 end
 
-function plot_precond(results::Dict, conventional, experimental;
+function plot_precond(results::Dict, baseline, experimental;
                        outpath::String = "figures/precond_grid.png")
     fig = Figure(size = (980, 660))
     ax  = Axis(fig[1, 1], xlabel = "iteration k", ylabel = "f(xₖ) − f*",
@@ -138,8 +139,8 @@ function plot_precond(results::Dict, conventional, experimental;
                   occursin("step_size=Armijo", name) ? "Armijo" : "Cauchy"
         plot_curve!(name, PRECOND_COLOR[precond], STEP_STYLE[step])
     end
-    # conventional baseline
-    plot_curve!(conventional[1][1], PRECOND_COLOR["baseline"], :dashdot)
+    # baseline
+    plot_curve!(baseline[1][1], PRECOND_COLOR["baseline"], :dashdot)
 
     axislegend(ax; position = :lb, framevisible = true, nbanks = 2, labelsize = 11)
     mkpath(dirname(outpath)); save(outpath, fig)
@@ -174,11 +175,11 @@ end
 
 function main()
     config = precond_config()
-    conventional, experimental = validate_routing(config)
+    baseline, experimental = validate_routing(config)
     result = run_experiment(config)
     results = result.run_results[1].method_results
     validate_iters(results, experimental)
-    plot_precond(results, conventional, experimental)
+    plot_precond(results, baseline, experimental)
     return result
 end
 

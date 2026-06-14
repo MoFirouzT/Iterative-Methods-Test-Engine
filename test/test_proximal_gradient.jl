@@ -38,7 +38,7 @@ end
     L = opnorm(M)^2
     prob_smooth = Problem(LeastSquares(LeastSquaresKernel(M, b)), zeros(n); x_opt = xopt)
 
-    ista_smooth = ProximalGradient(step_size = FixedStep(α = 1/L), minor_update = NoMinorUpdate())
+    ista_smooth = ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NoExtrapolation())
     res = _run_pg(ista_smooth, prob_smooth, 5000)
     # With no regularizer the prox step is the identity, so this IS gradient
     # descent on the smooth part and must reach the unique minimizer.
@@ -46,7 +46,7 @@ end
     @test res.final_state.metrics.objective < 1e-9
 
     # FISTA on the same smooth problem must reach the minimizer at least as fast.
-    fista_smooth = ProximalGradient(step_size = FixedStep(α = 1/L), minor_update = NesterovStep())
+    fista_smooth = ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NesterovStep())
     res_f = _run_pg(fista_smooth, prob_smooth, 5000)
     @test norm(res_f.final_state.iterate.x .- xopt) < 1e-5
 
@@ -57,8 +57,8 @@ end
     Ll = prob.meta[:L]
     @test length(prob.gs) == 1 && prob.gs[1] isa L1Norm
 
-    ista  = ProximalGradient(step_size = FixedStep(α = 1/Ll), minor_update = NoMinorUpdate())
-    fista = ProximalGradient(step_size = FixedStep(α = 1/Ll), minor_update = NesterovStep())
+    ista  = ProximalGradient(step_size = FixedStep(α = 1/Ll), extrapolation = NoExtrapolation())
+    fista = ProximalGradient(step_size = FixedStep(α = 1/Ll), extrapolation = NesterovStep())
 
     K = 150
     ri = _run_pg(ista, prob, K)

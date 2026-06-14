@@ -1,15 +1,20 @@
 # Extension Guide
 
-## Adding a new conventional baseline
+## Adding a new method
 
-Create `algorithms/conventional/<name>/<name>.jl`. Define the struct, implement
-`init_state` (using `IterateGroup`, `MetricsGroup`, `TimingGroup`), `step!` with
-the full signature `step!(method, state, problem, iter, logger, rng)` (use
+Create `algorithms/<group>/<name>/<name>.jl`, where `<group>` is `conventional` or
+`experimental` — that directory split is purely organizational; a method's
+comparison role is **not** encoded in its type. Define the struct as a subtype of
+`IterativeMethod`, implement `init_state` (using `IterateGroup`, `MetricsGroup`,
+`TimingGroup`), `step!` with the full signature
+`step!(method, state, problem, iter, logger, rng)` (use
 `@core_timed state begin ... end` around the kernel), and `extract_log_entry`.
-Add it to an `ExperimentConfig`. The runner, logger, stopping criteria, and plots
-all pick it up automatically.
+Then declare its **role** when you assemble the experiment: list it under
+`baseline_methods` or `experimental_methods` in an `ExperimentConfig`, or build a
+`VariantGrid` of it with the matching `role` (`:baseline` / `:experimental`). The
+runner, logger, stopping criteria, and plots all pick it up automatically.
 
-Before writing any code, create `algorithms/conventional/<name>/<name>.md`
+Before writing any code, create `algorithms/<group>/<name>/<name>.md`
 following the structure of `algorithms/conventional/gradient_descent/gradient_descent.md`:
 problem statement, iteration formula, Julia structs, `init_state` / `step!` /
 `extract_log_entry` contracts, and a full variable mapping table. If the method

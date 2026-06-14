@@ -7,14 +7,14 @@
 # entry point — `run_experiment` — rather than a hand-rolled loop. The same five
 # GradientDescent step-size variants from Stage 1 are defined here via a single
 # VariantAxis on the `:step_size` parameter, expanded by the grid engine, routed
-# into the conventional bucket by `resolve_methods`, and run through the
-# orchestrator.
+# into the baseline bucket by `resolve_methods` (the grid declares
+# `role = :baseline`), and run through the orchestrator.
 #
 # Exercises
 #   * VariantAxis, VariantGrid, expand, VariantSpec (Cartesian product +
 #     auto-naming).
 #   * ABBREVIATIONS registry + register_abbreviation!.
-#   * resolve_methods routing by concrete IterativeMethod type.
+#   * resolve_methods routing by the grid's declared role.
 #   * run_experiment's deterministic per-(seed, run_id, name) rng derivation.
 #   * n_linesearch_evals accounting inside Armijo's backtracking loop.
 #   * per-iter core_time_ns accumulation in Logger.total_core_ns.
@@ -64,8 +64,8 @@ register_abbreviation!("BarzilaiBorwein", "BB")
 #
 # Single axis along the :step_size parameter. The same five values used in
 # Stage 1, expressed declaratively. expand(grid) produces 5 VariantSpec
-# instances; resolve_methods sees each .method isa ConventionalMethod and
-# routes them into the conventional bucket.
+# instances; because the grid declares `role = :baseline`, resolve_methods
+# routes them into the baseline bucket.
 
 step_size_axis = VariantAxis(:step_size,
     FixedStep(α=8e-4)                                  => "Fixed",
@@ -80,6 +80,7 @@ grid = VariantGrid(
     axes      = [step_size_axis],
     builder   = (; step_size, kwargs...) ->
                     GradientDescent(direction=SteepestDescent(), step_size=step_size),
+    role = :baseline,
 )
 
 # ─── Experiment ──────────────────────────────────────────────────────────────

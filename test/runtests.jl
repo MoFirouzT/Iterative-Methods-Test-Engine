@@ -46,7 +46,7 @@ end
 struct SimpleMethod <: IterativeMethod
 end
 
-struct DummyMethod <: ExperimentalMethod
+struct DummyMethod <: IterativeMethod
 end
 
 @kwdef mutable struct StepSizeNumerics
@@ -145,8 +145,7 @@ end
     problem = DummyProblem(3, [2.0, -1.0, 0.5])
 
     @test IterativeMethod <: Any
-    @test ConventionalMethod <: IterativeMethod
-    @test ExperimentalMethod <: IterativeMethod
+    @test DummyMethod <: IterativeMethod   # single method category; role is experiment-level metadata
 
     empty_logger = make_logger()
     empty_state = SimpleState(

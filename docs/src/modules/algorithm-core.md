@@ -1,14 +1,15 @@
 # Algorithm Abstraction, Core Timing & the Runner
 
-## Type Hierarchy
+## Method Type
 
-Every algorithm, conventional or experimental, is a concrete subtype of `IterativeMethod`.
-The hierarchy separates conventional baselines from the experimental family — the methods you are developing and testing in-engine — enabling dispatch and experiment-level filtering.
+Every algorithm is a concrete subtype of the single category `IterativeMethod`.
+A method's **comparison role** — baseline vs experimental — is deliberately *not*
+part of its type. It is experiment-level metadata declared when you assemble the
+experiment (see [Experiment Orchestration](@ref)), so the same algorithm can be a
+baseline in one experiment and the method under study in another.
 
 ```julia
 abstract type IterativeMethod end
-abstract type ConventionalMethod <: IterativeMethod end
-abstract type ExperimentalMethod <: IterativeMethod end
 ```
 
 Each method is a `@kwdef` struct carrying its own fixed hyperparameters.
@@ -16,7 +17,7 @@ Each method is a `@kwdef` struct carrying its own fixed hyperparameters.
 This keeps the algorithm struct a pure description of the method, not of how long to run it.
 
 ```julia
-@kwdef struct GradientDescent <: ConventionalMethod
+@kwdef struct GradientDescent <: IterativeMethod
     direction :: DescentDirection = SteepestDescent()
     step_size :: StepSize         = ArmijoLS()
 end

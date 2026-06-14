@@ -23,7 +23,7 @@ on faith.
 ## Five design principles
 
 1. **Multiple dispatch over hierarchies.** Methods, components (step size, descent
-   direction, minor update, preconditioner), stopping criteria, problems, and Hessian
+   direction, extrapolation, preconditioner), stopping criteria, problems, and Hessian
    representations are all dispatch points. A new variant is a new type + a method on the
    relevant function — never an edit to existing code.
 
@@ -59,11 +59,11 @@ exercises the whole composite-objective path with a single method.
 planted `k`-sparse signal — registered as the `:lasso` family.
 
 **Method.** `ProximalGradient` is one method with two plug-in slots: a `StepSize` and a
-`MinorUpdate`. Each step extrapolates, takes a gradient step on the smooth `½‖Ax−b‖²`, then
+`Extrapolation`. Each step extrapolates, takes a gradient step on the smooth `½‖Ax−b‖²`, then
 applies the `prox` of `λ‖x‖₁` (soft-thresholding):
 
-- `MinorUpdate = NoMinorUpdate()` ⇒ **ISTA** (plain proximal gradient, `O(1/k)`).
-- `MinorUpdate = NesterovStep()` ⇒ **FISTA** (`O(1/k²)`).
+- `Extrapolation = NoExtrapolation()` ⇒ **ISTA** (plain proximal gradient, `O(1/k)`).
+- `Extrapolation = NesterovStep()` ⇒ **FISTA** (`O(1/k²)`).
 - a *zero* regularizer ⇒ the same method is (accelerated) gradient descent on a smooth
   problem — so one method also tells the smooth-acceleration story.
 

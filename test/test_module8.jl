@@ -5,7 +5,7 @@ using Random: AbstractRNG
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
 import .TestEngine: init_state, step!   # engine dispatch points these tests extend
 
-@kwdef struct PersistMethod <: ConventionalMethod
+@kwdef struct PersistMethod <: IterativeMethod
     step_size::StepSize = FixedStep(α = 0.3)
 end
 
@@ -56,7 +56,7 @@ end
     cfg = ExperimentConfig(
         name = "persistence-check",
         problem_spec = spec,
-        conventional_methods = [PersistMethod()],
+        baseline_methods = [PersistMethod()],
         stopping_criteria = MaxIterations(n = 2),
         n_runs = 2,
         seed = 123,

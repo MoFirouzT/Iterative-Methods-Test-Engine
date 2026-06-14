@@ -1,24 +1,24 @@
 # ProximalGradient — ISTA / FISTA
 
-A conventional composite-objective method for problems
+A composite-objective method for problems
 
     min_x  f(x) + g(x)
 
 with `f` smooth (gradient available) and `g` "simple" (proximal operator
 available). Lights up the composite branch of the framework: `prox` dispatch,
-the `f + g` sum in `total_objective`, and the `MinorUpdate` hierarchy.
+the `f + g` sum in `total_objective`, and the `Extrapolation` hierarchy.
 
 ## 1. Method
 
 ```julia
-@kwdef struct ProximalGradient <: ConventionalMethod
+@kwdef struct ProximalGradient <: IterativeMethod
     step_size    :: StepSize    = FixedStep(α = 1e-3)   # use FixedStep(α = 1/L)
-    minor_update :: MinorUpdate = NoMinorUpdate()       # NesterovStep() ⇒ FISTA
+    extrapolation :: Extrapolation = NoExtrapolation()       # NesterovStep() ⇒ FISTA
 end
 ```
 
-- `minor_update = NoMinorUpdate()` ⇒ **ISTA** (plain proximal gradient).
-- `minor_update = NesterovStep()`  ⇒ **FISTA** (accelerated, `O(1/k²)`).
+- `extrapolation = NoExtrapolation()` ⇒ **ISTA** (plain proximal gradient).
+- `extrapolation = NesterovStep()`  ⇒ **FISTA** (accelerated, `O(1/k²)`).
 - `g = ZeroRegularizer` (or no regularizer) ⇒ reduces to (accelerated)
   gradient descent on the smooth `f`, so the same method also tells the
   smooth-acceleration story.
@@ -27,7 +27,7 @@ end
 
 Each `step!`, in order:
 
-1. **Extrapolate.** `y = extrapolate(minor_update, x, x_prev, t)`
+1. **Extrapolate.** `y = extrapolate(extrapolation, x, x_prev, t)`
    — FISTA: `y = x + β(x − x_prev)`, `β = (t−1)/t_next`; ISTA: `y = x`.
 2. **Gradient of the smooth part at `y`.** `g = ∇f(y)` (one gradient eval/step).
 3. **Step size.** `γ = compute_step_size(step_size, …)`. The supported rule is
@@ -38,7 +38,7 @@ Each `step!`, in order:
 4. **Proximal step.** `xⁿ = prox(g_reg, y − γ·∇f(y), γ)` (identity if no
    regularizer). For `L1Norm(λ)` this is soft-thresholding at level `γλ`.
 5. **Shift history.** `x_prev ← x`, `x ← xⁿ`.
-6. **Advance momentum.** `t ← advance_momentum(minor_update, t)`.
+6. **Advance momentum.** `t ← advance_momentum(extrapolation, t)`.
 
 Exactly **one** gradient evaluation and **one** `prox` call per step.
 

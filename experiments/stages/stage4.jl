@@ -65,7 +65,7 @@ function build_config()
         name = "stage4_rosenbrock_stopping_coverage",
         problem_spec = AnalyticProblem(name = :rosenbrock,
                                        params = (rho = 100.0, dim = 2)),
-        conventional_methods = [m for (_, m) in build_methods()],
+        baseline_methods = [m for (_, m) in build_methods()],
         stopping_criteria = stop_when_any(
             MaxIterations(n   = MAX_ITERS),
             DistanceToOptimal(tol = DIST_TOL),

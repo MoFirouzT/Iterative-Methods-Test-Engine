@@ -114,6 +114,7 @@ const FULL_GRID = VariantGrid(
     axes      = [STEP_AXIS],
     builder   = (; step_size, kwargs...) ->
                     GradientDescent(direction=SteepestDescent(), step_size=step_size),
+    role = :baseline,
 )
 
 # =============================================================================
@@ -175,7 +176,7 @@ config_a2 = ExperimentConfig(
     name              = "Stage 7.a.2 — CheckGradientNormBound stress",
     problem_spec      = AnalyticProblem(name=:rosenbrock,
                                         params=(rho = 1e6, x0 = [-1.2, 1.0])),
-    conventional_methods = [GradientDescent(direction = SteepestDescent(),
+    baseline_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = FixedStep(α=1e-9))],
     stopping_criteria = MaxIterations(n=50),
     n_runs            = 1,
@@ -200,7 +201,7 @@ println("\n--- A3: CheckStepDecay stress, FixedStep(α=1e-6) ---")
 config_a3 = ExperimentConfig(
     name              = "Stage 7.a.3 — CheckStepDecay stress",
     problem_spec      = ROSEN,
-    conventional_methods = [GradientDescent(direction = SteepestDescent(),
+    baseline_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = FixedStep(α=1e-6))],
     stopping_criteria = MaxIterations(n=100),
     n_runs            = 1,
@@ -256,7 +257,7 @@ config_a4 = ExperimentConfig(
     name              = "Stage 7.a.4 — broken gradient, :error",
     problem_spec      = AnalyticProblem(name=:rosenbrock_broken,
                                         params=(rho = 100.0, x0 = [-1.2, 1.0])),
-    conventional_methods = [GradientDescent(direction = SteepestDescent(),
+    baseline_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = ArmijoLS())],
     stopping_criteria = MaxIterations(n=10),
     n_runs            = 1,
@@ -384,7 +385,7 @@ println("\n--- B2: stop_when_all(GradientTolerance(1e-6), StepTolerance(1e-8)) -
 config_b2 = ExperimentConfig(
     name              = "Stage 7.b.2 — :all composite",
     problem_spec      = ROSEN,
-    conventional_methods = [GradientDescent(direction = SteepestDescent(),
+    baseline_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = BarzilaiBorwein(variant=:BB1))],
     stopping_criteria = stop_when_any(
                             stop_when_all(GradientTolerance(tol=1e-6),
@@ -439,7 +440,7 @@ verbosity_c1 = VerbosityConfig(
 config_c1 = ExperimentConfig(
     name              = "Stage 7.c.1 — range-gated verbosity",
     problem_spec      = ROSEN,
-    conventional_methods = [GradientDescent(direction = SteepestDescent(),
+    baseline_methods = [GradientDescent(direction = SteepestDescent(),
                                             step_size = ArmijoLS())],
     stopping_criteria = stop_when_any(MaxIterations(n=500),
                                       GradientTolerance(tol=1e-12)),

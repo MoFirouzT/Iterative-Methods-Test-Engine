@@ -98,8 +98,8 @@ end
 @kwdef struct ExperimentConfig
     name                 :: String
     problem_spec         :: ProblemSpec
-    conventional_methods :: Vector{ConventionalMethod} = []
-    experimental_methods :: Vector{ExperimentalMethod} = []
+    baseline_methods     :: Vector{IterativeMethod}    = []
+    experimental_methods :: Vector{IterativeMethod}    = []
     variant_grids        :: Vector{VariantGrid}        = []
     stopping_criteria    :: StoppingCriterion           = stop_when_any(
                                 MaxIterations(1000), GradientTolerance(1e-6))
@@ -196,7 +196,7 @@ function run_experiment(config    :: ExperimentConfig,
     exp_path = next_experiment_path(log_root)
     mkpath(exp_path)
 
-    conventional, experimental = resolve_methods(config)
+    baseline, experimental = resolve_methods(config)
     results = RunResult[]
 
     for run_id in 1:config.n_runs
@@ -214,7 +214,7 @@ function run_experiment(config    :: ExperimentConfig,
         end
 
         method_results = Dict{String, Any}()
-        for (name, method) in [conventional; experimental]
+        for (name, method) in [baseline; experimental]
             method_rng = Xoshiro(hash((seed, run_id, name)))
             criteria   = get(config.method_criteria, name, config.stopping_criteria)
             logger     = Logger(name, run_id, exp_path, verbosity)
@@ -233,39 +233,37 @@ end
 
 ## `resolve_methods`
 
-`resolve_methods(config)` flattens the three method sources — `conventional_methods`,
+`resolve_methods(config)` flattens the three method sources — `baseline_methods`,
 `experimental_methods`, and the `expand`-ed output of every entry in `variant_grids` —
-and routes each produced method into the conventional or experimental bucket based on
-its concrete type.
+into two buckets. The bucket is decided by **role metadata**, never by the method's
+type: direct methods go to the bucket whose config field they were listed in, and a
+grid's expanded specs all go to the bucket named by the grid's `role`.
 
 ```julia
 function resolve_methods(config::ExperimentConfig)
-    conventional = Tuple{String, ConventionalMethod}[]
-    experimental = Tuple{String, ExperimentalMethod}[]
+    baseline     = Tuple{String, IterativeMethod}[]
+    experimental = Tuple{String, IterativeMethod}[]
 
-    for m in config.conventional_methods
-        push!(conventional, (string(typeof(m)), m))
+    for m in config.baseline_methods
+        push!(baseline, (string(typeof(m)), m))
     end
     for m in config.experimental_methods
         push!(experimental, (string(typeof(m)), m))
     end
     for grid in config.variant_grids
+        bucket = grid.role === :baseline ? baseline : experimental
         for spec in expand(grid)
-            if spec.method isa ConventionalMethod
-                push!(conventional, (spec.name, spec.method))
-            else
-                push!(experimental, (spec.name, spec.method))
-            end
+            push!(bucket, (spec.name, spec.method))
         end
     end
 
-    return conventional, experimental
+    return baseline, experimental
 end
 ```
 
-This is the single point that uses the `ConventionalMethod` / `ExperimentalMethod`
-distinction: grids and other config sources never need to know which bucket their
-output belongs in.
+This is the single point that interprets the baseline / experimental distinction:
+it lives entirely in config-level role metadata, so the method types themselves stay
+role-agnostic.
 
 ---
 

@@ -9,10 +9,10 @@ using Base: @kwdef
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Method-construction component vocabulary (MinorUpdate / Preconditioner and
+# Method-construction component vocabulary (Extrapolation / Preconditioner and
 # their concretes) lives in the CONTENT layer — the engine grid machinery
 # below is method-agnostic and never references it:
-#   algorithms/components/minor_updates.jl   — MinorUpdate, NesterovStep, …
+#   algorithms/components/extrapolation.jl   — Extrapolation, NesterovStep, …
 #   algorithms/components/preconditioners.jl — Preconditioner, Identity/Jacobi
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -48,6 +48,12 @@ end
 	VariantGrid
 
 Declarative description of a family of method variants.
+
+`role` declares the comparison role every variant in the grid plays —
+`:baseline` or `:experimental`. Because a method's category is no longer part
+of its type, `resolve_methods` routes the whole grid's expanded specs into the
+bucket named by `role`. Defaults to `:experimental` (the typical variant-driven
+exploration); a grid of reference baselines should set `role = :baseline`.
 """
 @kwdef struct VariantGrid
 	base_name::String
@@ -55,6 +61,7 @@ Declarative description of a family of method variants.
 	builder::Function
 	filters::Vector{Function} = Function[]
 	shared_params::NamedTuple = (;)
+	role::Symbol = :experimental
 end
 
 """
@@ -62,11 +69,10 @@ end
 
 Concrete expanded variant ready to run.
 
-The `method` field is typed `IterativeMethod` (not `ExperimentalMethod`) so a
-`VariantGrid` can produce either `ConventionalMethod` or `ExperimentalMethod`
-variants — Stage 5's GradientDescent step-size grid produces the former.
-`resolve_methods` routes each spec into the correct bucket based on the
-concrete type.
+The `method` field is typed `IterativeMethod` — the single method category.
+Comparison role (baseline vs experimental) is not carried by the method; it is
+declared on the producing `VariantGrid` via its `role`, and `resolve_methods`
+routes every spec from a grid into that grid's bucket.
 """
 struct VariantSpec
 	name::String
@@ -82,7 +88,7 @@ end
 
 # Generic, content-agnostic entries only. Concrete method/component abbreviations
 # are registered by their own content files via `register_abbreviation!` on load
-# (e.g. algorithms/components/minor_updates.jl, step_sizes.jl), keeping the engine
+# (e.g. algorithms/components/extrapolation.jl, step_sizes.jl), keeping the engine
 # free of any concrete method/component vocabulary.
 const ABBREVIATIONS = Dict{String,String}(
 	"None" => "∅",

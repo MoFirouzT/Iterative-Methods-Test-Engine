@@ -75,11 +75,11 @@ _run(method, p, K; tol = 1e-8) =
     config = ExperimentConfig(
         name = "test_precond",
         problem_spec = RandomProblem(name = :separable_quadratic, params = (n = 10, condition_number = 1.0e2)),
-        conventional_methods = ConventionalMethod[GradientDescent(step_size = ArmijoLS())],
+        baseline_methods = IterativeMethod[GradientDescent(step_size = ArmijoLS())],
         variant_grids = VariantGrid[grid],
     )
-    conventional, experimental = resolve_methods(config)
-    @test [n for (n, _) in conventional] == ["GradientDescent"]   # baseline → conventional
-    @test length(experimental) == 6                               # all variants → experimental
+    baseline, experimental = resolve_methods(config)
+    @test [n for (n, _) in baseline] == ["GradientDescent"]       # baseline_methods → baseline bucket
+    @test length(experimental) == 6                               # grid role :experimental → experimental
     @test all(occursin("PreconditionedGradient", n) for (n, _) in experimental)
 end

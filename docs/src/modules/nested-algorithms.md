@@ -91,7 +91,7 @@ end
 # Sketch — the outer algorithm holds a sub-config, calls run_sub_method inside step!,
 # and reads the concrete final_state to extract whatever it needs.
 
-@kwdef struct SomeOuterMethod <: ExperimentalMethod
+@kwdef struct SomeOuterMethod <: IterativeMethod
     inner_sub :: SubRunConfig{<:IterativeMethod} = ...
     # ... outer hyperparameters ...
 end

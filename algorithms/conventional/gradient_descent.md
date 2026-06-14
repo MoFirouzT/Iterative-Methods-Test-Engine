@@ -21,8 +21,10 @@ specified at construction time and dispatched via the `DescentDirection` and
 `StepSize` abstractions. Adding a new direction or step-size rule requires no
 changes to `step!` or any other part of the algorithm.
 
-This is a **conventional method** in the framework: it is a standard baseline
-against which experimental methods are benchmarked.
+In comparisons it typically serves as a **baseline** — the standard reference
+against which experimental methods are benchmarked. That role is declared per
+experiment (via `baseline_methods` or a grid's `role`), not encoded in the
+method's type.
 
 ---
 
@@ -65,7 +67,7 @@ the step-size axis is exercised in the current setup.
 ```julia
 # In: algorithms/conventional/gradient_descent/gradient_descent.jl
 
-@kwdef struct GradientDescent <: ConventionalMethod
+@kwdef struct GradientDescent <: IterativeMethod
     direction :: DescentDirection = SteepestDescent()
     step_size :: StepSize         = ArmijoLS()
 end
@@ -401,7 +403,7 @@ config = ExperimentConfig(
     name                 = "GD step-size comparison — Rosenbrock",
     problem_spec         = AnalyticProblem(name=:rosenbrock,
                                params=(rho=100.0, x0=[-1.2, 1.0])),
-    conventional_methods = [gd_armijo, gd_bb1, gd_cauchy, gd_fixed],
+    baseline_methods     = [gd_armijo, gd_bb1, gd_cauchy, gd_fixed],
     stopping_criteria    = stop_when_any(
                                MaxIterations(n=5000),
                                DistanceToOptimal(tol=1e-8),
@@ -429,6 +431,7 @@ grid = VariantGrid(
     axes      = [step_size_axis],
     builder   = (; step_size, kwargs...) ->
                     GradientDescent(direction=SteepestDescent(), step_size=step_size),
+    role      = :baseline,
 )
 
 config = ExperimentConfig(
@@ -446,8 +449,8 @@ config = ExperimentConfig(
 )
 ```
 
-`resolve_methods` routes each grid output to the conventional bucket
-automatically because `GradientDescent <: ConventionalMethod`.
+`resolve_methods` routes each grid output to the **baseline** bucket because
+the grid declares `role = :baseline`.
 
 ---
 

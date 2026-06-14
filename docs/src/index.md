@@ -16,7 +16,7 @@ one-command demo, or the
 ## Design in one breath
 
 - **Multiple dispatch over hierarchies** — every method, component (step size, descent
-  direction, minor update, preconditioner), stopping criterion, and problem is a dispatch
+  direction, extrapolation, preconditioner), stopping criterion, and problem is a dispatch
   point; adding a variant never edits existing code.
 - **Engine / content separation** — `src/` (the `TestEngine` module) ships only
   abstractions and machinery; every concrete method, problem, and component is *content*

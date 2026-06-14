@@ -102,6 +102,7 @@ grid = VariantGrid(
     axes      = [step_size_axis],
     builder   = (; step_size, kwargs...) ->
                     GradientDescent(direction=SteepestDescent(), step_size=step_size),
+    role = :baseline,
 )
 
 # ─── Common stopping criteria ────────────────────────────────────────────────

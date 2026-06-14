@@ -1,7 +1,7 @@
 """
-    minor_updates.jl — Minor-update (post-step correction) components (content)
+    extrapolation.jl — Extrapolation (post-step correction) components (content)
 
-Shared `MinorUpdate` vocabulary that methods compose — e.g. `NesterovStep`
+Shared `Extrapolation` vocabulary that methods compose — e.g. `NesterovStep`
 turns ProximalGradient (ISTA) into FISTA. The engine machinery never
 references these; they belong to the method-construction layer.
 """
@@ -11,34 +11,34 @@ using .TestEngine: register_abbreviation!
 
 
 """
-	abstract type MinorUpdate
+	abstract type Extrapolation
 
 Base type for post-step correction strategies.
 """
-abstract type MinorUpdate end
+abstract type Extrapolation end
 
 """
-	struct NoMinorUpdate <: MinorUpdate
+	struct NoExtrapolation <: Extrapolation
 
 No-op correction.
 """
-struct NoMinorUpdate <: MinorUpdate end
+struct NoExtrapolation <: Extrapolation end
 
 """
-	struct MomentumStep <: MinorUpdate
+	struct MomentumStep <: Extrapolation
 
 Simple momentum correction.
 """
-@kwdef struct MomentumStep <: MinorUpdate
+@kwdef struct MomentumStep <: Extrapolation
 	α::Float64 = 0.1
 end
 
 """
-	struct NesterovStep <: MinorUpdate
+	struct NesterovStep <: Extrapolation
 
 Nesterov-style correction.
 """
-@kwdef struct NesterovStep <: MinorUpdate
+@kwdef struct NesterovStep <: Extrapolation
 	α::Float64 = 0.1
 end
 
@@ -52,10 +52,10 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	extrapolate(mu::MinorUpdate, x, x_prev, t) -> y
+	extrapolate(mu::Extrapolation, x, x_prev, t) -> y
 
 The point at which the gradient is evaluated this step.
-- `NoMinorUpdate` ⇒ `y = x` (plain proximal gradient / ISTA).
+- `NoExtrapolation` ⇒ `y = x` (plain proximal gradient / ISTA).
 - `NesterovStep`  ⇒ FISTA extrapolation `y = x + β·(x − x_prev)` with
   `β = (t − 1)/t_next`, `t_next = (1 + √(1 + 4t²))/2`. The same `t_next`
   formula is used by `advance_momentum`, so passing the *current* `t` to both
@@ -64,7 +64,7 @@ The point at which the gradient is evaluated this step.
 
 `x_prev` empty (the first step's sentinel) ⇒ `y = x` for every variant.
 """
-extrapolate(::NoMinorUpdate, x::Vector{Float64}, x_prev::Vector{Float64}, t::Float64) = copy(x)
+extrapolate(::NoExtrapolation, x::Vector{Float64}, x_prev::Vector{Float64}, t::Float64) = copy(x)
 
 function extrapolate(::NesterovStep, x::Vector{Float64}, x_prev::Vector{Float64}, t::Float64)
 	isempty(x_prev) && return copy(x)
@@ -80,20 +80,20 @@ end
 
 
 """
-	advance_momentum(mu::MinorUpdate, t) -> t_next
+	advance_momentum(mu::Extrapolation, t) -> t_next
 
 Advance the momentum parameter after the iterate update. FISTA advances
 `t_next = (1 + √(1 + 4t²))/2`; the no-op and the fixed-`α` heavy-ball leave
 `t` unchanged.
 """
-advance_momentum(::NoMinorUpdate, t::Float64) = t
+advance_momentum(::NoExtrapolation, t::Float64) = t
 advance_momentum(::NesterovStep, t::Float64) = (1 + sqrt(1 + 4t^2)) / 2
 advance_momentum(::MomentumStep, t::Float64) = t
 
 
 # Friendly short names for variant-grid short_name / plot legends — this content
 # registers its own vocabulary with the engine's abbreviation table on load.
-register_abbreviation!("NoMinorUpdate", "∅")
+register_abbreviation!("NoExtrapolation", "∅")
 register_abbreviation!("Momentum",      "Mom")
 register_abbreviation!("MomentumStep",  "Mom")
 register_abbreviation!("Nesterov",      "Nest")

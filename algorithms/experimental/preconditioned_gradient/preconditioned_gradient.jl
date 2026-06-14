@@ -1,13 +1,13 @@
 """
     Preconditioned Gradient (experimental)
 
-An ExperimentalMethod that crosses a **preconditioner** axis with a **step-size**
+An `IterativeMethod` that crosses a **preconditioner** axis with a **step-size**
 axis: the descent direction is `d = −M⁻¹ ∇f(x)`. With `IdentityPreconditioner`
 it is plain gradient descent; with `JacobiPreconditioner` on a diagonal Hessian
 it is exactly Newton. Its purpose is to exercise the framework's signature
-workflow — define one method, sweep its variants in a `VariantGrid`, and have
-`resolve_methods` route them into the *experimental* bucket alongside a
-conventional baseline. See `preconditioned_gradient.md`.
+workflow — define one method, sweep its variants in a `VariantGrid` with
+`role = :experimental`, and have `resolve_methods` route them into the
+*experimental* bucket alongside a reference baseline. See `preconditioned_gradient.md`.
 """
 
 using Random: AbstractRNG
@@ -21,14 +21,14 @@ import .TestEngine: init_state, step!, extract_log_entry
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-    PreconditionedGradient <: ExperimentalMethod
+    PreconditionedGradient <: IterativeMethod
 
 Fields:
 - preconditioner :: Preconditioner — `IdentityPreconditioner()` (⇒ GD) or
   `JacobiPreconditioner()` (⇒ Newton on a diagonal Hessian).
 - step_size      :: StepSize       — step-size rule along `d = −M⁻¹∇f`.
 """
-@kwdef struct PreconditionedGradient <: ExperimentalMethod
+@kwdef struct PreconditionedGradient <: IterativeMethod
 	preconditioner::Preconditioner = IdentityPreconditioner()
 	step_size::StepSize            = ArmijoLS()
 end

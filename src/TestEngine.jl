@@ -22,7 +22,7 @@ export value, grad, grad!, hessian, hessian_vec, apply, materialize, diagonal
 export Problem, total_objective, objective, ProblemSpec, AnalyticProblem, FileProblem, RandomProblem
 export register_analytic_problem!, register_random_problem!, register_file_loader!, make_problem
 
-export IterativeMethod, ConventionalMethod, ExperimentalMethod
+export IterativeMethod
 export IterateGroup, MetricsGroup, TimingGroup
 export init_state, step!, extract_log_entry, run_method, run_sub_method
 export SubRunConfig, SubResult, @core_timed
@@ -30,7 +30,7 @@ export SubRunConfig, SubResult, @core_timed
 export StoppingCriterion, MaxIterations, TimeLimit, GradientTolerance
 export ObjectiveStagnation, StepTolerance, DistanceToOptimal, CompositeCriterion, stop_when_any, stop_when_all, should_stop
 
-# Concrete methods, their components (StepSize/DescentDirection/MinorUpdate/
+# Concrete methods, their components (StepSize/DescentDirection/Extrapolation/
 # HessianApprox + concretes), GradientDescent, and concrete problems
 # (Rosenbrock, LeastSquares, regularizers) are CONTENT — defined in algorithms/
 # and problems/, loaded via experiments/_bootstrap.jl. Not exported here.

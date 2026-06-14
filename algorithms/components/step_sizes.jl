@@ -1,8 +1,8 @@
 """
-    Step-size rule components for conventional methods.
+    Step-size rule components for gradient-based methods.
 
 Defines the shared `StepSize` abstraction and the concrete rules used by
-conventional algorithms and variant grids. `LineSearch` is a sub-hierarchy
+gradient-based algorithms and variant grids. `LineSearch` is a sub-hierarchy
 for rules that perform actual 1D searches along the descent direction.
 
 Concrete rules:

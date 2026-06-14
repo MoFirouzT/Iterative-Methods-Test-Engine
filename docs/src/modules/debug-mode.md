@@ -152,7 +152,7 @@ logger when invoking debug helpers in order to enable this mode.
 config = ExperimentConfig(
     name         = "Debug run — gradient check active",
     problem_spec = AnalyticProblem(name=:rosenbrock, params=(rho=100.0,)),
-    conventional_methods = [GradientDescent(step_size=ArmijoLS())],
+    baseline_methods = [GradientDescent(step_size=ArmijoLS())],
     n_runs = 1,
     seed   = 42,
     debug  = DebugConfig(

@@ -101,13 +101,10 @@ end
 
 ## Extending — method-specific criteria
 
-The criteria above are the engine's generic set. Because `StoppingCriterion` is a
-plain dispatch point, **content can define its own criteria** by subtyping it and
-adding a `should_stop` method — exactly how a method defines `step!`. These stay out
-of the engine. For example, `TrustRegion`'s inner truncated-CG solve ships
-`NegativeCurvature` and `TrustRegionBoundary` (in
-`algorithms/conventional/trust_region/`), which read a method-specific inner-status
-accessor; being trust-region-specific, they live with the method, not here.
+The criteria above are the engine's generic set.
+Because `StoppingCriterion` is a plain dispatch point, **content can define its own criteria** by subtyping it and adding a `should_stop` method — exactly how a method defines `step!`.
+These stay out of the engine.
+For example, `TrustRegion`'s inner truncated-CG solve ships `NegativeCurvature` and `TrustRegionBoundary` (in `algorithms/conventional/trust_region/`), which read a method-specific inner-status accessor; being trust-region-specific, they live with the method, not here.
 
 ## Usage at Experiment Definition
 

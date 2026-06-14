@@ -16,25 +16,15 @@ using LinearAlgebra: norm
 """
 	abstract type IterativeMethod
 
-Base type for all iterative algorithms.
+Base type for all iterative algorithms — the single method category.
+
+A method's role in a comparison (baseline vs experimental) is **not** encoded
+in its type. It is experiment-level metadata declared at definition time: a
+method goes in `ExperimentConfig.baseline_methods` or `.experimental_methods`,
+and a `VariantGrid` carries a `role`. The same algorithm can therefore be a
+baseline in one experiment and the method under study in another.
 """
 abstract type IterativeMethod end
-
-
-"""
-	abstract type ConventionalMethod <: IterativeMethod
-
-Baseline/reference methods.
-"""
-abstract type ConventionalMethod <: IterativeMethod end
-
-
-"""
-	abstract type ExperimentalMethod <: IterativeMethod
-
-Under-development and variant-driven methods.
-"""
-abstract type ExperimentalMethod <: IterativeMethod end
 
 
 # ─────────────────────────────────────────────────────────────────────────

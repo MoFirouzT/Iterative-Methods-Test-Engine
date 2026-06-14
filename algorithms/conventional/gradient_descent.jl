@@ -1,8 +1,8 @@
 """
     Gradient Descent Algorithm
 
-A conventional first-order method with pluggable descent direction and
-step-size rule. Demonstrates the composable state module pattern.
+A first-order method with pluggable descent direction and step-size rule.
+Demonstrates the composable state module pattern.
 """
 
 using Random: AbstractRNG
@@ -16,7 +16,7 @@ import .TestEngine: init_state, step!, extract_log_entry   # engine dispatch poi
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-    GradientDescent <: ConventionalMethod
+    GradientDescent <: IterativeMethod
 
 Gradient descent with pluggable descent direction and step-size rule.
 
@@ -24,7 +24,7 @@ Fields:
 - direction :: DescentDirection — descent direction strategy (default: SteepestDescent)
 - step_size :: StepSize         — step-size rule (default: ArmijoLS)
 """
-@kwdef struct GradientDescent <: ConventionalMethod
+@kwdef struct GradientDescent <: IterativeMethod
 	direction::DescentDirection = SteepestDescent()
 	step_size::StepSize         = ArmijoLS()
 end

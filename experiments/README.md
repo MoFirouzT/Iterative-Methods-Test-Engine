@@ -27,7 +27,7 @@ method zoo. The five shipped experiments:
 | [`exp_lasso_ista_fista.jl`](exp_lasso_ista_fista.jl) | `lasso_ista_fista.png` (flagship) | Composite `f + g`, `prox` dispatch, Nesterov acceleration (ISTA → FISTA) on the lasso |
 | [`exp_ls1_dimension.jl`](exp_ls1_dimension.jl) | `ls1_dimension.png` | Least-squares dimension sweep; matrix-free `OperatorHessian`; the core-time/wall-time timing pillar |
 | [`exp_ls2_conditioning.jl`](exp_ls2_conditioning.jl) | `ls2_conditioning.png` | Conditioning controls the rate: `O(κ)` vs `O(√κ)` |
-| [`exp_precond_grid.jl`](exp_precond_grid.jl) | `precond_grid.png` | `VariantGrid` sweep + experimental/conventional routing; Jacobi preconditioning ≈ Newton |
+| [`exp_precond_grid.jl`](exp_precond_grid.jl) | `precond_grid.png` | `VariantGrid` sweep + role-based baseline/experimental routing; Jacobi preconditioning ≈ Newton |
 | [`exp_tr_steihaug_cg.jl`](exp_tr_steihaug_cg.jl) | `tr_steihaug_cg.png` | Nested optimization: `TrustRegion` with a Steihaug-CG inner solve |
 
 Run any one with `julia --project=. experiments/exp_<name>.jl`, or regenerate
@@ -50,7 +50,7 @@ and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorit
 *`ls2_conditioning` — conditioning controls the rate: `O(κ)` vs `O(√κ)`.*
 
 <img src="../figures/precond_grid.png" width="560" alt="VariantGrid sweep of PreconditionedGradient vs a baseline; Jacobi preconditioning matches Newton on a diagonal quadratic"><br>
-*`precond_grid` — `VariantGrid` sweep + experimental/conventional routing; Jacobi preconditioning ≈ Newton.*
+*`precond_grid` — `VariantGrid` sweep + role-based baseline/experimental routing; Jacobi preconditioning ≈ Newton.*
 
 <img src="../figures/tr_steihaug_cg.png" width="560" alt="TrustRegion with a Steihaug-CG inner solve: nested optimization with inner-vs-outer core time"><br>
 *`tr_steihaug_cg` — nested optimization: `TrustRegion` with a Steihaug-CG inner solve.*

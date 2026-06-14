@@ -32,12 +32,13 @@ struct _SerializedVariantGrid
 	base_name::String
 	axes::Vector{VariantAxis}
 	shared_params::NamedTuple
+	role::Symbol
 end
 
 JLD2.writeas(::Type{VariantGrid}) = _SerializedVariantGrid
 
 Base.convert(::Type{_SerializedVariantGrid}, g::VariantGrid) =
-	_SerializedVariantGrid(g.base_name, g.axes, g.shared_params)
+	_SerializedVariantGrid(g.base_name, g.axes, g.shared_params, g.role)
 
 _deserialized_grid_builder(args...; kwargs...) = error(
 	"VariantGrid.builder was not serialized — re-construct the grid " *
@@ -50,6 +51,7 @@ Base.convert(::Type{VariantGrid}, s::_SerializedVariantGrid) = VariantGrid(
 	axes          = s.axes,
 	builder       = _deserialized_grid_builder,
 	shared_params = s.shared_params,
+	role          = s.role,
 )
 
 
