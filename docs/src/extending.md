@@ -114,11 +114,22 @@ Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`
 2. Derive and document $\nabla f$ and the Hessian (full matrix or H·d).
 3. Provide the known minimizer `x_opt` if it exists analytically; document why it
    is `nothing` if it does not.
-4. Include the variable mapping table and the `register_problem!` call.
+4. Include the variable mapping table and the `register_analytic_problem!` /
+   `register_random_problem!` call.
 
-Then implement `problems/<name>/<name>.jl` with `value`, `grad`, `hessian`
+Then implement `problems/<name>/<name>.jl` with `value`, `grad!`, `hessian`
 (returning a `Hessian` object), and the registration call. The `<name>.md` is the
 contract; the `.jl` is the implementation.
+
+Finally, register the problem with the conformance harness: add one entry to
+`CONFORMANCE_SPECS` in `test/test_problem_contract.jl` — an example spec for your
+family, with `minimizer = true` only when `x_opt` is the true minimizer (use
+`false` if `x_opt` is absent or a planted reference, as with the lasso signal).
+The shared `check_problem_contract` then validates your gradient against finite
+differences, your Hessian-vector products, and each regularizer's `prox`
+automatically. A completeness guard fails the suite if a registered problem has no
+such entry, so this step is mandatory — but it is a single line, not a bespoke
+test.
 
 ## Adding a new logged field
 

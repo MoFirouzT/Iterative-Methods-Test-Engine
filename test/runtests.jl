@@ -6,6 +6,10 @@ using Random: AbstractRNG, default_rng
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
 import .TestEngine: grad!, init_state, step!   # engine dispatch points these tests extend
 
+# Content conformance harness — runs FIRST so its completeness guard sees only
+# registered content (before any test file registers a throwaway problem).
+include(joinpath(@__DIR__, "test_problem_contract.jl"))
+
 struct DummyProblem
     n::Int
     x0::Vector{Float64}

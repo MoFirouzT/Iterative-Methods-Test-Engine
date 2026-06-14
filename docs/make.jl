@@ -37,6 +37,7 @@ makedocs(
         ],
         "Repository Internals" => "internals.md",
         "Extension Guide"      => "extending.md",
+        "Stretch Goals"        => "stretch-goals.md",
     ],
 )
 
