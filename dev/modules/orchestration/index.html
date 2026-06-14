@@ -57,8 +57,8 @@ function run_warmup(w::FunctionWarmup, problem, rng, debug)::Vector{Float64}
 end</code></pre><h2 id="ExperimentConfig"><a class="docs-heading-anchor" href="#ExperimentConfig">ExperimentConfig</a><a id="ExperimentConfig-1"></a><a class="docs-heading-anchor-permalink" href="#ExperimentConfig" title="Permalink"></a></h2><pre><code class="language-julia hljs">@kwdef struct ExperimentConfig
     name                 :: String
     problem_spec         :: ProblemSpec
-    conventional_methods :: Vector{ConventionalMethod} = []
-    experimental_methods :: Vector{ExperimentalMethod} = []
+    baseline_methods     :: Vector{IterativeMethod}    = []
+    experimental_methods :: Vector{IterativeMethod}    = []
     variant_grids        :: Vector{VariantGrid}        = []
     stopping_criteria    :: StoppingCriterion           = stop_when_any(
                                 MaxIterations(1000), GradientTolerance(1e-6))
@@ -110,7 +110,7 @@ end</code></pre><p><code>finalize!(logger, method, state)</code> returns a <code
     exp_path = next_experiment_path(log_root)
     mkpath(exp_path)
 
-    conventional, experimental = resolve_methods(config)
+    baseline, experimental = resolve_methods(config)
     results = RunResult[]
 
     for run_id in 1:config.n_runs
@@ -128,7 +128,7 @@ end</code></pre><p><code>finalize!(logger, method, state)</code> returns a <code
         end
 
         method_results = Dict{String, Any}()
-        for (name, method) in [conventional; experimental]
+        for (name, method) in [baseline; experimental]
             method_rng = Xoshiro(hash((seed, run_id, name)))
             criteria   = get(config.method_criteria, name, config.stopping_criteria)
             logger     = Logger(name, run_id, exp_path, verbosity)
@@ -142,25 +142,22 @@ end</code></pre><p><code>finalize!(logger, method, state)</code> returns a <code
     exp_result = ExperimentResult(config, exp_path, now(), gethostname(), results)
     save_experiment(exp_result)
     return exp_result
-end</code></pre><h2 id="resolve_methods"><a class="docs-heading-anchor" href="#resolve_methods"><code>resolve_methods</code></a><a id="resolve_methods-1"></a><a class="docs-heading-anchor-permalink" href="#resolve_methods" title="Permalink"></a></h2><p><code>resolve_methods(config)</code> flattens the three method sources — <code>conventional_methods</code>, <code>experimental_methods</code>, and the <code>expand</code>-ed output of every entry in <code>variant_grids</code> — and routes each produced method into the conventional or experimental bucket based on its concrete type.</p><pre><code class="language-julia hljs">function resolve_methods(config::ExperimentConfig)
-    conventional = Tuple{String, ConventionalMethod}[]
-    experimental = Tuple{String, ExperimentalMethod}[]
+end</code></pre><h2 id="resolve_methods"><a class="docs-heading-anchor" href="#resolve_methods"><code>resolve_methods</code></a><a id="resolve_methods-1"></a><a class="docs-heading-anchor-permalink" href="#resolve_methods" title="Permalink"></a></h2><p><code>resolve_methods(config)</code> flattens the three method sources — <code>baseline_methods</code>, <code>experimental_methods</code>, and the <code>expand</code>-ed output of every entry in <code>variant_grids</code> — into two buckets. The bucket is decided by <strong>role metadata</strong>, never by the method&#39;s type: direct methods go to the bucket whose config field they were listed in, and a grid&#39;s expanded specs all go to the bucket named by the grid&#39;s <code>role</code>.</p><pre><code class="language-julia hljs">function resolve_methods(config::ExperimentConfig)
+    baseline     = Tuple{String, IterativeMethod}[]
+    experimental = Tuple{String, IterativeMethod}[]
 
-    for m in config.conventional_methods
-        push!(conventional, (string(typeof(m)), m))
+    for m in config.baseline_methods
+        push!(baseline, (string(typeof(m)), m))
     end
     for m in config.experimental_methods
         push!(experimental, (string(typeof(m)), m))
     end
     for grid in config.variant_grids
+        bucket = grid.role === :baseline ? baseline : experimental
         for spec in expand(grid)
-            if spec.method isa ConventionalMethod
-                push!(conventional, (spec.name, spec.method))
-            else
-                push!(experimental, (spec.name, spec.method))
-            end
+            push!(bucket, (spec.name, spec.method))
         end
     end
 
-    return conventional, experimental
-end</code></pre><p>This is the single point that uses the <code>ConventionalMethod</code> / <code>ExperimentalMethod</code> distinction: grids and other config sources never need to know which bucket their output belongs in.</p><hr/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../logging/">« Logging &amp; Verbosity</a><a class="docs-footer-nextpage" href="../persistence/">Persistence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 14 June 2026 12:24">Sunday 14 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    return baseline, experimental
+end</code></pre><p>This is the single point that interprets the baseline / experimental distinction: it lives entirely in config-level role metadata, so the method types themselves stay role-agnostic.</p><hr/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../logging/">« Logging &amp; Verbosity</a><a class="docs-footer-nextpage" href="../persistence/">Persistence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 14 June 2026 14:21">Sunday 14 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
