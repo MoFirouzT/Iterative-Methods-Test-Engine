@@ -209,6 +209,7 @@ end
 end
 
 @testset "Variant grid expansion" begin
+    register_abbreviation!("MyMethod", "MM")   # test fixture's own short name
     axis1 = VariantAxis(:preconditioner,
         IdentityPreconditioner() => "Identity",
         JacobiPreconditioner()   => "Jacobi",

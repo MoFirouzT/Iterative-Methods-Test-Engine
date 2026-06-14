@@ -5,7 +5,7 @@ Defines the StoppingCriterion type hierarchy and the `should_stop` dispatch inte
 Provides composable criteria: by iteration count, core computation time, tolerance,
 or user-defined conditions.
 
-The runner uses a `while true` loop controlled entirely by StoppingCriteria.
+The runner uses a `while true` loop controlled entirely by StoppingCriterion.
 This gives full, composable control over how many steps any algorithm takes.
 """
 
@@ -93,37 +93,6 @@ where the optimum is known by construction. For production solves, prefer
 @kwdef struct DistanceToOptimal <: StoppingCriterion
     tol :: Float64 = 1e-6
 end
-
-
-"""
-    _tr_status(state) -> Symbol
-
-Trust-region inner-solver status accessor. Default `:none`; a method that
-produces trust-region inner steps (e.g. `SteihaugCG`) overrides this to expose
-`:boundary` or `:negative_curvature`, which `TrustRegionBoundary` /
-`NegativeCurvature` then read. Kept as a dispatch point so the engine criteria
-stay decoupled from any concrete inner-solver state layout.
-"""
-_tr_status(state) = :none
-
-
-"""
-    NegativeCurvature()
-
-Terminate when the inner solver reports negative curvature along its search
-direction (`_tr_status(state) === :negative_curvature`). Composable inner
-criterion for truncated-CG trust-region solves.
-"""
-struct NegativeCurvature <: StoppingCriterion end
-
-
-"""
-    TrustRegionBoundary()
-
-Terminate when the inner solver's step reaches the trust-region boundary
-(`_tr_status(state) === :boundary`).
-"""
-struct TrustRegionBoundary <: StoppingCriterion end
 
 
 """
@@ -226,24 +195,13 @@ function should_stop(c::DistanceToOptimal, state, iter::Int, logger)
 end
 
 
-# NegativeCurvature dispatch — reads the inner-solver status accessor.
-function should_stop(c::NegativeCurvature, state, iter::Int, logger)
-    _tr_status(state) === :negative_curvature ? (true, :negative_curvature) : (false, :none)
-end
-
-
-# TrustRegionBoundary dispatch
-function should_stop(c::TrustRegionBoundary, state, iter::Int, logger)
-    _tr_status(state) === :boundary ? (true, :boundary_reached) : (false, :none)
-end
-
-
 # ObjectiveStagnation dispatch
 function should_stop(c::ObjectiveStagnation, state, iter::Int, logger)
     iter < c.window && return (false, :none)
-    recent = logger.iter_logs[end-c.window+1:end]
-    Δ = abs(recent[1].objective - recent[end].objective)
-    Δ <= c.tol ? (true, :objective_stagnated) : (false, :none)
+    # Direct index access (not a slice) — avoids a per-check array allocation.
+    first_obj = logger.iter_logs[end-c.window+1].objective
+    last_obj  = logger.iter_logs[end].objective
+    abs(first_obj - last_obj) <= c.tol ? (true, :objective_stagnated) : (false, :none)
 end
 
 

@@ -61,7 +61,7 @@ struct NoWarmup <: WarmupStrategy end
 # Run an iterative method as warm-up; use its final iterate as x0
 @kwdef struct IterativeWarmup <: WarmupStrategy
     method    :: IterativeMethod
-    criteria  :: StoppingCriteria
+    criteria  :: StoppingCriterion
     verbosity :: VerbosityConfig = VerbosityConfig(level=MILESTONE)
 end
 
@@ -101,9 +101,9 @@ end
     conventional_methods :: Vector{ConventionalMethod} = []
     experimental_methods :: Vector{ExperimentalMethod} = []
     variant_grids        :: Vector{VariantGrid}        = []
-    stopping_criteria    :: StoppingCriteria           = stop_when_any(
+    stopping_criteria    :: StoppingCriterion           = stop_when_any(
                                 MaxIterations(1000), GradientTolerance(1e-6))
-    method_criteria      :: Dict{String, StoppingCriteria} = Dict()
+    method_criteria      :: Dict{String, StoppingCriterion} = Dict()
     warmup               :: WarmupStrategy             = NoWarmup()
     n_runs               :: Int                        = 1
     seed                 :: Union{Int,Nothing}         = 42

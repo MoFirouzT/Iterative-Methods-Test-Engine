@@ -80,16 +80,12 @@ end
 # Naming Helpers
 # ─────────────────────────────────────────────────────────────────────────
 
+# Generic, content-agnostic entries only. Concrete method/component abbreviations
+# are registered by their own content files via `register_abbreviation!` on load
+# (e.g. algorithms/components/minor_updates.jl, step_sizes.jl), keeping the engine
+# free of any concrete method/component vocabulary.
 const ABBREVIATIONS = Dict{String,String}(
-	"MyMethod" => "MM",
 	"None" => "∅",
-	"NoMinorUpdate" => "∅",
-	"Momentum" => "Mom",
-	"MomentumStep" => "Mom",
-	"Nesterov" => "Nest",
-	"NesterovStep" => "Nest",
-	"Armijo" => "Arm",
-	"ArmijoLS" => "Arm",
 )
 
 abbreviate(value) = get(ABBREVIATIONS, string(value), string(value))

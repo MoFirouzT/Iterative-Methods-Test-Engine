@@ -137,21 +137,19 @@ end
 | Short (plot legends) | `GD/Arm` |
 
 ```julia
-const ABBREVIATIONS = Dict(
-    "GradientDescent" => "GD",
-    "SteepestDescent" => "SD",
-    "FixedStep"       => "Fix",
-    "CauchyStep"      => "Cau",
-    "BarzilaiBorwein" => "BB",
-    "ArmijoLS"        => "Arm",
-)
-
-# Register abbreviations for user-defined components
-register_abbreviation!(long::String, short::String) = (ABBREVIATIONS[long] = short)
+# The engine ships only the registry mechanism — it holds no concrete
+# method/component vocabulary (generic entries only):
+const ABBREVIATIONS = Dict{String,String}("None" => "∅")
+abbreviate(value)   = get(ABBREVIATIONS, string(value), string(value))
+register_abbreviation!(long, short) = (ABBREVIATIONS[long] = short)
 ```
 
-`register_abbreviation!` must be called for any user-defined component name before
-`expand` is first called. It is documented in the Extension Guide.
+Concrete abbreviations are **content**: each component registers its own on load —
+`step_sizes.jl` registers `"ArmijoLS" => "Arm"`, `minor_updates.jl` registers the
+Nesterov / Momentum names — and a method or experiment registers its own method name
+(e.g. `register_abbreviation!("GradientDescent", "GD")`). `register_abbreviation!`
+must be called for any name before `expand` is first invoked; it is documented in the
+Extension Guide.
 
 ## Defining a Grid (Usage Example)
 

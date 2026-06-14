@@ -28,7 +28,7 @@ deliverables. These stages are the rehearsal behind them.
 | 1 | Convergence panels | [`stage1.jl`](stage1.jl) | Five GD variants on Rosenbrock; 2×2 panel of f, ‖∇f‖, ‖x−x*‖, αₖ |
 | 2 | Trajectories | [`stage2.jl`](stage2.jl) | `extras` → DataFrame plumbing (`:x_iter`); the contour-map trajectory recipe (figure above) |
 | 3 | Persistence roundtrip | [`stage3.jl`](stage3.jl) | `save_experiment` → `load_experiment` → byte-identical CSV across a fresh process |
-| 4 | Stopping criteria | [`stage4.jl`](stage4.jl) | `CompositeCriteria`, `DistanceToOptimal`, runner-side `dist_to_opt`, `stop_reason` coverage |
+| 4 | Stopping criteria | [`stage4.jl`](stage4.jl) | `CompositeCriterion`, `DistanceToOptimal`, runner-side `dist_to_opt`, `stop_reason` coverage |
 | 5 | Orchestrator debut | [`stage5.jl`](stage5.jl) | `run_experiment` + `VariantGrid` + fair-comparison plots (vs iters / evals / core-time) |
 | 6 | Multi-run + warm-up | [`stage6.jl`](stage6.jl) | Randomized x₀, `n_runs` aggregation, IQR bands, warm-up vs cold timing |
 | 7 | Observability | [`stage7.jl`](stage7.jl) | Debug mode, extended stopping criteria, range-gated verbosity |

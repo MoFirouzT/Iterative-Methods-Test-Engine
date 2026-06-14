@@ -22,7 +22,7 @@ rules use it as a non-allocating scratch buffer.
 
 using Base: @kwdef
 using LinearAlgebra: dot, norm
-using .TestEngine: total_objective, hessian, apply, @core_timed   # engine functions this content calls
+using .TestEngine: total_objective, hessian, apply, @core_timed, register_abbreviation!   # engine functions this content calls
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -220,3 +220,9 @@ function compute_step_size(rule::BarzilaiBorwein, state, problem, direction::Vec
 		return clamp(α, rule.α_min, rule.α_max)
 	end
 end
+
+
+# Friendly short names for variant-grid short_name / plot legends — this content
+# registers its own vocabulary with the engine's abbreviation table on load.
+register_abbreviation!("Armijo",   "Arm")
+register_abbreviation!("ArmijoLS", "Arm")

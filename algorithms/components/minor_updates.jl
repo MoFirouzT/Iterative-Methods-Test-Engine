@@ -7,6 +7,7 @@ references these; they belong to the method-construction layer.
 """
 
 using Base: @kwdef
+using .TestEngine: register_abbreviation!
 
 
 """
@@ -88,3 +89,12 @@ Advance the momentum parameter after the iterate update. FISTA advances
 advance_momentum(::NoMinorUpdate, t::Float64) = t
 advance_momentum(::NesterovStep, t::Float64) = (1 + sqrt(1 + 4t^2)) / 2
 advance_momentum(::MomentumStep, t::Float64) = t
+
+
+# Friendly short names for variant-grid short_name / plot legends — this content
+# registers its own vocabulary with the engine's abbreviation table on load.
+register_abbreviation!("NoMinorUpdate", "∅")
+register_abbreviation!("Momentum",      "Mom")
+register_abbreviation!("MomentumStep",  "Mom")
+register_abbreviation!("Nesterov",      "Nest")
+register_abbreviation!("NesterovStep",  "Nest")

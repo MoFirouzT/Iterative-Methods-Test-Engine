@@ -2,8 +2,8 @@
 #
 # Stage 4 — Stopping-criteria coverage.
 #
-# Goal: exercise the full StoppingCriteria machinery — DistanceToOptimal,
-# CompositeCriteria(:any), the runner-side dist_to_opt update, and stop_reason
+# Goal: exercise the full StoppingCriterion machinery — DistanceToOptimal,
+# CompositeCriterion(:any), the runner-side dist_to_opt update, and stop_reason
 # propagation through MethodResult — by running each method to a tight
 # multi-criterion stop and visualizing convergence speed.
 #
@@ -428,7 +428,7 @@ function assert_validation(summary::Dict, milestone_iters::Dict)
         "DistanceToOptimal($(DIST_TOL)); got :$(summary["BB2"].stop_reason)")
     @assert summary["Fixed"].stop_reason == :max_iterations (
         "Fixed (α=8e-4) should run the full budget; got " *
-        ":$(summary["Fixed"].stop_reason). The CompositeCriteria :any mode " *
+        ":$(summary["Fixed"].stop_reason). The CompositeCriterion :any mode " *
         "may be misbehaving, or α is bizarrely well-suited.")
 
     # ── dist_final tolerance for converged methods ──────────────────────────

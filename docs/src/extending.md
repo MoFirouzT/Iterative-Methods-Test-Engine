@@ -24,12 +24,12 @@ type stability). Call `run_sub_method` inside `step!`, forwarding the `logger` a
 
 ## Adding a new stopping criterion
 
-Add a struct subtyping `StoppingCriteria` and a `should_stop` method to `stopping.jl`.
-It can immediately be used standalone or composed inside `CompositeCriteria`. Access
+Add a struct subtyping `StoppingCriterion` and a `should_stop` method to `stopping.jl`.
+It can immediately be used standalone or composed inside `CompositeCriterion`. Access
 state quantities via `state.metrics.*`.
 
 ```julia
-@kwdef struct RelativeObjectiveDecrease <: StoppingCriteria
+@kwdef struct RelativeObjectiveDecrease <: StoppingCriterion
     tol :: Float64 = 1e-6
 end
 

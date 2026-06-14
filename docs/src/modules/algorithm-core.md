@@ -221,7 +221,7 @@ one seeded repetition of a whole experiment indexed by `run_id` (see
 [Experiment Orchestration](orchestration.md)).
 
 Algorithms never hold a logger reference — the logger is passed as an explicit
-parameter to `step!` on every iteration. A `StoppingCriteria` object controls
+parameter to `step!` on every iteration. A `StoppingCriterion` object controls
 termination (see [Stopping Criteria](@ref)). If `problem.x_opt` is set, the runner
 computes `dist_to_opt` — for the initial snapshot and after each step — and stores it
 in `state.metrics` before `extract_log_entry`, so algorithms never read
@@ -231,10 +231,10 @@ error is **not** caught: it propagates out of `run_method` as a clean failure.
 ```julia
 function run_method(method   :: IterativeMethod,
                     problem,
-                    criteria :: StoppingCriteria,
+                    criteria,                      # untyped: stopping.jl loads after core.jl
                     logger   :: Logger,
                     rng      :: AbstractRNG;
-                    debug    = nothing)   # untyped: core.jl is loaded before debug.jl
+                    debug    = nothing)            # untyped: debug.jl loads after core.jl
 
     state = init_state(method, problem, rng)
 

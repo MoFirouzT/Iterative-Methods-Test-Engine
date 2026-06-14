@@ -29,7 +29,6 @@ export SubRunConfig, SubResult, @core_timed
 
 export StoppingCriterion, MaxIterations, TimeLimit, GradientTolerance
 export ObjectiveStagnation, StepTolerance, DistanceToOptimal, CompositeCriterion, stop_when_any, stop_when_all, should_stop
-export NegativeCurvature, TrustRegionBoundary, _tr_status
 
 # Concrete methods, their components (StepSize/DescentDirection/MinorUpdate/
 # HessianApprox + concretes), GradientDescent, and concrete problems

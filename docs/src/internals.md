@@ -29,8 +29,8 @@ TestEngine.jl/
 │   │                     #   nested infrastructure (SubRunConfig{M}, SubResult{S},
 │   │                     #   run_sub_method)
 │   │
-│   ├── stopping.jl       # StoppingCriteria hierarchy; should_stop dispatch;
-│   │                     #   CompositeCriteria; stop_when_any / stop_when_all;
+│   ├── stopping.jl       # StoppingCriterion hierarchy; should_stop dispatch;
+│   │                     #   CompositeCriterion; stop_when_any / stop_when_all;
 │   │                     #   DistanceToOptimal
 │   │
 │   ├── variants.jl       # VariantAxis, VariantGrid, VariantSpec; expand(); ABBREVIATIONS;
@@ -131,7 +131,7 @@ TestEngine.jl/
 │       │                   │                                             │
 │       └──────────► VariantGrid → expand() → [VariantSpec, ...]         │
 │                                     │                                   │
-│  stopping.jl        StoppingCriteria (per-experiment or per-method)    │
+│  stopping.jl        StoppingCriterion (per-experiment or per-method)    │
 │                                     │                                   │
 │                         ExperimentConfig                                │
 │                    (+ warmup :: WarmupStrategy)                         │
@@ -218,7 +218,7 @@ TestEngine.jl/
 | `gs :: Vector{Regularizer}` with empty default + convenience constructors | Pure (non-composite) problems remain expressible as `Problem(f, x0)`; composite problems carry explicit `gs`; no `Union{Nothing,Vector}` indirection |
 | `Hessian` abstract type with `apply` / `materialize` / `diagonal` interface | Unifies exact Hessians, full quasi-Newton (BFGS, SR1), L-BFGS, and structured forms under one dispatch surface; each concrete type declares which operations are available |
 | `StepSize` umbrella with `LineSearch <: StepSize` subset | Type-honest: closed-form rules (Fixed, BB, Cauchy) and genuine 1D searches (Armijo) are both valid step-size strategies; the subset gives a real dispatch handle for code that needs to specifically target line searches |
-| `StoppingCriteria` hierarchy replaces `converged` + `for` loop | Full control over termination: count, time, tolerance, composites, all independently testable |
+| `StoppingCriterion` hierarchy replaces `converged` + `for` loop | Full control over termination: count, time, tolerance, composites, all independently testable |
 | Stopping criteria separated from algorithm struct | Same algorithm, different run budgets across experiments; no code changes required |
 | `@core_timed` in algorithm code, exception-safe, accumulates into `state.timing.core_time_ns` | Scientific discipline: only the kernel is measured; bookkeeping invisible to the clock; error recovery does not corrupt timing |
 | `log_iter!` accumulates `entry.core_time_ns` into `logger.total_core_ns` | `TimeLimit` reads `elapsed_core_s(logger)` — per-iteration core time is logged, then summed; wall-clock never used as a stopping criterion |

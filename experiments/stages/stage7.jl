@@ -4,7 +4,7 @@
 # -----------------------------------------------------------------------------
 # The "research tooling" stage. Three orthogonal observability blocks bundled
 # into one script because they're all auxiliary verification machinery, and
-# together they cover everything in debug.jl, the remaining StoppingCriteria
+# together they cover everything in debug.jl, the remaining StoppingCriterion
 # subtypes, the :all composite mode, and the iter_range branch of
 # maybe_print.
 #
@@ -372,7 +372,7 @@ let
               "did the budget catch everything?"
 end
 
-# ─── B2: CompositeCriteria(:all) ────────────────────────────────────────────
+# ─── B2: CompositeCriterion(:all) ────────────────────────────────────────────
 #
 # stop_when_all requires BOTH GradientTolerance AND StepTolerance to hold
 # simultaneously. A converging method will eventually satisfy both. The

@@ -25,7 +25,7 @@ entry under `extras`. The sub-runner never writes to disk or console independent
 # Parametric over the inner method type — enables type-stable state inference
 @kwdef struct SubRunConfig{M <: IterativeMethod}
     method        :: M
-    criteria      :: StoppingCriteria
+    criteria      :: StoppingCriterion
     log_sub_iters :: Bool            = true
     verbosity     :: VerbosityConfig = VerbosityConfig(level=SILENT)
 end

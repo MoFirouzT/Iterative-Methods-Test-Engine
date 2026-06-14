@@ -17,7 +17,7 @@ using Random: AbstractRNG
 using LinearAlgebra: dot, norm
 using .TestEngine
 import .TestEngine: Objective, Hessian, value, grad!, hessian,
-	init_state, step!, extract_log_entry, _tr_status
+	init_state, step!, extract_log_entry, should_stop, StoppingCriterion
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -46,7 +46,7 @@ hessian(m::QuadraticModel, p::Vector{Float64})::Hessian = m.H
 #
 # Minimizes m(p) within the trust region ‖p‖ ≤ Δ. One CG iteration per `step!`,
 # so the inner trace is a real iteration log. Terminates (via composable
-# StoppingCriteria) on: residual tol (GradientTolerance on ‖r‖), max inner iters,
+# StoppingCriterion) on: residual tol (GradientTolerance on ‖r‖), max inner iters,
 # negative curvature, or hitting the trust-region boundary.
 # ═════════════════════════════════════════════════════════════════════════
 
@@ -68,8 +68,25 @@ end
 	numerics::SteihaugCGNumerics
 end
 
-# Expose the inner status to the NegativeCurvature / TrustRegionBoundary criteria.
-_tr_status(s::SteihaugCGState) = s.numerics.status
+# ── Inner-solver stopping criteria (content — extend the engine) ──────────────
+# Trust-region-specific termination conditions. They live HERE, not in the engine:
+# the engine ships only the generic `StoppingCriterion` abstraction and the
+# `should_stop` dispatch; a method defines its own criteria the same way it defines
+# `step!`. Both read a `_tr_status(state)` accessor (default :none) that the inner
+# solver overrides, keeping termination decoupled from the inner-solver state layout.
+struct NegativeCurvature   <: StoppingCriterion end
+struct TrustRegionBoundary <: StoppingCriterion end
+
+_tr_status(state)              = :none               # default for any state
+_tr_status(s::SteihaugCGState) = s.numerics.status   # SteihaugCG exposes its inner status
+
+function should_stop(c::NegativeCurvature, state, iter::Int, logger)
+	_tr_status(state) === :negative_curvature ? (true, :negative_curvature) : (false, :none)
+end
+
+function should_stop(c::TrustRegionBoundary, state, iter::Int, logger)
+	_tr_status(state) === :boundary ? (true, :boundary_reached) : (false, :none)
+end
 
 
 function init_state(method::SteihaugCG, problem, rng::AbstractRNG)

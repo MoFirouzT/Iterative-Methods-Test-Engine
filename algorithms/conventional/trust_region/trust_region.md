@@ -30,7 +30,7 @@ iteration per `step!` (so the inner trace is a real iteration log). Starting fro
    truncate to the boundary `p + τd` and stop.
 4. Otherwise take the CG step, update `r ← r + αHd`, `d ← −r + βd`.
 
-Termination is by **composable `StoppingCriteria`**:
+Termination is by **composable `StoppingCriterion`**:
 `MaxIterations ∨ GradientTolerance(‖r‖) ∨ NegativeCurvature ∨ TrustRegionBoundary`.
 The last two read the inner status via `_tr_status(state)` (default `:none`;
 `SteihaugCGState` overrides it). `gradient_norm` is set to the residual norm `‖r‖`,
