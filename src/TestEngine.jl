@@ -19,6 +19,7 @@ include("analysis.jl")
 
 export Objective, Regularizer, Hessian, MatrixHessian, OperatorHessian, DiagonalHessian
 export value, grad, grad!, hessian, hessian_vec, apply, materialize, diagonal
+export OracleCounts, CountingObjective, CountingHessian, with_oracle_counting, oracle_counts
 export Problem, total_objective, objective, ProblemSpec, AnalyticProblem, FileProblem, RandomProblem
 export register_analytic_problem!, register_random_problem!, register_file_loader!, make_problem
 

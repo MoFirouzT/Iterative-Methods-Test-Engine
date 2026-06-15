@@ -211,6 +211,76 @@ end
 
 
 # ─────────────────────────────────────────────────────────────────────────
+# Oracle counting (opt-in fair-comparison instrumentation)
+#
+# Transparent wrappers that tally oracle calls — value / grad! / Hessian-vector
+# products — into a shared OracleCounts. Off by default (the runner installs them
+# only when ExperimentConfig.count_oracles is set), so the core-time measurement
+# path is untouched when unused. Parametric over the inner type so the forwarded
+# call stays statically dispatched: the only added cost is the counter increment.
+# ─────────────────────────────────────────────────────────────────────────
+
+"""
+	OracleCounts
+
+Mutable tally of oracle evaluations shared by a `CountingObjective` and every
+`CountingHessian` it hands out — so one struct accumulates a run's calls,
+including those inside line searches and nested sub-solvers.
+"""
+@kwdef mutable struct OracleCounts
+	n_value::Int = 0    # value(f, ·) calls
+	n_grad::Int  = 0    # grad!(·, f, ·) calls
+	n_hvp::Int   = 0    # apply(H, ·) Hessian-vector products
+end
+
+"""
+	CountingObjective{O<:Objective} <: Objective
+
+Wraps an objective so `value` / `grad!` increment a shared `OracleCounts`, and
+`hessian` returns a `CountingHessian` (so Hessian-vector products are counted too).
+"""
+struct CountingObjective{O<:Objective} <: Objective
+	inner::O
+	counts::OracleCounts
+end
+
+function value(f::CountingObjective, x::Vector{Float64})::Float64
+	f.counts.n_value += 1
+	return value(f.inner, x)
+end
+
+function grad!(g::Vector{Float64}, f::CountingObjective, x::Vector{Float64})
+	f.counts.n_grad += 1
+	return grad!(g, f.inner, x)
+end
+
+# Returns a CountingHessian; if the inner objective defines no hessian the inner
+# call hits the throwing fallback and the MethodError propagates unchanged.
+hessian(f::CountingObjective, x::Vector{Float64}) =
+	CountingHessian(hessian(f.inner, x), f.counts)
+
+"""
+	CountingHessian{H<:Hessian} <: Hessian
+
+Wraps a Hessian so each `apply` (Hessian-vector product) increments the shared
+`OracleCounts.n_hvp`. `materialize` / `diagonal` forward unchanged (and stay
+absent exactly when the inner Hessian lacks them).
+"""
+struct CountingHessian{H<:Hessian} <: Hessian
+	inner::H
+	counts::OracleCounts
+end
+
+function apply(H::CountingHessian, d::Vector{Float64})::Vector{Float64}
+	H.counts.n_hvp += 1
+	return apply(H.inner, d)
+end
+
+materialize(H::CountingHessian) = materialize(H.inner)
+diagonal(H::CountingHessian)    = diagonal(H.inner)
+
+
+# ─────────────────────────────────────────────────────────────────────────
 # Composite Problem
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -245,6 +315,27 @@ Convenience constructor for an unregularized problem (g = ∅).
 function Problem(f::Objective, x0::Vector{Float64}; meta::Dict{Symbol,Any}=Dict{Symbol,Any}(), x_opt::Union{Nothing,Vector{Float64}}=nothing)
 	Problem(f, Regularizer[], x0, length(x0), meta, x_opt)
 end
+
+"""
+	with_oracle_counting(p::Problem) -> Problem
+
+Return a copy of `p` whose objective is wrapped in a `CountingObjective` with a fresh
+`OracleCounts`. The runner installs this per method when `ExperimentConfig.count_oracles`
+is set; everything else (`gs`, `x0`, `meta`, `x_opt`) is preserved.
+"""
+with_oracle_counting(p::Problem)::Problem =
+	Problem(CountingObjective(p.f, OracleCounts()), p.gs, p.x0, p.n, p.meta, p.x_opt)
+
+"""
+	oracle_counts(p::Problem) -> Union{OracleCounts,Nothing}
+
+The shared `OracleCounts` when `p`'s objective is a `CountingObjective`, else `nothing`.
+The runner uses it to surface cumulative counts into each log entry's `extras`.
+"""
+oracle_counts(p::Problem) = p.f isa CountingObjective ? p.f.counts : nothing
+# Fallback: the runner is generic over `problem`, so a problem-like object that is not a
+# `Problem` (e.g. a test double) simply has no oracle counter.
+oracle_counts(@nospecialize(_)) = nothing
 
 
 """

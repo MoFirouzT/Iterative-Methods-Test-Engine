@@ -20,7 +20,7 @@ rule is **demonstrate, don't advertise**: every capability the framework claims 
 exactly one clean, working consumer you can watch run — not an exported abstraction taken
 on faith.
 
-## Five design principles
+## Six design principles
 
 1. **Multiple dispatch over hierarchies.** Methods, components (step size, descent
    direction, extrapolation, preconditioner), stopping criteria, problems, and Hessian
@@ -47,8 +47,15 @@ on faith.
    single seed by deterministic hashing.
 
 5. **Specification-driven.** Every problem and method ships a co-located `.md` spec that is
-   the single source of truth for the math, the variable mapping, and the implementation
-   contract (`init_state`, `step!`, `extract_log_entry`).
+   the single source of truth for the math, the implementation contract (`init_state`,
+   `step!`, `extract_log_entry`), and the win conditions its demonstrating experiment must
+   show (a symbol→code variable-mapping table is optional, used only where the mapping
+   isn't obvious from the code).
+
+6. **Separation of concerns across modules.** Algorithms know nothing about logging,
+   loggers nothing about plotting, stopping criteria nothing about algorithms. Each module
+   talks to the next through plain data structures, so any one can be read, tested, and
+   replaced in isolation.
 
 ## One experiment, annotated: ISTA → FISTA on the lasso
 

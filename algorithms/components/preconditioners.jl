@@ -7,7 +7,7 @@ method) crossed with a step-size axis. The engine machinery never references
 these; they belong to the method-construction layer.
 """
 
-import .TestEngine: Hessian, MatrixHessian, DiagonalHessian, hessian, diagonal
+import .TestEngine: Hessian, MatrixHessian, DiagonalHessian, CountingHessian, hessian, diagonal
 using LinearAlgebra: norm
 
 
@@ -48,6 +48,8 @@ function precondition end
 _supports_diagonal(::Hessian)         = false
 _supports_diagonal(::DiagonalHessian) = true
 _supports_diagonal(::MatrixHessian)   = true
+# Stay transparent under opt-in oracle counting: forward through the wrapper.
+_supports_diagonal(H::CountingHessian) = _supports_diagonal(H.inner)
 
 
 # ─────────────────────────────────────────────────────────────────────────

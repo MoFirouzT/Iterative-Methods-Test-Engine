@@ -22,8 +22,17 @@ end
 It is updated by the runner (never by the algorithm) when `problem.x_opt` is non-`nothing`.
 Analysis code can test `isfinite(entry.dist_to_opt)` to determine whether optimality tracking was active.
 
+`IterationLog` mirrors the fixed fields of `MetricsGroup`, so the meaning of
+`gradient_norm` and `step_norm` is **method-defined** (e.g. `gradient_norm` is the
+smooth-part gradient, *not* a composite-stationarity certificate) — see
+[the metric-fields note](algorithm-core.md) for the per-method readings and the stopping
+consequences.
+
 The `extras` dict carries algorithm-specific fields and, when nested algorithms are
 used, `:sub_logs` containing the full `Vector{IterationLog}` from each sub-method run.
+When `ExperimentConfig.count_oracles` is on, the runner also adds the cumulative
+`:n_value` / `:n_grad` / `:n_hvp` oracle counts to each entry's `extras` (see
+[oracle counting](problem-interface.md)).
 
 ## Logger
 
@@ -62,10 +71,9 @@ end
 
 ### `extract_log_entry` — the default
 
-`extract_log_entry(method, state, iter)` dispatches on the method type. Because
-`state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is
-trivial — it copies the metrics and core time straight across — so a method overrides
-it only to populate `extras`:
+`extract_log_entry(method, state, iter)` dispatches on the method type.
+Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is
+trivial — it copies the metrics and core time straight across — so a method overrides it only to populate `extras`:
 
 ```julia
 function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog
@@ -81,16 +89,14 @@ end
 # Methods override this to additionally populate the extras dict.
 ```
 
-It is one of the algorithm interface's dispatch points (see
-[Algorithm Abstraction, Core Timing & the Runner](@ref)); it is documented here
-because the `IterationLog` it produces is owned by logging.
+It is one of the algorithm interface's dispatch points (see [Algorithm Abstraction, Core Timing & the Runner](@ref));
+it is documented here because the `IterationLog` it produces is owned by logging.
 
 ## Verbosity Levels
 
 Verbosity is a first-class, orthogonal concern — not scattered `if verbose` checks.
-It is **independent of debug mode** (see [Debug Mode](@ref)): verbosity controls what is printed
-from normal iteration data; debug mode controls diagnostic calculations triggered by
-threshold violations.
+It is **independent of debug mode** (see [Debug Mode](@ref)):
+verbosity controls what is printed from normal iteration data; debug mode controls diagnostic calculations triggered by threshold violations.
 
 ```julia
 @enum VerbosityLevel begin
@@ -119,12 +125,13 @@ end
 
 ## Range-Gated Output
 
-`maybe_print(logger, entry)` is the single gating function. It evaluates:
+`maybe_print(logger, entry)` is the single gating function.
+It evaluates:
 
 1. Is `entry.iter` inside `iter_range` (if set)?
-   — If yes: apply `DETAILED` regardless of the configured `level`.
-   — If no and `iter_range` is set: suppress output for that iteration.
-   — If `iter_range` is `nothing`: apply `level` uniformly.
+   - If yes: apply `DETAILED` regardless of the configured `level`.
+   - If no and `iter_range` is set: suppress output for that iteration.
+   - If `iter_range` is `nothing`: apply `level` uniformly.
 
 2. Within the applicable level, apply the `print_every` stride.
 

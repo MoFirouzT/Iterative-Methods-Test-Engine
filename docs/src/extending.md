@@ -121,7 +121,8 @@ end
 Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`:
 
 1. State the optimization problem in standard form.
-2. Derive and document $\nabla f$ and the Hessian (full matrix or H·d).
+2. Derive and document $\nabla f$, and the Hessian (full matrix or H·d) **only if** the
+   problem will be used by curvature-based methods — it is optional otherwise.
 3. Provide the known minimizer `x_opt` if it exists analytically; document why it
    is `nothing` if it does not.
 4. Add a **Win-conditions** section — what a method run on this problem must
@@ -130,9 +131,10 @@ Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`
    obvious from the annotated code (as in `rosenbrock.md`), and omit it otherwise.
 5. Include the `register_analytic_problem!` / `register_random_problem!` call.
 
-Then implement `problems/<name>/<name>.jl` with `value`, `grad!`, `hessian`
-(returning a `Hessian` object), and the registration call. The `<name>.md` is the
-contract; the `.jl` is the implementation.
+Then implement `problems/<name>/<name>.jl` with `value`, `grad!`, optionally `hessian`
+(returning a `Hessian` object — needed only if curvature-based methods will use this
+problem; the engine default raises a clear error otherwise), and the registration call.
+The `<name>.md` is the contract; the `.jl` is the implementation.
 
 Finally, register the problem with the conformance harness: add one entry to
 `CONFORMANCE_SPECS` in `test/test_problem_contract.jl` — an example spec for your

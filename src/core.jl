@@ -305,6 +305,17 @@ function run_method(method::IterativeMethod, problem, criteria, logger, rng::Abs
 		end
 
 		entry = extract_log_entry(method, state, iter)
+
+		# Oracle counting (opt-in): when the problem's objective is a CountingObjective,
+		# surface the cumulative value/grad/Hvp counts in the entry's extras. Includes
+		# work issued inside line searches and nested sub-solvers (shared counter).
+		oc = oracle_counts(problem)
+		if oc !== nothing
+			entry.extras[:n_value] = oc.n_value
+			entry.extras[:n_grad]  = oc.n_grad
+			entry.extras[:n_hvp]   = oc.n_hvp
+		end
+
 		log_iter!(logger, entry)
 
 		# Debug checks fire after the log entry is recorded so the check has

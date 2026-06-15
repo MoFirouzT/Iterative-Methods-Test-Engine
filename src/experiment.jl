@@ -139,6 +139,10 @@ Declarative experiment definition.
 	seed::Union{Int,Nothing} = 42
 	tags::Dict{String,Any} = Dict{String,Any}()
 	debug::DebugConfig = DebugConfig()
+	# Opt-in oracle counting: wrap each method's problem.f in a CountingObjective and
+	# surface cumulative :n_value/:n_grad/:n_hvp in the logs. Off by default so the
+	# core-time measurement path is unperturbed.
+	count_oracles::Bool = false
 end
 
 
@@ -329,7 +333,10 @@ function run_experiment(config::ExperimentConfig,
 			criteria = get(config.method_criteria, name, config.stopping_criteria)
 			logger = _make_logger(name, run_id, exp_path, verbosity)
 			method_rng = Xoshiro(hash((root_seed, run_id, name)))
-			raw_result = run_method(method, problem, criteria, logger, method_rng;
+			# Opt-in oracle counting: wrap per method so each gets a fresh tally
+			# (after warm-up, so warm-up evaluations are excluded from the measured run).
+			method_problem = config.count_oracles ? with_oracle_counting(problem) : problem
+			raw_result = run_method(method, method_problem, criteria, logger, method_rng;
 									debug = config.debug)
 			method_results[name] = _to_method_result(name, raw_result)
 		end

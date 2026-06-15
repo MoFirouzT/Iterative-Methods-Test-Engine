@@ -109,11 +109,21 @@ end
     seed                 :: Union{Int,Nothing}         = 42
     tags                 :: Dict{String,Any}           = Dict()
     debug                :: DebugConfig                = DebugConfig()
+    count_oracles        :: Bool                       = false
 end
 ```
 
 `method_criteria` lets specific methods use different stopping budgets within the
 same experiment.
+
+`count_oracles` (default `false`) turns on **oracle counting**: the runner wraps each
+method's `problem.f` in a `CountingObjective` (with a fresh `OracleCounts`) before the run,
+and surfaces the cumulative `:n_value` / `:n_grad` / `:n_hvp` counts in every
+`IterationLog`'s `extras`. It is opt-in precisely so the default path — and the core-time
+measurement it produces — is untouched; the wrapper is installed per method, *after*
+warm-up, so warm-up evaluations are excluded from the measured run. See
+[oracle counting](problem-interface.md) for the wrapper and
+[Convergence & Cost](../convergence-and-cost.md) for using the counts.
 
 ## Result Types
 

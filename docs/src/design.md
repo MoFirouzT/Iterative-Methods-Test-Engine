@@ -9,14 +9,15 @@ orchestrator is the hub; everything else is a peer module) rather than strictly
 stacked. Module numbering below follows dependency order — read top-down without
 forward references.
 
-The framework is built on four Julia-native principles:
+The framework is built on six Julia-native principles:
 
 - **Multiple dispatch over class hierarchies.** Every algorithm, component, stopping
   criterion, and problem is a dispatch point. Adding a new variant never requires
   touching existing code.
-- **Separation of concerns across modules.** Algorithms know nothing about logging.
-  Loggers know nothing about plotting. Stopping criteria know nothing about algorithms.
-  Each module communicates through well-defined data structures.
+- **Engine / content separation.** `src/` (the `TestEngine` module) ships only
+  abstractions and machinery; every concrete method, problem, and component is *content*
+  that extends the engine via `import .TestEngine`. The engine never names a concrete
+  method, so it stays small and dependency-lean.
 - **Declarative experiment definition.** An experiment is a plain, serializable data
   structure (`ExperimentConfig`). Running it, saving it, and reloading it are separate,
   independent operations.
@@ -32,6 +33,10 @@ The framework is built on four Julia-native principles:
   optional, used only where the mapping isn't obvious from the code). Pluggable
   components (descent directions, step-size rules, ...) get their own dedicated spec
   file when they are shared across algorithms.
+- **Separation of concerns across modules.** Algorithms know nothing about logging.
+  Loggers know nothing about plotting. Stopping criteria know nothing about algorithms.
+  Each module communicates through well-defined data structures, so any one module can be
+  read, tested, and replaced in isolation.
 
 **Additional invariants enforced by the framework:**
 
@@ -50,22 +55,15 @@ The framework is built on four Julia-native principles:
 
 ## High-Level Module Map
 
-| # | File | Responsibility |
-|---|------|----------------|
-| 1 | `problems.jl` | `Objective`, `Regularizer`, `Hessian`, `Problem`, `ProblemSpec` hierarchy, problem factory |
-| 2 | `core.jl` | Type hierarchy, state groups, algorithm interface, `@core_timed`, run loop, nested infrastructure |
-| 3 | `stopping.jl` | Stopping criteria abstraction, composites, `should_stop` dispatch |
-| 4 | `variants.jl` | Component abstractions, Cartesian grid expansion, auto-naming |
-| 5 | `core.jl` | Nested algorithm infrastructure (`SubRunConfig`, `run_sub_method`) |
-| 6 | `logging.jl` | Per-iteration capture, core-time accumulation, event logging, sub-logs, verbosity |
-| 7 | `experiment.jl` | Experiment config, result types, warm-up, orchestration, multi-run management |
-| 8 | `persistence.jl` | JLD2 binary + CSV sidecar + JSON manifest; date/counter naming |
-| 9 | `debug.jl` | `DebugConfig`, `DebugCheck` hierarchy, `run_debug_checks!`, diagnostic helpers |
-| 10 | `analysis.jl` | DataFrame pipeline, color registry, flexible multi-figure layout |
+The module pages — one per concern, each owning one part of the engine — are catalogued
+on the [reference index](index.md), grouped into the four phases of a run (dependency
+order within each phase, so they read top-down with no forward references). The per-file
+breakdown of `src/` lives in [Repository Internals](internals.md).
 
-Modules 2 and 5 are co-located in `core.jl` to avoid circular includes: both depend on
-the same base types and the nested infrastructure (`run_sub_method`) calls `init_state`
-and `step!` defined in [Algorithm Abstraction, Core Timing & the Runner](@ref).
+One structural note that the catalogue does not show: the **algorithm-core** and
+**nested-algorithm** concerns are co-located in `core.jl` to avoid circular includes —
+both depend on the same base types, and the nested infrastructure (`run_sub_method`)
+calls the `init_state` / `step!` defined alongside it.
 
 ---
 

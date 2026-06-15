@@ -23,6 +23,9 @@ reproducible harness.
 - **Declarative, reproducible experiments** — an experiment is a serializable
   `ExperimentConfig`; all randomness derives from a single seed.
 - **Spec-driven** — every problem and method ships a co-located `.md` spec.
+- **Separation of concerns across modules** — algorithms know nothing about logging,
+  loggers nothing about plotting, stopping criteria nothing about algorithms; each module
+  talks to the next through plain data structures.
 
 See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the
 **[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)**

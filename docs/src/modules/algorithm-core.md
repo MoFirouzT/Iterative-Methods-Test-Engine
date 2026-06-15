@@ -62,6 +62,24 @@ lifecycles: the runner **resets** `timing` to zero before every `step!`, whereas
 metrics are overwritten in place. (`IterationLog` likewise keeps `core_time_ns`
 distinct from its metric fields.)
 
+> **What the metric fields mean — and which certify stationarity.** `objective` is the
+> *total* objective `f(x_k) + Σ gᵢ(x_k)`. The other three are **method-defined**: every
+> method writes them, but the exact quantity — and whether it says anything about
+> optimality — depends on the method and the problem class. Each method's spec states
+> precisely what it writes; the canonical readings are:
+>
+> | field | canonical meaning | caveat |
+> | --- | --- | --- |
+> | `objective` | total objective `f(x_k) + Σ gᵢ(x_k)` | — |
+> | `gradient_norm` | `‖∇f(x_k)‖`, the smooth-part gradient | a stationarity certificate **only for smooth, unconstrained problems**. `ProximalGradient` writes `‖∇f(y_k)‖` at the *extrapolation point* (cheap, reused — not a composite-stationarity measure); `SteihaugCG` writes the model **residual** `‖r‖`, so `GradientTolerance` reads as a residual tolerance |
+> | `step_norm` | `‖x_{k+1} − x_k‖` | the right convergence proxy for composite problems — `ProximalGradient`'s value `‖xⁿ − x_k‖` is the gradient-mapping proxy, which *does* vanish at a composite stationary point |
+> | `dist_to_opt` | `‖x_k − x*‖` | set by the runner, not the algorithm; `Inf` when `problem.x_opt` is unset |
+>
+> **Stopping consequence:** `GradientTolerance` is a valid convergence test only for
+> smooth unconstrained problems; for composite ones use `StepTolerance` (the gradient
+> mapping) or `DistanceToOptimal`. See [Convergence & Cost](../convergence-and-cost.md)
+> for the full criterion-by-problem-class matrix.
+
 **Method-specific numerics module** (one per concrete method). "Numerics" is a
 *naming convention*, not a type: there is no abstract `Numerics` supertype. Each
 method defines its own concrete struct named `<Method>Numerics` (e.g.
@@ -213,6 +231,16 @@ inner/outer breakdown.
 
 Every concrete state struct contains a `TimingGroup` field named `timing`.
 The runner resets `state.timing.core_time_ns = 0` before each `step!` call so the logger always sees a single-step measurement.
+
+**Caveats — what the timer cannot separate.** `@core_timed` is wall-clock `time_ns`
+wrapped around the kernel, so it measures *elapsed* time, not pure arithmetic: a
+garbage-collection pause or allocation that lands inside the timed block is counted as
+core time. Keeping kernels allocation-light (as the least-squares `mul!` path does) keeps
+the measure clean. Likewise, first-call JIT compilation is not core math — warm up once
+before a measured run (the orchestrator's warm-up path and the `n_runs` loop both serve
+this). The reported `core_time / wall_time` ratio is honest about *measured* work with
+these two confounds understood; see [Convergence & Cost](../convergence-and-cost.md) for
+how it fits the broader cost model.
 
 ## The Generic Runner
 

@@ -243,3 +243,4 @@ include(joinpath(@__DIR__, "test_least_squares.jl"))       # LeastSquares Hessia
 include(joinpath(@__DIR__, "test_preconditioned_gradient.jl"))   # PreconditionedGradient: Jacobi=Newton, dual-bucket routing, diagonal contract
 include(joinpath(@__DIR__, "test_external_validation.jl"))       # cross-check converged solutions vs Optim.jl + ProximalAlgorithms.jl
 include(joinpath(@__DIR__, "test_trust_region.jl"))              # TrustRegion + Steihaug-CG: branches, nesting, core-time attribution
+include(joinpath(@__DIR__, "test_oracle_counting.jl"))           # opt-in oracle counting: value/grad!/Hvp tally, nesting, Jacobi transparency

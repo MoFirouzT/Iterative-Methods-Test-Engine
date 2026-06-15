@@ -23,18 +23,25 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Design Philosophy" => "design.md",
-        "Modules" => [
-            "Problem Interface"            => "modules/problem-interface.md",
-            "Algorithm & Core Timing"      => "modules/algorithm-core.md",
-            "Stopping Criteria"            => "modules/stopping-criteria.md",
-            "Variant Grid Engine"          => "modules/variant-grid.md",
+        "Foundations" => [
+            "Problem Interface"                   => "modules/problem-interface.md",
+            "Algorithm, Core Timing & the Runner" => "modules/algorithm-core.md",
+        ],
+        "Run Control" => [
             "Nested Algorithms"            => "modules/nested-algorithms.md",
-            "Logging & Verbosity"          => "modules/logging.md",
+            "Stopping Criteria"            => "modules/stopping-criteria.md",
+        ],
+        "Experiment Construction" => [
+            "Variant Grid Engine"          => "modules/variant-grid.md",
             "Experiment Orchestration"     => "modules/orchestration.md",
-            "Persistence"                  => "modules/persistence.md",
+        ],
+        "Observability & Output" => [
+            "Logging & Verbosity"          => "modules/logging.md",
             "Debug Mode"                   => "modules/debug-mode.md",
+            "Persistence"                  => "modules/persistence.md",
             "Analysis & Plotting"          => "modules/analysis-plotting.md",
         ],
+        "Convergence & Cost"   => "convergence-and-cost.md",
         "Repository Internals" => "internals.md",
         "Extension Guide"      => "extending.md",
         "Stretch Goals"        => "stretch-goals.md",
