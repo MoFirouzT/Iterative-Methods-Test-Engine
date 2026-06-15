@@ -1,7 +1,7 @@
 # Problem Interface
 
-Every problem has an **objective** `f(x)`, optionally augmented by one or more
-**regularizers** `gᵢ(x)`. The total objective is `f(x) + Σ gᵢ(x)`.
+Every problem has an **objective** `f(x)`, optionally augmented by one or more **regularizers** `gᵢ(x)`.
+The total objective is `f(x) + Σ gᵢ(x)`.
 Algorithms interact with the problem exclusively through this interface.
 (For the problem class, the definition of an iterative method, and the framework's
 scope and assumptions, see [Mathematical model & scope](../index.md).)
