@@ -107,12 +107,8 @@ function compute_step_size(rule::FixedStep, state, problem,
 end
 ```
 
-### 2.4 Variable Mapping
-
-| Math symbol | Julia expression | Type      | Notes                |
-|-------------|-----------------|-----------|----------------------|
-| $\alpha$    | `rule.α`        | `Float64` | constant step size   |
-| $\alpha_k$  | return value    | `Float64` | same every iteration |
+> No variable-mapping table: $\alpha_k = \alpha = $ `rule.α` is direct enough that
+> the code is its own mapping.
 
 ---
 
@@ -469,7 +465,9 @@ state.numerics.grad_prev = copy(state.iterate.gradient)
      curvature condition holds) — subtype `LineSearch`.
 
 2. Add a numbered section to this file following the template above:
-   derivation, Julia struct, implementation, variable mapping, cost.
+   derivation, Julia struct, implementation, cost. Add a variable-mapping table
+   only when the symbol↔code mapping isn't obvious from the annotated code (as for
+   `CauchyStep` and `BarzilaiBorwein`); a direct rule like `FixedStep` needs none.
 
 3. Add the concrete struct and `compute_step_size` method to
    `components/step_sizes.jl`.

@@ -1,23 +1,23 @@
 # Nested Algorithm Infrastructure
 
-Some algorithms run another iterative method as a **sub-routine** inside their own
-`step!`. Examples: trust-region methods that solve an inner subproblem iteratively,
-bi-level methods, inner-loop methods that refine a correction, or meta-algorithms
-that call multiple sub-solvers per outer step.
+Some algorithms run another iterative method as a **sub-routine** inside their own `step!`.
+Examples: trust-region methods that solve an inner subproblem iteratively, bi-level methods, inner-loop methods that refine a correction, or meta-algorithms that call multiple sub-solvers per outer step.
 
-This module provides the infrastructure to make nested invocation clean, safe, and
-fully logged. **No concrete user of nested algorithms is shipped in the simplified
-setup**; the infrastructure is described here because it is part of the framework
-and reserved for upcoming experimental methods.
+This module provides the infrastructure to make nested invocation clean, safe, and fully logged.
+The shipped consumer is **`TrustRegion`**, whose Steihaug truncated-CG inner solve runs as a
+genuine sub-method on a genuine `Problem` via `run_sub_method` — it folds the inner solve's core
+time into the outer step and attaches the full inner CG trace to each outer log entry. The
+generic schematic below is the pattern `TrustRegion` follows; see
+[trust_region.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/conventional/trust_region/trust_region.md).
 
 ## Design Principle
 
 An algorithm struct holds a **sub-method slot** typed concretely via a parametric
-`SubRunConfig{M}`. During `step!`, the algorithm calls `run_sub_method(...)`, passing
-the logger and rng it received from the outer runner. `run_sub_method` derives a
-child RNG from the outer rng — deterministically — ensuring sub-runs are fully
-reproducible. Sub-iteration logs are attached to the current outer iteration's log
-entry under `extras`. The sub-runner never writes to disk or console independently.
+`SubRunConfig{M}`.
+During `step!`, the algorithm calls `run_sub_method(...)`, passing the logger and rng it received from the outer runner.
+`run_sub_method` derives a child RNG from the outer rng — deterministically — ensuring sub-runs are fully reproducible.
+Sub-iteration logs are attached to the current outer iteration's log entry under `extras`.
+The sub-runner never writes to disk or console independently.
 
 ## Infrastructure Types
 
@@ -122,4 +122,3 @@ extras = Dict(
 ```
 
 ---
-

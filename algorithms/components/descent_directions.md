@@ -96,12 +96,9 @@ end
 > and stored the gradient in `state.iterate.gradient`. Reading it directly avoids
 > a redundant evaluation.
 
-### 2.5 Variable Mapping
-
-| Math symbol        | Julia expression            | Type               |
-|--------------------|-----------------------------|--------------------|
-| $\nabla f(x_k)$   | `state.iterate.gradient`    | `Vector{Float64}`  |
-| $d_k^{SD}$         | return value; stored in `state.numerics.direction` | `Vector{Float64}` |
+> No variable-mapping table: $d_k^{SD} = -\nabla f(x_k) = $
+> `-state.iterate.gradient` (stored in `state.numerics.direction`) is direct enough
+> that the code is its own mapping.
 
 ---
 

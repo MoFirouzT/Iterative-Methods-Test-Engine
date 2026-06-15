@@ -1,8 +1,8 @@
 # Logging & Verbosity
 
-The logger is external to all algorithms. It is injected by the runner and captures
-data through three hooks: `log_init!`, `log_iter!`, and `log_event!`. Verbosity is
-co-located with logging because both share the same `Logger` struct.
+The logger is external to all algorithms.
+It is injected by the runner and captures data through three hooks: `log_init!`, `log_iter!`, and `log_event!`.
+Verbosity is co-located with logging because both share the same `Logger` struct.
 
 ## IterationLog
 
@@ -18,9 +18,9 @@ co-located with logging because both share the same `Logger` struct.
 end
 ```
 
-`dist_to_opt` is `Inf` by default. It is updated by the runner (never by the
-algorithm) when `problem.x_opt` is non-`nothing`. Analysis code can test
-`isfinite(entry.dist_to_opt)` to determine whether optimality tracking was active.
+`dist_to_opt` is `Inf` by default.
+It is updated by the runner (never by the algorithm) when `problem.x_opt` is non-`nothing`.
+Analysis code can test `isfinite(entry.dist_to_opt)` to determine whether optimality tracking was active.
 
 The `extras` dict carries algorithm-specific fields and, when nested algorithms are
 used, `:sub_logs` containing the full `Vector{IterationLog}` from each sub-method run.
@@ -160,4 +160,3 @@ verbosity = VerbosityConfig(
 ```
 
 ---
-

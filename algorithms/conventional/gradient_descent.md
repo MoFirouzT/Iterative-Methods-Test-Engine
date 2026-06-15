@@ -454,7 +454,26 @@ the grid declares `role = :baseline`.
 
 ---
 
-## 10. References
+## 10. Win Conditions
+
+Gradient descent is the framework's **baseline**; "winning" here means it behaves
+exactly as first-order theory predicts, so the experimental methods have an honest
+reference to beat.
+
+- **Step-size sweep (Rosenbrock, `stages/stage1.jl`, `stage2.jl`).** All five
+  variants (`Fixed`, `Armijo`, `Cauchy`, `BB1`, `BB2`) trace the curved valley from
+  `x₀ = (−1.2, 1)` and reduce `f`; `Cauchy` and `BB` reach high accuracy in far fewer
+  iterations than `Fixed`, while `Armijo`'s `n_linesearch_evals` stays in the 1–3
+  range per step.
+- **Conditioning (least squares, `exp_ls2_conditioning.jl`).** Iters-to-tolerance vs
+  `κ` on a log-log axis: `Fixed`/`Armijo`/`Cauchy` scale `O(κ)` (slope ≈ 1) while
+  `BB` is markedly flatter (`O(√κ)`) — the slope difference is the validation.
+- **Timing pillar (least squares, `exp_ls1_dimension.jl`).** The 2-D Rosenbrock
+  kernel sits below the timing floor, but at `n = 1000` the `O(mn)` matvec dominates
+  and the `core_time / wall_time` ratio climbs into a meaningful band — the honest
+  ratio is itself the reported result.
+
+## 11. References
 
 - Nocedal, J. & Wright, S.J. (2006). *Numerical Optimization* (2nd ed.). Springer.
   - §2.2 — Steepest descent convergence rate, condition number dependence.

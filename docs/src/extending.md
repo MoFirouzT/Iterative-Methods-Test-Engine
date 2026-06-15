@@ -17,9 +17,14 @@ runner, logger, stopping criteria, and plots all pick it up automatically.
 Before writing any code, create `algorithms/<group>/<name>/<name>.md`
 following the structure of `algorithms/conventional/gradient_descent/gradient_descent.md`:
 problem statement, iteration formula, Julia structs, `init_state` / `step!` /
-`extract_log_entry` contracts, and a full variable mapping table. If the method
-has pluggable components (directions, step-size rules, ...), give each a dedicated
-`<component>.md` file in the components directory.
+`extract_log_entry` contracts, and a **Win-conditions** section — the falsifiable
+claims the method's demonstrating experiment must show (see the win-conditions
+sections in `proximal_gradient.md` and `trust_region.md`). A variable-mapping table
+(math symbol → Julia expression → type) is **optional**: include one only where the
+symbol↔code mapping is not already obvious from the annotated code (e.g. dense
+multi-term gradients or secant pairs), and omit it where the code speaks for itself.
+If the method has pluggable components (directions, step-size rules, ...), give each
+a dedicated `<component>.md` file in the components directory.
 
 ## Adding an algorithm that uses a sub-algorithm
 
@@ -119,8 +124,11 @@ Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`
 2. Derive and document $\nabla f$ and the Hessian (full matrix or H·d).
 3. Provide the known minimizer `x_opt` if it exists analytically; document why it
    is `nothing` if it does not.
-4. Include the variable mapping table and the `register_analytic_problem!` /
-   `register_random_problem!` call.
+4. Add a **Win-conditions** section — what a method run on this problem must
+   demonstrate (see `separable_quadratic.md` and `lasso.md`). A variable-mapping
+   table is **optional**: include one only where the math↔code mapping isn't
+   obvious from the annotated code (as in `rosenbrock.md`), and omit it otherwise.
+5. Include the `register_analytic_problem!` / `register_random_problem!` call.
 
 Then implement `problems/<name>/<name>.jl` with `value`, `grad!`, `hessian`
 (returning a `Hessian` object), and the registration call. The `<name>.md` is the

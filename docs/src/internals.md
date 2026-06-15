@@ -67,7 +67,7 @@ TestEngine.jl/
 │   ├── components/               #   shared method-construction vocabulary (extend engine)
 │   │   ├── descent_directions.{md,jl}   # DescentDirection, SteepestDescent, compute_direction
 │   │   ├── step_sizes.{md,jl}           # StepSize/LineSearch; Fixed/Armijo/Cauchy/BB
-│   │   ├── extrapolation.jl             # Extrapolation + NoExtrapolation/Momentum/Nesterov
+│   │   ├── extrapolation.{md,jl}        # Extrapolation + NoExtrapolation/Momentum/Nesterov
 │   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
 │   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
 │   ├── conventional/

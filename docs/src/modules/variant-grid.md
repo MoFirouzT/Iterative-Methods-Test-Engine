@@ -20,14 +20,22 @@ abstract type LineSearch <: StepSize end          # subset that performs an actu
 The other shipped axes follow the same recipe:
 
 - **Descent direction** (`DescentDirection`, e.g. `SteepestDescent`) — also consumed by `GradientDescent`.
-- **Extrapolation slot** (`Extrapolation`) — the post-step extrapolation a method applies between steps; a first-class axis. `ProximalGradient` crosses it with the step-size axis: `NoExtrapolation` ⇒ ISTA, `NesterovStep` ⇒ FISTA. With a zero/absent regularizer the method reduces to (accelerated) gradient descent, telling the smooth-acceleration story for free. See [proximal_gradient.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/conventional/proximal_gradient/proximal_gradient.md).
-- **Preconditioner** (`Preconditioner`) — supplies `M⁻¹` for `d = −M⁻¹∇f`, crossed with the step-size axis by the *experimental* `PreconditionedGradient`. `JacobiPreconditioner` is exact Newton on a diagonal Hessian, works on any `diagonal`-capable Hessian, and is *correctly inapplicable* on an operator-only one (clean `ArgumentError`, no silent fallback) — the "each `Hessian` declares which operations it supports" contract made operational. See [preconditioners.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/components/preconditioners.md).
+- **Extrapolation slot** (`Extrapolation`) — the post-step extrapolation a method applies between steps; a first-class axis.
+`ProximalGradient` crosses it with the step-size axis: `NoExtrapolation` ⇒ ISTA, `NesterovStep` ⇒ FISTA.
+With a zero/absent regularizer the method reduces to (accelerated) gradient descent, telling the smooth-acceleration story for free.
+See [proximal_gradient.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/conventional/proximal_gradient/proximal_gradient.md).
+- **Preconditioner** (`Preconditioner`) — supplies `M⁻¹` for `d = −M⁻¹∇f`, crossed with the step-size axis by the *experimental* `PreconditionedGradient`.
+`JacobiPreconditioner` is exact Newton on a diagonal Hessian, works on any `diagonal`-capable Hessian, and is *correctly inapplicable* on an operator-only one (clean `ArgumentError`, no silent fallback) — the "each `Hessian` declares which operations it supports" contract made operational.
+See [preconditioners.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/components/preconditioners.md).
 
 New hierarchies (Hessian approximations, ...) plug in the same way: an abstract type, concrete subtypes, one dispatched function.
 
 ## VariantAxis and VariantGrid
 
-These two types are the engine's actual contribution. A **`VariantAxis`** is one dimension of variation: a builder parameter, the values it ranges over, and a short label per value (the `value => "label"` constructor pairs them). A **`VariantGrid`** assembles axes into a sweep — a `builder` that turns one parameter combination into an `IterativeMethod`, optional `filters` that drop invalid combinations before they are built, and `shared_params` held fixed across the whole grid.
+These two types are the engine's actual contribution.
+A **`VariantAxis`** is one dimension of variation:
+a builder parameter, the values it ranges over, and a short label per value (the `value => "label"` constructor pairs them).
+A **`VariantGrid`** assembles axes into a sweep — a `builder` that turns one parameter combination into an `IterativeMethod`, optional `filters` that drop invalid combinations before they are built, and `shared_params` held fixed across the whole grid.
 
 ```julia
 # One axis of variation: a parameter name, a list of values, and a label per value

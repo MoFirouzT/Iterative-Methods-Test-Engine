@@ -26,8 +26,10 @@ The framework is built on four Julia-native principles:
   deliberately excluded from measured time.
 - **Specification-driven implementation.** Every problem and every algorithm is
   accompanied by a `.md` file co-located with its source. Each spec is the
-  single source of truth for the mathematical formulation, variable mapping, and
-  implementation contracts (`init_state`, `step!`, `extract_log_entry`). Pluggable
+  single source of truth for the mathematical formulation, the implementation
+  contracts (`init_state`, `step!`, `extract_log_entry`), and the win conditions its
+  demonstrating experiment must show (a symbol→code variable-mapping table is
+  optional, used only where the mapping isn't obvious from the code). Pluggable
   components (descent directions, step-size rules, ...) get their own dedicated spec
   file when they are shared across algorithms.
 

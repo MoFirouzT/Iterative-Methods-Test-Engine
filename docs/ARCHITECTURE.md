@@ -8,7 +8,7 @@ The content of this single file now lives under [`docs/src/`](src/) and is publi
   - [Design Philosophy](src/design.md) — principles + high-level module map
   - Modules:
     - [Problem Interface](src/modules/problem-interface.md)
-    - [Algorithm & Core Timing](src/modules/algorithm-core.md)
+    - [Algorithm Core Elements](src/modules/algorithm-core.md)
     - [Stopping Criteria](src/modules/stopping-criteria.md)
     - [Variant Grid Engine](src/modules/variant-grid.md)
     - [Nested Algorithms](src/modules/nested-algorithms.md)

@@ -36,11 +36,11 @@ end
 """
 	struct NesterovStep <: Extrapolation
 
-Nesterov-style correction.
+Nesterov-style correction (FISTA). Carries no parameters: the extrapolation
+coefficient is determined entirely by the `t` recurrence in `extrapolate` /
+`advance_momentum`, not by a tunable field.
 """
-@kwdef struct NesterovStep <: Extrapolation
-	α::Float64 = 0.1
-end
+struct NesterovStep <: Extrapolation end
 
 
 # ─────────────────────────────────────────────────────────────────────────

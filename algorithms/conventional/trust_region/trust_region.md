@@ -54,6 +54,27 @@ Each outer `step!`:
 
 Fields: `Δ0`, `Δmax`, `η`, `max_inner` (0 ⇒ `n+1`), `inner_tol`.
 
+## Implementation contract
+
+Both `SteihaugCG` and `TrustRegion` implement the three dispatch points over the
+shared interface (`docs/src/modules/algorithm-core.md`).
+
+**`init_state`.**
+- `TrustRegion` copies `x₀`, evaluates `∇f(x₀)` and `f(x₀)` once, and sets `Δ = Δ0`.
+- `SteihaugCG` starts the *step* at `p₀ = 0`, so the model residual is
+  `r₀ = ∇m(0) = g` and the first search direction is `d₀ = −r₀`; `Δ` is the radius
+  passed by the outer step. The inner `Problem` is `QuadraticModel(g, H)` with `x0 = 0`.
+- Both leave `dist_to_opt = Inf` — the model sub-problem has no optimum to track, and
+  the outer runner fills the real one from `problem.x_opt`.
+
+**`extract_log_entry` extras.**
+- Inner (`SteihaugCG`): `:status` (`:running` / `:boundary` / `:negative_curvature`)
+  and `:radius`; plus `:p_iter` when `dim ≤ 2`.
+- Outer (`TrustRegion`): `:radius`, `:rho`, `:accepted`, `:n_inner`, `:inner_core_ns`,
+  `:inner_stop`, and `:sub_logs` (the full inner CG trace); plus `:x_iter` when
+  `dim ≤ 2`. The inner/outer core-time split is `:inner_core_ns` against the entry's
+  own `core_time_ns` — see below.
+
 ## Core-time attribution
 
 The inner solve's total core time is **folded into the outer step's

@@ -54,7 +54,35 @@ Exactly **one** gradient evaluation and **one** `prox` call per step.
 | `direction` | `−∇f(y)`, handed to the step-size rule |
 | `x_trial`, `grad_prev`, `n_linesearch_evals` | buffers the `StepSize` rules expect |
 
-## 4. Metrics & conventions
+## 4. Implementation contract
+
+The three dispatch points (`init_state` / `step!` / `extract_log_entry`) over the
+shared algorithm interface (`docs/src/modules/algorithm-core.md`).
+
+**`init_state`.** Copies `x₀`, evaluates `∇f(x₀)` and `total_objective(x₀)` once, and
+sets `t = 1.0`. It enforces the one-regularizer restriction (§6) *up front*: more than
+one `g` raises an `ArgumentError` before any iteration runs. `dist_to_opt` is left
+`Inf` for the runner to fill from `problem.x_opt`.
+
+**`step!` — timing discipline.** Two `@core_timed` blocks bracket the math; everything
+else is bookkeeping the clock never sees:
+
+| Operation | Timed? |
+|---|---|
+| `extrapolate` → `y`, `grad(f, y)`, `direction = −g` | yes |
+| `compute_step_size` | inside the rule (self-timed) — `step!` does not wrap it |
+| forward step `y − γ∇f(y)`, `prox`, history shift, `total_objective` | yes |
+| `advance_momentum`, `gradient_norm`, metric writes | no |
+
+Postconditions mirror the GD contract: `x` holds `x_{k+1}`, `x_prev` holds `x_k`, and
+`α_k` / `t` are stored for logging. The **reported gradient is the smooth part at the
+evaluation point** `y`, reused from the step's single eval — so `gradient_norm = ‖∇f(y)‖`
+is *not* a composite-stationarity certificate (see §5).
+
+**`extract_log_entry`.** Adds `:step_size` and `:t` to `extras`, plus `:x_iter` (a copy
+of the iterate) when `dim ≤ 2`, for trajectory plots.
+
+## 5. Metrics & conventions
 
 - `objective = total_objective(p, x) = f(x) + g(x)` (the composite value).
 - `gradient_norm = ‖∇f(y_k)‖` — the smooth-part gradient at the **evaluation
@@ -63,12 +91,12 @@ Exactly **one** gradient evaluation and **one** `prox` call per step.
   `DistanceToOptimal` for convergence in experiments.
 - `step_norm = ‖xⁿ − x‖`.
 
-## 5. Restrictions
+## 6. Restrictions
 
 - Supports **0 or 1** regularizer. A sum of several nonsmooth terms needs
   operator splitting and raises an `ArgumentError`.
 
-## 6. Win conditions (lasso experiment)
+## 7. Win conditions (lasso experiment)
 
 - `prox` called once per step with step `γ`; `total_objective` sums `f + g`.
 - FISTA's `f − f*` curve visibly beats ISTA's (`O(1/k²)` vs `O(1/k)`).
