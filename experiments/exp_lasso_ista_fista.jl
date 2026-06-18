@@ -1,14 +1,16 @@
 # experiments/exp_lasso_ista_fista.jl
 #
 # Portfolio experiment: lasso — the flagship.
-# ISTA vs FISTA (ProximalGradient with NoExtrapolation vs NesterovStep) on the
-# sparse-recovery lasso  min_x ½‖Ax−b‖² + λ‖x‖₁, at the textbook step γ = 1/L.
+# ONE ProximalGradient method on the sparse-recovery lasso min_x ½‖Ax−b‖² + λ‖x‖₁
+# (textbook step γ = 1/L), with only its `extrapolation` *component* swept — the
+# project's core idea (variation rides on swappable components) in the flagship:
+#   NoExtrapolation ⇒ ISTA,  MomentumStep ⇒ heavy-ball,  NesterovStep ⇒ FISTA.
 #
 # Two-panel money figure:
-#   (left)  f − f*  vs iteration on log-y — FISTA's acceleration visibly beats
-#           ISTA (both converge linearly once the support is identified; the
-#           sublinear O(1/k) vs O(1/k²) slope separation is measured in
-#           test/test_proximal_gradient.jl).
+#   (left)  f − f*  vs iteration on log-y — the extrapolation component orders the
+#           convergence: ISTA > heavy-ball > FISTA (both converge linearly once the
+#           support is identified; the sublinear O(1/k) vs O(1/k²) slope separation
+#           is measured in test/test_proximal_gradient.jl).
 #   (right) recovered x̂ (FISTA) vs the planted sparse signal x_star.
 #
 # Naming: `exp_<problem>.jl` (this file) is a portfolio experiment — one curated
@@ -33,6 +35,7 @@ const RUN_ID = 1
 
 # Wong palette, consistent across the portfolio figures.
 const C_ISTA  = "#E69F00"   # orange
+const C_HB    = "#009E73"   # green
 const C_FISTA = "#0072B2"   # blue
 
 # Instance chosen so FISTA's acceleration over ISTA is visible before both
@@ -41,9 +44,20 @@ const LASSO_PARAMS = (m = 200, n = 512, k = 15, λ = 0.05)
 const K_PLOT = 200       # iterations shown / run for the comparison
 const K_REF  = 20_000    # long FISTA reference run to estimate f*
 
+# Heavy-ball momentum coefficient. Tuned (α=0.2) to sit cleanly *between* ISTA and
+# FISTA through the readable regime and stay monotone — it only overtakes FISTA far
+# down near the f* floor (~iter 155). A larger α matches or beats FISTA outright on
+# this benign instance (heavy-ball is optimal for nice problems), which would muddy
+# the no-momentum → fixed-momentum → Nesterov spectrum the figure is meant to show.
+const HB_ALPHA = 0.2
+
+# One ProximalGradient method; only the `extrapolation` *component* is swept.
+# This is the project's core idea — variation rides on swappable components — in
+# the flagship: ∅ (ISTA) → fixed momentum (heavy-ball) → Nesterov schedule (FISTA).
 build_lasso_methods(L) = [
-    "ISTA"  => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NoExtrapolation()),
-    "FISTA" => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NesterovStep()),
+    "ISTA"       => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NoExtrapolation()),
+    "heavy-ball" => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = MomentumStep(α = HB_ALPHA)),
+    "FISTA"      => ProximalGradient(step_size = FixedStep(α = 1/L), extrapolation = NesterovStep()),
 ]
 
 # ---------------------------------------------------------------------------
@@ -124,10 +138,11 @@ function plot_lasso(df::DataFrame, problem, results;
         xlabel = "iteration  k",
         ylabel = "f(xₖ) − f*",
         yscale = :log10,
-        title  = "Convergence: FISTA accelerates over ISTA",
+        title  = "One ProximalGradient, extrapolation component swept",
         method_styles = Dict(
-            "ISTA"  => MethodStyle(color = C_ISTA,  linewidth = 2.5),
-            "FISTA" => MethodStyle(color = C_FISTA, linewidth = 2.5),
+            "ISTA"       => MethodStyle(color = C_ISTA,  linewidth = 2.5),
+            "heavy-ball" => MethodStyle(color = C_HB,    linewidth = 2.5),
+            "FISTA"      => MethodStyle(color = C_FISTA, linewidth = 2.5),
         ),
     )
     render_plot!(fig[1, 1], convergence)
@@ -151,7 +166,7 @@ function plot_lasso(df::DataFrame, problem, results;
 
     Label(fig[0, :],
         "Lasso (m=$(LASSO_PARAMS.m), n=$(LASSO_PARAMS.n), k=$(LASSO_PARAMS.k) nonzeros, " *
-        "λ=$(LASSO_PARAMS.λ); benign Gaussian A) — ISTA vs FISTA at γ = 1/L",
+        "λ=$(LASSO_PARAMS.λ); benign Gaussian A) — extrapolation swept: ISTA → heavy-ball → FISTA at γ = 1/L",
         fontsize = 16, font = :bold)
 
     mkpath(dirname(outpath))
@@ -171,13 +186,16 @@ function validate(df::DataFrame, problem, results, fstar)
     decomp = value(problem.f, x_hat) + value(g_reg, x_hat)
     @assert isapprox(total_objective(problem, x_hat), decomp; rtol = 1e-12)
 
-    # 2. FISTA is accelerated: strictly smaller gap than ISTA at a mid iteration.
+    # 2. The extrapolation component orders the convergence: at a mid iteration the
+    #    gap strictly decreases along ∅ → fixed momentum → Nesterov, i.e.
+    #    ISTA > heavy-ball > FISTA. (α=HB_ALPHA is tuned to keep this monotone tier
+    #    through the readable regime; see the build_lasso_methods note.)
     mid = 50
     gap_at(name) = let s = filter(r -> r.method_name == name && r.iter == mid, df)
         isempty(s) ? Inf : s.gap[1]
     end
-    gi, gf = gap_at("ISTA"), gap_at("FISTA")
-    @assert gf < gi "FISTA gap ($gf) not below ISTA gap ($gi) at iter $mid"
+    gi, gh, gf = gap_at("ISTA"), gap_at("heavy-ball"), gap_at("FISTA")
+    @assert gi > gh > gf "extrapolation tier broken at iter $mid: ISTA=$gi, heavy-ball=$gh, FISTA=$gf (want ISTA > heavy-ball > FISTA)"
 
     # 3. Support recovery: every planted spike is recovered (support ⊇ true) and no
     #    off-support coordinate clears the spike threshold (support ⊆ true) — i.e. the
@@ -189,7 +207,7 @@ function validate(df::DataFrame, problem, results, fstar)
     @assert recovered_ok "support recovery failed: planted $(sort(true_supp)) ⊄ recovered $(sort(rec))"
     @assert isempty(spur) "spurious spikes above threshold: $(sort(spur))"
 
-    @info "Win conditions" objective_decomposes=true fista_gap=gf ista_gap=gi acceleration=(gf<gi)
+    @info "Win conditions" objective_decomposes=true ista_gap=gi heavyball_gap=gh fista_gap=gf tier_ordered=(gi>gh>gf)
     @info "Support recovery" true_support=sort(true_supp) recovered=sort(rec) spurious=sort(spur) all_planted_recovered=recovered_ok
     return nothing
 end

@@ -8,6 +8,12 @@ define a method once, sweep its variants, run them against conventional baseline
 shared problems, and measure convergence and *core* compute time under one honest,
 reproducible harness.
 
+## See how it works
+
+[**walkthrough.ipynb**](walkthrough.ipynb) is a complete, runnable walkthrough of *using* the framework:
+define and register your own problem (ridge regression), author a custom method (heavy-ball), set up an experiment with a variant grid and baseline/experimental roles, run it, persist & reload, and plot the comparison —
+the best place to start if you want to see the tool driven end to end.
+
 ## Design philosophy
 
 - **Dispatch for extension, components for variation**:
@@ -39,30 +45,32 @@ dimension and conditioning sweeps, preconditioning, and a nested trust-region so
 with what each one demonstrates and all five figures, see
 **[experiments/README.md](experiments/README.md)**.
 
-![ISTA vs FISTA on the lasso: FISTA's O(1/k²) acceleration over ISTA's O(1/k), and exact support recovery](figures/lasso_ista_fista.png)
+![One ProximalGradient on the lasso with its extrapolation component swept — ISTA, heavy-ball, FISTA — and exact support recovery](figures/lasso_ista_fista.png)
 
-> **The flagship figure (above).** Proximal gradient on the sparse-recovery lasso
-> `min ½‖Ax−b‖² + λ‖x‖₁`. *Left:* FISTA's acceleration visibly beats ISTA — a ~1000×
-> smaller objective gap by iteration 50 (the `O(1/k)`-vs-`O(1/k²)` sublinear-rate
-> *slope* separation is measured directly in `test/test_proximal_gradient.jl`). *Right:* the recovered
-> solution lands exactly on the planted ±1 spikes, with a clean zero baseline.
+> **Flagship — one `ProximalGradient` on the sparse-recovery lasso**
+> `min ½‖Ax−b‖² + λ‖x‖₁`, with only its **extrapolation component swept**:
+> the project's core idea in one figure.
+> No momentum (ISTA) → fixed momentum (heavy-ball) → Nesterov's schedule (FISTA) orders the convergence (left);
+> the recovered solution lands exactly on the planted ±1 spikes (right).
+> Full annotation in **[DESIGN.md](DESIGN.md)**.
 
 ## Going deeper
 
-The engine itself developed and tested capability-by-capability across nine
-stages on Rosenbrock — first figure, then trajectories, persistence, stopping
-criteria, the orchestrator, multi-run, observability, cross-cutting validation.
-That staged build log lives in **[experiments/stages](experiments/stages/)**.
+The engine itself developed and tested capability-by-capability across nine stages on Rosenbrock —
+first figure, then trajectories, persistence, stopping criteria, the orchestrator, multi-run, observability, cross-cutting validation.
+That staged build log — with its own trajectory figures — lives in **[experiments/stages](experiments/stages/)**.
 
-[![GradientDescent step-size variants tracing Rosenbrock's valley toward the optimum, on log-spaced contours](experiments/stages/figures/stage2_trajectories.png)](experiments/stages/)
-
-*Stage 2: five step-size rules navigating the banana valley. ↑ click through to the build log.*
-
-## Run the tests
+## Tests & validation
 
 ```bash
 julia --project test/runtests.jl     # full unit + cross-validation suite
 ```
+
+Converged solutions are **externally cross-checked** against `A\b`,
+[Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl) (GradientDescent / LBFGS) and
+[ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)
+(ForwardBackward / FastForwardBackward) — see
+[`test/test_external_validation.jl`](test/test_external_validation.jl).
 
 ## Layout
 
@@ -81,12 +89,6 @@ test/                runtests.jl + per-area test files
 ```
 
 ## Documentation
-
-[**walkthrough.ipynb**](walkthrough.ipynb) is a complete, runnable walkthrough of *using*
-the framework: define and register your own problem (ridge regression), author a custom
-method (heavy-ball), set up an experiment with a variant grid and baseline/experimental
-roles, run it, persist & reload, and plot the comparison. Best starting point if you want
-to learn how to drive the tool.
 
 [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) is the map of every document in the
 project — the hosted [Documenter site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)

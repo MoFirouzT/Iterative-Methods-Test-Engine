@@ -11,7 +11,7 @@ want to run it, start with the
 one-command demo, or the
 [five-minute tour](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md).
 
-![ISTA vs FISTA on the lasso: FISTA's O(1/k²) acceleration over ISTA's O(1/k), and exact support recovery](https://raw.githubusercontent.com/MoFirouzT/Iterative-Methods-Test-Engine/main/figures/lasso_ista_fista.png)
+![One ProximalGradient on the lasso with its extrapolation component swept — ISTA, heavy-ball, FISTA — and exact support recovery](https://raw.githubusercontent.com/MoFirouzT/Iterative-Methods-Test-Engine/main/figures/lasso_ista_fista.png)
 
 ## Mathematical model & scope
 

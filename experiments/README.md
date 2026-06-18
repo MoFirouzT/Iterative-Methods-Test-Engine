@@ -24,7 +24,7 @@ method zoo. The five shipped experiments:
 
 | Script | Figure | Demonstrates |
 | --- | --- | --- |
-| [`exp_lasso_ista_fista.jl`](exp_lasso_ista_fista.jl) | `lasso_ista_fista.png` (flagship) | Composite `f + g`, `prox` dispatch, Nesterov acceleration (ISTA → FISTA) on the lasso |
+| [`exp_lasso_ista_fista.jl`](exp_lasso_ista_fista.jl) | `lasso_ista_fista.png` (flagship) | One `ProximalGradient`, **extrapolation component swept** (ISTA → heavy-ball → FISTA); composite `f + g`, `prox` dispatch, Nesterov acceleration on the lasso |
 | [`exp_ls1_dimension.jl`](exp_ls1_dimension.jl) | `ls1_dimension.png` | Least-squares dimension sweep; matrix-free `OperatorHessian`; the core-time/wall-time timing pillar |
 | [`exp_ls2_conditioning.jl`](exp_ls2_conditioning.jl) | `ls2_conditioning.png` | Conditioning controls the rate: `O(κ)` vs `O(√κ)` |
 | [`exp_precond_grid.jl`](exp_precond_grid.jl) | `precond_grid.png` | `VariantGrid` sweep + role-based baseline/experimental routing; Jacobi preconditioning ≈ Newton |
@@ -40,8 +40,8 @@ and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorit
 
 ### Figures
 
-<img src="../figures/lasso_ista_fista.png" width="560" alt="ISTA vs FISTA on the lasso: FISTA's O(1/k²) acceleration over ISTA's O(1/k), and exact support recovery"><br>
-*`lasso_ista_fista` (flagship) — ISTA vs FISTA: `O(1/k²)` acceleration over `O(1/k)`, plus exact support recovery.*
+<img src="../figures/lasso_ista_fista.png" width="560" alt="One ProximalGradient on the lasso with its extrapolation component swept — ISTA, heavy-ball, FISTA — plus exact support recovery"><br>
+*`lasso_ista_fista` (flagship) — one `ProximalGradient` with the extrapolation component swept: ISTA → heavy-ball → FISTA orders the convergence, plus exact support recovery.*
 
 <img src="../figures/ls1_dimension.png" width="560" alt="Least-squares dimension sweep: convergence and the core-time/wall-time timing pillar across problem sizes"><br>
 *`ls1_dimension` — dimension sweep; matrix-free `OperatorHessian`; the core-time/wall-time timing pillar.*

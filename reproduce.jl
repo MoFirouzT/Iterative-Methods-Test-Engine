@@ -12,7 +12,7 @@ const PROJECT = @__DIR__
 
 # Ordered so the flagship figure (lasso) lands first.
 const SCRIPTS = [
-    ("experiments/exp_lasso_ista_fista.jl",  "figures/lasso_ista_fista.png   (★ flagship figure: ISTA vs FISTA + support recovery)"),
+    ("experiments/exp_lasso_ista_fista.jl",  "figures/lasso_ista_fista.png   (★ flagship: ProximalGradient, extrapolation swept ISTA→heavy-ball→FISTA + support recovery)"),
     ("experiments/exp_ls1_dimension.jl",     "figures/ls1_dimension.png      (dimension scaling + timing pillar)"),
     ("experiments/exp_ls2_conditioning.jl",  "figures/ls2_conditioning.png   (GD rate vs conditioning: slope 1 vs √κ)"),
     ("experiments/exp_precond_grid.jl",      "figures/precond_grid.png       (Jacobi ≈ Newton: variant-grid sweep)"),

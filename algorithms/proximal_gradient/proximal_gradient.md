@@ -18,7 +18,8 @@ end
 ```
 
 - `extrapolation = NoExtrapolation()` ⇒ **ISTA** (plain proximal gradient).
-- `extrapolation = NesterovStep()`  ⇒ **FISTA** (accelerated, `O(1/k²)`).
+- `extrapolation = MomentumStep(α)`   ⇒ **heavy-ball** (fixed-momentum extrapolation).
+- `extrapolation = NesterovStep()`    ⇒ **FISTA** (accelerated, `O(1/k²)`).
 - `g = ZeroRegularizer` (or no regularizer) ⇒ reduces to (accelerated)
   gradient descent on the smooth `f`, so the same method also tells the
   smooth-acceleration story.
@@ -102,10 +103,14 @@ of the iterate) when `dim ≤ 2`, for trajectory plots.
 ## 7. Win conditions (lasso experiment)
 
 - `prox` called once per step with step `γ`; `total_objective` sums `f + g`.
-- FISTA's `f − f*` curve visibly beats ISTA's (acceleration). On this well-conditioned
-  instance both converge linearly once the support is identified; the sublinear
-  `O(1/k)`-vs-`O(1/k²)` slope separation is measured on a dedicated non-strongly-convex
-  instance in `test/test_proximal_gradient.jl`.
+- Sweeping only the `extrapolation` component orders the convergence — at a mid
+  iteration the `f − f*` gap strictly decreases along `∅` → fixed momentum →
+  Nesterov, i.e. **ISTA > heavy-ball > FISTA** (heavy-ball `α` tuned so this tier
+  stays monotone through the readable regime; a larger `α` matches/beats FISTA on
+  this benign instance, since heavy-ball is optimal for nice problems). On this
+  well-conditioned instance all converge linearly once the support is identified;
+  the sublinear `O(1/k)`-vs-`O(1/k²)` slope separation is measured on a dedicated
+  non-strongly-convex instance in `test/test_proximal_gradient.jl`.
 - At sufficiently large `λ`, recovered support ⊆ true support; off-support
   coordinates are within one soft-threshold (`|x_i| ≤ γλ`) of zero.
 

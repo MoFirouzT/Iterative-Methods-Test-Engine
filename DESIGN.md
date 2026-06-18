@@ -45,35 +45,41 @@ You define a method once; the harness runs it (and its swept variants, and the c
    talks to the next through plain data structures, so any one can be read, tested, and
    replaced in isolation.
 
-## One experiment, annotated: ISTA → FISTA on the lasso
+## One experiment, annotated: sweeping one component on the lasso
 
 The flagship experiment ([experiments/exp_lasso_ista_fista.jl](experiments/exp_lasso_ista_fista.jl))
-exercises the whole composite-objective path with a single method.
+exercises the whole composite-objective path with a single method — and is the project's
+core idea in one figure: *one* method, with only a single swappable component varied.
 
 **Problem.** Sparse recovery: `min_x ½‖Ax − b‖² + λ‖x‖₁`, underdetermined (`m < n`) with a
 planted `k`-sparse signal — registered as the `:lasso` family.
 
-**Method.** `ProximalGradient` is one method with two plug-in slots: a `StepSize` and a
+**Method.** `ProximalGradient` is one method with two plug-in slots: a `StepSize` and an
 `Extrapolation`. Each step extrapolates, takes a gradient step on the smooth `½‖Ax−b‖²`, then
-applies the `prox` of `λ‖x‖₁` (soft-thresholding):
+applies the `prox` of `λ‖x‖₁` (soft-thresholding). The figure holds the `StepSize` fixed
+(`γ = 1/L`) and sweeps **only the `Extrapolation` component**:
 
 - `Extrapolation = NoExtrapolation()` ⇒ **ISTA** (plain proximal gradient, `O(1/k)`).
+- `Extrapolation = MomentumStep(α)` ⇒ **heavy-ball** (fixed-momentum extrapolation).
 - `Extrapolation = NesterovStep()` ⇒ **FISTA** (`O(1/k²)`).
 - a *zero* regularizer ⇒ the same method is (accelerated) gradient descent on a smooth
   problem — so one method also tells the smooth-acceleration story.
 
 **Result (the flagship figure).**
 
-![ISTA vs FISTA](figures/lasso_ista_fista.png)
+![One ProximalGradient on the lasso with its extrapolation component swept: ISTA, heavy-ball, FISTA, plus support recovery](figures/lasso_ista_fista.png)
 
-*Left:* `f(xₖ) − f*` on a log axis. FISTA's curve plunges below ISTA's and stays ~3–4 orders
-of magnitude lower through the interesting regime — FISTA's acceleration, with its
-characteristic non-monotone ripple. (The methods' worst-case rates are `O(1/k²)` vs `O(1/k)`;
-on this well-conditioned instance both *ultimately* converge linearly once the support is
-identified, so the figure shows the acceleration, while the clean `O(1/k)`-vs-`O(1/k²)` log-log
-*slope* separation is measured on a non-strongly-convex instance in
-`test/test_proximal_gradient.jl`.) *Right:* the recovered iterate's nonzeros
-coincide with the planted ±1 support, against a flat zero baseline.
+*Left:* `f(xₖ) − f*` on a log axis. The single swept component orders the convergence —
+**ISTA > heavy-ball > FISTA** — with FISTA's curve plunging lowest through the interesting
+regime, showing its characteristic non-monotone ripple, while heavy-ball's fixed momentum
+sits as a clean monotone middle tier. (The heavy-ball `α` is tuned to *stay* between the two
+through the readable regime; pushed larger it matches or beats FISTA on this benign instance,
+since heavy-ball is optimal for nice problems. The worst-case rates are `O(1/k²)` vs `O(1/k)`;
+on this well-conditioned instance all *ultimately* converge linearly once the support is
+identified, so the figure shows the acceleration ordering, while the clean
+`O(1/k)`-vs-`O(1/k²)` log-log *slope* separation is measured on a non-strongly-convex instance
+in `test/test_proximal_gradient.jl`.) *Right:* the recovered iterate's nonzeros coincide with
+the planted ±1 support, against a flat zero baseline.
 
 **Why it's trustworthy.** The regularizer's `prox` is provided by
 [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) behind the
