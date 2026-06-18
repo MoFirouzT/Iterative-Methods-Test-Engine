@@ -108,3 +108,8 @@ of the iterate) when `dim ≤ 2`, for trajectory plots.
   instance in `test/test_proximal_gradient.jl`.
 - At sufficiently large `λ`, recovered support ⊆ true support; off-support
   coordinates are within one soft-threshold (`|x_i| ≤ γλ`) of zero.
+
+These are executed, not narrated: the experiment's `validate()` asserts the decomposition,
+the acceleration, and exact support recovery, and the load-bearing claims — decomposition,
+acceleration, one-prox-per-step, support recovery, the gradient-mapping stop, and the
+`O(1/k)`-vs-`O(1/k²)` rate separation — are pinned in `test/test_proximal_gradient.jl`.

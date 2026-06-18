@@ -37,8 +37,8 @@ You define a method once; the harness runs it (and its swept variants, and the c
    An experiment is a plain `ExperimentConfig` value.
    Running it, saving it, and reloading it are independent operations, and every source of randomness (data, warm-up, `x0`, stochastic steps, sub-solvers) derives from a single seed by deterministic hashing.
 
-5. **Specification-driven.**
-   Every problem and method ships a co-located `.md` spec that is the single source of truth for the math, the implementation contract (`init_state`, `step!`, `extract_log_entry`), and the win conditions its demonstrating experiment must show (a symbol→code variable-mapping table is optional, used only where the mapping isn't obvious from the code).
+5. **Claims are demonstrated, not asserted.**
+   A capability is only real once you can watch it run. Each method and problem ships a co-located `.md` design note that records the math, the implementation contract (`init_state`, `step!`, `extract_log_entry`), and the *win conditions* its demonstrating experiment must exhibit; that experiment lives in `experiments/`, and the load-bearing claims are pinned by the test suite. The design note states the contract; the experiment and the tests are the proof. (A symbol→code variable-mapping table is optional, used only where the mapping isn't obvious from the code.)
 
 6. **Separation of concerns across modules.** Algorithms know nothing about logging,
    loggers nothing about plotting, stopping criteria nothing about algorithms. Each module

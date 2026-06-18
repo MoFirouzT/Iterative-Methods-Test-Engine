@@ -18,7 +18,8 @@ required oracle reaches. The two bands below are ordered by exactly that cost.
 Everything here is added by writing *content* — a new `IterativeMethod` (its
 `init_state` / `step!` / `extract_log_entry`), a component, or a stopping criterion —
 against the existing oracle vocabulary; the engine itself is untouched. Full derivations
-belong in each method's co-located spec (the spec-driven principle); the intent is indexed
+belong in each method's co-located design note (the "claims are demonstrated, not asserted"
+principle); the intent is indexed
 here in one place.
 
 ### Quasi-Newton Hessian approximations (BFGS, SR1, L-BFGS)

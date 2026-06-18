@@ -1,4 +1,4 @@
-# Gradient Descent — Implementation Specification
+# Gradient Descent
 
 > **Related specs** (read these first):
 > - `problems/rosenbrock/rosenbrock.md` — problem interface, `Objective`, `grad!`, `hessian`

@@ -1,4 +1,4 @@
-# Step-Size Rules — Specification
+# Step-Size Rules
 
 > This file specifies the `StepSize` abstraction and all concrete implementations
 > currently available, including the `LineSearch` sub-hierarchy. Step-size rules

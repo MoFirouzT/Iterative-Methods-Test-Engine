@@ -52,8 +52,8 @@ simultaneous nonsmooth terms — each reachable without breaking an abstraction 
 
 Six principles shape the engine — **multiple dispatch over hierarchies**, **engine /
 content separation**, **declarative experiment definition**, **scientific measurement
-discipline**, **specification-driven implementation**, and **separation of concerns
-across modules**. The [Design Philosophy](design.md) page is the single source of truth
+discipline**, **claims demonstrated, not asserted**, and **separation of concerns
+across modules**. The [Design Philosophy](design.md) page is the canonical reference
 for what each means and the invariants they imply.
 
 ## How this reference is organized

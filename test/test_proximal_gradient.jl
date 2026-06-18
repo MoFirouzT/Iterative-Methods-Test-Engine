@@ -133,6 +133,15 @@ end
         @test rconv.final_state.metrics.gradient_norm < 1e-8
     end
 
+    # ── Support recovery (flagship win condition, pinned in CI) ──────────────
+    # A long FISTA solve recovers the planted k-sparse support exactly: every
+    # planted spike clears the 0.1 threshold and no off-support coordinate does.
+    x_long    = _run_pg(fista, prob, 5_000).final_state.iterate.x
+    rec_supp  = findall(>(0.1), abs.(x_long))
+    true_supp = prob.meta[:support]
+    @test issubset(true_supp, rec_supp)           # all planted spikes recovered
+    @test isempty(setdiff(rec_supp, true_supp))   # no spurious spikes
+
     # ── Exactly one prox call per step ───────────────────────────────────────
     counting = CountingReg(0.05)
     prob_count = Problem(prob.f, Regularizer[counting], copy(prob.x0))

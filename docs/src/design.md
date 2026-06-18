@@ -1,7 +1,7 @@
 # Design Philosophy
 
 **Audience.** This document is the contributor / maintainer reference.
-If you only want to use the framework, start with the [README](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine#readme) and the [five-minute tour](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md), then the co-located method and problem specs (e.g. `gradient_descent.md`).
+If you only want to use the framework, start with the [README](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine#readme) and the [five-minute tour](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md), then the co-located method and problem design notes (e.g. `gradient_descent.md`).
 
 **Terminology.** The framework is organized into a number of cohesive *modules*.
 Earlier drafts used the word "layer," but the structure is hub-and-spoke (the
@@ -27,14 +27,15 @@ The framework is built on six Julia-native principles:
   computation inside each step, accumulated per iteration and summed across iterations.
   All bookkeeping (logging, stopping criterion checks, verbosity output) is
   deliberately excluded from measured time.
-- **Specification-driven implementation.** Every problem and every algorithm is
-  accompanied by a `.md` file co-located with its source. Each spec is the
-  single source of truth for the mathematical formulation, the implementation
-  contracts (`init_state`, `step!`, `extract_log_entry`), and the win conditions its
-  demonstrating experiment must show (a symbol→code variable-mapping table is
-  optional, used only where the mapping isn't obvious from the code). Pluggable
-  components (descent directions, step-size rules, ...) get their own dedicated spec
-  file when they are shared across algorithms.
+- **Claims are demonstrated, not asserted.** A capability is only real once you can
+  watch it run. Every problem and every algorithm is accompanied by a co-located `.md`
+  design note that records the mathematical formulation, the implementation contracts
+  (`init_state`, `step!`, `extract_log_entry`), and the win conditions its demonstrating
+  experiment must exhibit; that experiment lives in `experiments/`, and the load-bearing
+  claims are pinned by the test suite (a symbol→code variable-mapping table is optional,
+  used only where the mapping isn't obvious from the code). Pluggable components (descent
+  directions, step-size rules, ...) get their own dedicated design note when shared across
+  algorithms. The design note is the contract; the experiment and the tests are the proof.
 - **Separation of concerns across modules.** Algorithms know nothing about logging.
   Loggers know nothing about plotting. Stopping criteria know nothing about algorithms.
   Each module communicates through well-defined data structures, so any one module can be

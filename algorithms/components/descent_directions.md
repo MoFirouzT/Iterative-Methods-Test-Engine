@@ -1,4 +1,4 @@
-# Descent Directions — Specification
+# Descent Directions
 
 > This file specifies the `DescentDirection` abstraction and its concrete
 > implementations. It is shared across all gradient-based methods in the framework.

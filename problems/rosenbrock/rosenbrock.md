@@ -1,4 +1,4 @@
-# Rosenbrock Problem — Specification
+# Rosenbrock Problem
 
 ## 1. Problem Statement
 

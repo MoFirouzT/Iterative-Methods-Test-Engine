@@ -35,7 +35,7 @@ The engine architecture reference is a **Documenter site** (one page per concern
 - [Extension Guide](src/extending.md) — how to add a method, problem, component, …
 - [Stretch Goals](src/stretch-goals.md) — designed-for extensions not yet shipped
 
-## Co-located content specs
+## Co-located content design notes
 
 **Methods**
 

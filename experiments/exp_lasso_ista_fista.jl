@@ -179,11 +179,15 @@ function validate(df::DataFrame, problem, results, fstar)
     gi, gf = gap_at("ISTA"), gap_at("FISTA")
     @assert gf < gi "FISTA gap ($gf) not below ISTA gap ($gi) at iter $mid"
 
-    # 3. Support recovery: the planted support is recovered.
+    # 3. Support recovery: every planted spike is recovered (support ⊇ true) and no
+    #    off-support coordinate clears the spike threshold (support ⊆ true) — i.e. the
+    #    recovered support equals the planted one exactly (see proximal_gradient.md §7).
     true_supp = problem.meta[:support]
     rec  = findall(>(0.1), abs.(x_hat))     # clear spikes
     spur = setdiff(rec, true_supp)
     recovered_ok = issubset(true_supp, rec)
+    @assert recovered_ok "support recovery failed: planted $(sort(true_supp)) ⊄ recovered $(sort(rec))"
+    @assert isempty(spur) "spurious spikes above threshold: $(sort(spur))"
 
     @info "Win conditions" objective_decomposes=true fista_gap=gf ista_gap=gi acceleration=(gf<gi)
     @info "Support recovery" true_support=sort(true_supp) recovered=sort(rec) spurious=sort(spur) all_planted_recovered=recovered_ok
