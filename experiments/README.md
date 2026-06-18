@@ -31,7 +31,7 @@ method zoo. The five shipped experiments:
 | [`exp_tr_steihaug_cg.jl`](exp_tr_steihaug_cg.jl) | `tr_steihaug_cg.png` | Nested optimization: `TrustRegion` with a Steihaug-CG inner solve |
 
 Run any one with `julia --project=. experiments/exp_<name>.jl`, or regenerate
-every figure at once with [`scripts/reproduce.jl`](../scripts/reproduce.jl).
+every figure at once with [`reproduce.jl`](../reproduce.jl).
 
 Correctness is **externally cross-checked**: converged solutions are matched against
 `A\b`, [`Optim.jl`](https://github.com/JuliaNLSolvers/Optim.jl) (GradientDescent / LBFGS),

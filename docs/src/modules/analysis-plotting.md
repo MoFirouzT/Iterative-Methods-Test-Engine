@@ -7,9 +7,8 @@ The analysis module has two roles:
 2. **Figure layout system** — compose any number of plots in any formation and
    render them to a single PDF or image file.
 
-There is no grid-aware analysis layer. Because variant names embed axis information
-(e.g. `GradientDescent[step_size=Armijo]`), the user can always parse or filter on
-names as plain strings if needed.
+There is no grid-aware analysis layer.
+Because variant names embed axis information (e.g. `GradientDescent[step_size=Armijo]`), the user can always parse or filter on names as plain strings if needed.
 
 ## Loading and Transforming
 
@@ -26,7 +25,11 @@ df = filter_methods(df, ["GradientDescent[step_size=Armijo]",
 df = aggregate_runs(df, :median)    # :all | :mean | :median
 ```
 
-**Aggregation Semantics:** When `aggregate_runs(df, mode)` is called with `:mean` or `:median`, the DataFrame is grouped by `(:method_name, :iter)` pairs to collapse multiple runs into a representative curve per method at each iteration. Numeric columns (objective, gradient_norm, step_norm, core_time_ns, dist_to_opt, and any numeric extras) are aggregated using the specified mode; non-numeric columns (strings, booleans, etc.) are preserved from the first row of each group. The `:run_id` column is dropped during aggregation.
+**Aggregation Semantics:**
+When `aggregate_runs(df, mode)` is called with `:mean` or `:median`, the DataFrame is grouped by `(:method_name, :iter)` pairs to collapse multiple runs into a representative curve per method at each iteration.
+Numeric columns (objective, gradient_norm, step_norm, core_time_ns, dist_to_opt, and any numeric extras) are aggregated using the specified mode;
+non-numeric columns (strings, booleans, etc.) are preserved from the first row of each group.
+The `:run_id` column is dropped during aggregation.
 
 User transforms are plain `DataFrame -> DataFrame` functions:
 
@@ -54,10 +57,8 @@ end
 
 ## Method Color Registry
 
-Colors are **deterministic and visually appealing** by default. A fixed curated
-palette (Wong colorblind-safe + Tableau extensions) is assigned to method names via a
-stable hash — the same method name always maps to the same color regardless of
-experiment or run order.
+Colors are **deterministic and visually appealing** by default.
+A fixed curated palette (Wong colorblind-safe + Tableau extensions) is assigned to method names via a stable hash — the same method name always maps to the same color regardless of experiment or run order.
 
 ```julia
 const METHOD_PALETTE = [
@@ -141,14 +142,11 @@ function save_figure(fig::Makie.Figure, path::String)
 end
 ```
 
-`render_figure` handles the all-standard case (a grid of `PlotSpec`s). When a
-figure mixes a standard convergence panel with a **bespoke** one — e.g. the
-flagship lasso figure pairs an `f − f*`-vs-iteration panel with a hand-rolled
-support-recovery stem plot — build the `Figure` yourself, call `render_plot!`
-for the standard panel(s), and draw the custom panel into the same figure.
-`render_plot!` returns the `Axis`, so the engine's plotting layer stays the one
-clean consumer for convergence curves without forcing every panel through a
-general API (see `experiments/exp_lasso_ista_fista.jl`).
+`render_figure` handles the all-standard case (a grid of `PlotSpec`s).
+When a figure mixes a standard convergence panel with a **bespoke** one —
+e.g. the flagship lasso figure pairs an `f − f*`-vs-iteration panel with a hand-rolled support-recovery stem plot —
+build the `Figure` yourself, call `render_plot!` for the standard panel(s), and draw the custom panel into the same figure.
+`render_plot!` returns the `Axis`, so the engine's plotting layer stays the one clean consumer for convergence curves without forcing every panel through a general API (see `experiments/exp_lasso_ista_fista.jl`).
 
 ## End-to-End Plotting Example
 
@@ -189,4 +187,3 @@ df  = vcat(df1, df2)
 ```
 
 ---
-

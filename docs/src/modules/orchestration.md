@@ -2,10 +2,10 @@
 
 ## Experiment Naming
 
-Each experiment is stored under a two-level path: a **date folder** and a
-**zero-padded sequential counter** that resets each day.
+Each experiment is stored under a two-level path:
+a **date folder** and a **zero-padded sequential counter** that resets each day.
 
-```
+```text
 logs/
 └── 20260417/          ← date folder (YYYYMMDD)
     ├── 001/           ← first experiment of this day
@@ -16,9 +16,8 @@ logs/
     └── 003/
 ```
 
-The counter is determined at save time by atomically creating the directory — the
-`mkdir` call fails if the path already exists, avoiding the TOCTOU race condition
-inherent in a scan-then-create approach:
+The counter is determined at save time by atomically creating the directory —
+the `mkdir` call fails if the path already exists, avoiding the TOCTOU race condition inherent in a scan-then-create approach:
 
 ```julia
 function next_experiment_path(log_root::String)::String
@@ -42,15 +41,14 @@ function next_experiment_path(log_root::String)::String
 end
 ```
 
-The human-readable `name` field from `ExperimentConfig` is stored inside
-`manifest.json`, not in the path.
+The human-readable `name` field from `ExperimentConfig` is stored inside `manifest.json`, not in the path.
 
 ## Warm-up Infrastructure
 
-A warm-up is an optional, **shared** pre-run initialization step. It executes once
-per run before any method starts, and its output — a new initial point `x0_warm` —
-replaces `problem.x0` for all methods in that run. Methods cannot distinguish between
-a warm-up start and a cold start; the problem interface is identical.
+A warm-up is an optional, **shared** pre-run initialization step.
+It executes once per run before any method starts, and its output — a new initial point `x0_warm` — replaces `problem.x0` for all methods in that run.
+Methods cannot distinguish between a warm-up start and a cold start;
+the problem interface is identical.
 
 ```julia
 abstract type WarmupStrategy end
@@ -113,17 +111,13 @@ end
 end
 ```
 
-`method_criteria` lets specific methods use different stopping budgets within the
-same experiment.
+`method_criteria` lets specific methods use different stopping budgets within the same experiment.
 
-`count_oracles` (default `false`) turns on **oracle counting**: the runner wraps each
-method's `problem.f` in a `CountingObjective` (with a fresh `OracleCounts`) before the run,
-and surfaces the cumulative `:n_value` / `:n_grad` / `:n_hvp` counts in every
-`IterationLog`'s `extras`. It is opt-in precisely so the default path — and the core-time
-measurement it produces — is untouched; the wrapper is installed per method, *after*
-warm-up, so warm-up evaluations are excluded from the measured run. See
-[oracle counting](problem-interface.md) for the wrapper and
-[Convergence & Cost](../convergence-and-cost.md) for using the counts.
+`count_oracles` (default `false`) turns on **oracle counting**:
+the runner wraps each method's `problem.f` in a `CountingObjective` (with a fresh `OracleCounts`) before the run, and surfaces the cumulative `:n_value` / `:n_grad` / `:n_hvp` counts in every `IterationLog`'s `extras`.
+It is opt-in precisely so the default path — and the core-time measurement it produces — is untouched;
+the wrapper is installed per method, *after* warm-up, so warm-up evaluations are excluded from the measured run.
+See [oracle counting](problem-interface.md) for the wrapper and [Convergence & Cost](../convergence-and-cost.md) for using the counts.
 
 ## Result Types
 
@@ -154,17 +148,15 @@ struct ExperimentResult
 end
 ```
 
-`finalize!(logger, method, state)` returns a `MethodResult{typeof(state)}`, preserving
-the concrete state type through the parametric wrapper.
+`finalize!(logger, method, state)` returns a `MethodResult{typeof(state)}`, preserving the concrete state type through the parametric wrapper.
 
-`iter_logs` begins with an `iter=0` snapshot recorded by `log_init!` (so trajectory plots
-and warm-up x₀ invariants can see the starting point), followed by one entry per iteration.
-`n_iters` counts only the actual iterations — entries with `iter > 0`, excluding that init
-snapshot. (`run_sub_method` counts the same way via its loop counter.)
+`iter_logs` begins with an `iter=0` snapshot recorded by `log_init!` (so trajectory plots and warm-up x₀ invariants can see the starting point), followed by one entry per iteration.
+`n_iters` counts only the actual iterations — entries with `iter > 0`, excluding that init snapshot.
+(`run_sub_method` counts the same way via its loop counter.)
 
 ## Result Hierarchy (Overview)
 
-```
+```text
 ExperimentResult
     ├── config          :: ExperimentConfig
     ├── experiment_path :: String
@@ -182,14 +174,13 @@ ExperimentResult
 
 ## Orchestration Loop
 
-RNG streams are separated by concern — data generation, warm-up, and per-method
-computation each draw from independent, deterministically-derived Xoshiro streams.
-Per-method RNGs are additionally keyed by method name so that adding or removing a
-method from the config does not alter other methods' streams.
+RNG streams are separated by concern —
+data generation, warm-up, and per-method computation each draw from independent, deterministically-derived Xoshiro streams.
+Per-method RNGs are additionally keyed by method name so that adding or removing a method from the config does not alter other methods' streams.
 
 **Per-role deterministic RNG derivation:**
-The framework derives all active RNGs from a single root seed to guarantee
-reproducibility regardless of method ordering or composition. Concretely:
+The framework derives all active RNGs from a single root seed to guarantee reproducibility regardless of method ordering or composition.
+Concretely:
 
 - `root_seed` is `config.seed` when provided, otherwise a freshly sampled `UInt64`.
 - `rng_problem = Xoshiro(hash((root_seed, run_id, :data)))` — RNG used to build the problem instance.
@@ -243,11 +234,10 @@ end
 
 ## `resolve_methods`
 
-`resolve_methods(config)` flattens the three method sources — `baseline_methods`,
-`experimental_methods`, and the `expand`-ed output of every entry in `variant_grids` —
-into two buckets. The bucket is decided by **role metadata**, never by the method's
-type: direct methods go to the bucket whose config field they were listed in, and a
-grid's expanded specs all go to the bucket named by the grid's `role`.
+`resolve_methods(config)` flattens the three method sources —
+`baseline_methods`, `experimental_methods`, and the `expand`-ed output of every entry in `variant_grids` — into two buckets.
+The bucket is decided by **role metadata**, never by the method's type:
+direct methods go to the bucket whose config field they were listed in, and a grid's expanded specs all go to the bucket named by the grid's `role`.
 
 ```julia
 function resolve_methods(config::ExperimentConfig)
@@ -272,8 +262,6 @@ end
 ```
 
 This is the single point that interprets the baseline / experimental distinction:
-it lives entirely in config-level role metadata, so the method types themselves stay
-role-agnostic.
+it lives entirely in config-level role metadata, so the method types themselves stay role-agnostic.
 
 ---
-

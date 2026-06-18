@@ -40,7 +40,7 @@ Each `step!`, in order:
 4. **Refresh.** recompute `f(x)` and `∇f(x)` at the new iterate.
 
 Exactly **one** gradient evaluation and **one** `precondition` call per step. The order
-deliberately mirrors [`GradientDescent`](../../conventional/gradient_descent.md) — the
+deliberately mirrors [`GradientDescent`](../gradient_descent/gradient_descent.md) — the
 iterate and gradient histories (`x_prev`, `grad_prev`) are saved at the same points — so
 the shared secant-based step sizes see a valid `(x_prev, grad_prev)` pair.
 

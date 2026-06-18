@@ -50,7 +50,7 @@ lets a single `ProximalGradient` method tell the whole acceleration story by swe
 one axis. And because the same extrapolation applies when the regularizer is zero or
 absent, the method also demonstrates smooth-function acceleration (accelerated
 gradient descent) for free. See
-[proximal_gradient.md](../conventional/proximal_gradient/proximal_gradient.md) and the
+[proximal_gradient.md](../proximal_gradient/proximal_gradient.md) and the
 flagship lasso experiment.
 
 ## Extension — adding a new extrapolation

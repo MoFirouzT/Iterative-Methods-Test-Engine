@@ -2,9 +2,9 @@
 
 ## Adding a new method
 
-Create `algorithms/<group>/<name>/<name>.jl`, where `<group>` is `conventional` or
-`experimental` — that directory split is purely organizational; a method's
-comparison role is **not** encoded in its type. Define the struct as a subtype of
+Create `algorithms/<name>/<name>.jl`. Methods are **not** grouped by role on
+disk — a method's comparison role (baseline vs experimental) is not encoded in
+its type, so each method simply gets its own directory. Define the struct as a subtype of
 `IterativeMethod`, implement `init_state` (using `IterateGroup`, `MetricsGroup`,
 `TimingGroup`), `step!` with the full signature
 `step!(method, state, problem, iter, logger, rng)` (use
@@ -14,8 +14,8 @@ Then declare its **role** when you assemble the experiment: list it under
 `VariantGrid` of it with the matching `role` (`:baseline` / `:experimental`). The
 runner, logger, stopping criteria, and plots all pick it up automatically.
 
-Before writing any code, create `algorithms/<group>/<name>/<name>.md`
-following the structure of `algorithms/conventional/gradient_descent/gradient_descent.md`:
+Before writing any code, create `algorithms/<name>/<name>.md`
+following the structure of `algorithms/gradient_descent/gradient_descent.md`:
 problem statement, iteration formula, Julia structs, `init_state` / `step!` /
 `extract_log_entry` contracts, and a **Win-conditions** section — the falsifiable
 claims the method's demonstrating experiment must show (see the win-conditions

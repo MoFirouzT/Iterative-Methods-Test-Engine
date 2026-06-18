@@ -26,11 +26,13 @@ if !isdefined(Main, :_TESTENGINE_LOADED)
 	include(joinpath(_BOOT_ROOT, "algorithms", "components", "extrapolation.jl"))
 	include(joinpath(_BOOT_ROOT, "algorithms", "components", "preconditioners.jl"))
 
-	# 3. Methods — compose the components above
-	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "gradient_descent.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "proximal_gradient", "proximal_gradient.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "conventional", "trust_region", "trust_region.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "experimental", "preconditioned_gradient", "preconditioned_gradient.jl"))
+	# 3. Methods — compose the components above. Role (baseline vs experimental)
+	#    is experiment-level metadata, not a property of the method, so methods
+	#    are not grouped by role on disk — each lives in its own directory.
+	include(joinpath(_BOOT_ROOT, "algorithms", "gradient_descent", "gradient_descent.jl"))
+	include(joinpath(_BOOT_ROOT, "algorithms", "proximal_gradient", "proximal_gradient.jl"))
+	include(joinpath(_BOOT_ROOT, "algorithms", "trust_region", "trust_region.jl"))
+	include(joinpath(_BOOT_ROOT, "algorithms", "preconditioned_gradient", "preconditioned_gradient.jl"))
 
 	# 4. Regularizers + problem families — register themselves with the engine on load
 	include(joinpath(_BOOT_ROOT, "problems", "regularizers", "regularizers.jl"))

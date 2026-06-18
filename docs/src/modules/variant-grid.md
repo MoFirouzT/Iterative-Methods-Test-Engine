@@ -23,7 +23,7 @@ The other shipped axes follow the same recipe:
 - **Extrapolation slot** (`Extrapolation`) — the post-step extrapolation a method applies between steps; a first-class axis.
 `ProximalGradient` crosses it with the step-size axis: `NoExtrapolation` ⇒ ISTA, `NesterovStep` ⇒ FISTA.
 With a zero/absent regularizer the method reduces to (accelerated) gradient descent, telling the smooth-acceleration story for free.
-See [proximal_gradient.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/conventional/proximal_gradient/proximal_gradient.md).
+See [proximal_gradient.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/proximal_gradient/proximal_gradient.md).
 - **Preconditioner** (`Preconditioner`) — supplies `M⁻¹` for `d = −M⁻¹∇f`, crossed with the step-size axis by the *experimental* `PreconditionedGradient`.
 `JacobiPreconditioner` is exact Newton on a diagonal Hessian, works on any `diagonal`-capable Hessian, and is *correctly inapplicable* on an operator-only one (clean `ArgumentError`, no silent fallback) — the "each `Hessian` declares which operations it supports" contract made operational.
 See [preconditioners.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/components/preconditioners.md).

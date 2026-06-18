@@ -4,11 +4,10 @@ Some algorithms run another iterative method as a **sub-routine** inside their o
 Examples: trust-region methods that solve an inner subproblem iteratively, bi-level methods, inner-loop methods that refine a correction, or meta-algorithms that call multiple sub-solvers per outer step.
 
 This module provides the infrastructure to make nested invocation clean, safe, and fully logged.
-The shipped consumer is **`TrustRegion`**, whose Steihaug truncated-CG inner solve runs as a
-genuine sub-method on a genuine `Problem` via `run_sub_method` — it folds the inner solve's core
-time into the outer step and attaches the full inner CG trace to each outer log entry. The
-generic schematic below is the pattern `TrustRegion` follows; see
-[trust_region.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/conventional/trust_region/trust_region.md).
+The shipped consumer is **`TrustRegion`**, whose Steihaug truncated-CG inner solve runs as a genuine sub-method on a genuine `Problem` via `run_sub_method` —
+it folds the inner solve's core time into the outer step and attaches the full inner CG trace to each outer log entry.
+The generic schematic below is the pattern `TrustRegion` follows;
+see [trust_region.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/trust_region/trust_region.md).
 
 ## Design Principle
 

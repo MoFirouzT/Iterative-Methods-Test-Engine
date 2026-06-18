@@ -1,14 +1,14 @@
 #!/usr/bin/env julia
-# scripts/reproduce.jl — one command from `git clone` to every portfolio figure.
+# reproduce.jl — one command from `git clone` to every portfolio figure.
 #
-#     julia --project scripts/reproduce.jl
+#     julia --project reproduce.jl
 #
 # Runs each portfolio experiment in its own process (so the scripts can't clash
 # on globals) and writes the figures into figures/. The lasso flagship figure is
 # produced first. The first run pays Julia's compile/load cost for each script;
 # subsequent figures are quicker.
 
-const PROJECT = dirname(@__DIR__)
+const PROJECT = @__DIR__
 
 # Ordered so the flagship figure (lasso) lands first.
 const SCRIPTS = [

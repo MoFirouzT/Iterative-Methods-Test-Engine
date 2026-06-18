@@ -1,15 +1,14 @@
 # Debug Mode
 
-The debug mode is an optional, experiment-level diagnostic layer. When activated,
-the runner performs additional computations after each step — computations that may
-be expensive (such as numerical gradient checks) and are never run in normal
-operation. When a check's condition triggers, a configurable action is taken:
+The debug mode is an optional, experiment-level diagnostic layer.
+When activated, the runner performs additional computations after each step — computations that may be expensive (such as numerical gradient checks) and are never run in normal operation.
+When a check's condition triggers, a configurable action is taken:
 a warning is printed, the error is raised, or the event is recorded silently.
 
-Debug mode is **orthogonal to verbosity** (see [Logging & Verbosity](@ref)): verbosity controls what is
-printed from normal iteration data; debug mode controls diagnostic calculations
-triggered by threshold violations. Both can be active simultaneously at independent
-levels.
+Debug mode is **orthogonal to verbosity** (see [Logging & Verbosity](@ref)):
+verbosity controls what is printed from normal iteration data;
+debug mode controls diagnostic calculations triggered by threshold violations.
+Both can be active simultaneously at independent levels.
 
 ## DebugConfig
 
@@ -26,6 +25,7 @@ end
 ```
 
 `on_trigger` controls what happens when any check fires:
+
 - `:warn` — print a formatted warning to `cfg.io` and continue.
 - `:error` — print the warning and throw an `ErrorException` (stops the run).
 - `:log` — record silently in `logger.events` without printing.
@@ -59,8 +59,7 @@ end
 
 ## `run_debug_checks!` and `debug_check!` Dispatch
 
-The runner calls `run_debug_checks!` after `log_iter!` on every iteration and
-passes the logger explicitly so history-based checks do not need state mutation:
+The runner calls `run_debug_checks!` after `log_iter!` on every iteration and passes the logger explicitly so history-based checks do not need state mutation:
 
 ```julia
 function run_debug_checks!(cfg        :: DebugConfig,
@@ -139,12 +138,10 @@ function numerical_gradient(f::Objective, x::Vector{Float64},
 end
 ```
 
-Note on silent logging (`:log`): when `cfg.on_trigger == :log`, callers may
-pass a `logger` instance to `trigger_debug!` (or ensure `state` carries a
-reference to the current logger) so the event can be recorded in
-`logger.events` rather than printed. This allows debug checks to be recorded
-without altering console output; the runner or caller should supply the
-logger when invoking debug helpers in order to enable this mode.
+Note on silent logging (`:log`):
+when `cfg.on_trigger == :log`, callers may pass a `logger` instance to `trigger_debug!` (or ensure `state` carries a reference to the current logger) so the event can be recorded in `logger.events` rather than printed.
+This allows debug checks to be recorded without altering console output;
+the runner or caller should supply the logger when invoking debug helpers in order to enable this mode.
 
 ## Integration Example
 
@@ -168,4 +165,3 @@ config = ExperimentConfig(
 ```
 
 ---
-

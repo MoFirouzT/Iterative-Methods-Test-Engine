@@ -3,10 +3,8 @@
 ## Method Type
 
 Every algorithm is a concrete subtype of the single category `IterativeMethod`.
-A method's **comparison role** — baseline vs experimental — is deliberately *not*
-part of its type. It is experiment-level metadata declared when you assemble the
-experiment (see [Experiment Orchestration](@ref)), so the same algorithm can be a
-baseline in one experiment and the method under study in another.
+A method's **comparison role** — baseline vs experimental — is deliberately *not* part of its type.
+It is experiment-level metadata declared when you assemble the experiment (see [Experiment Orchestration](@ref)), so the same algorithm can be a baseline in one experiment and the method under study in another.
 
 ```julia
 abstract type IterativeMethod end
@@ -53,20 +51,18 @@ end
 end
 ```
 
-`TimingGroup` is kept separate from `MetricsGroup` even though it holds a single
-field — the reason is categorical, not structural. `MetricsGroup` holds *convergence
-mathematics the algorithm produces* (objective, gradient norm, …); `core_time_ns` is
-a *measurement*, and honest measurement is this framework's whole thesis, so it earns
-its own home rather than being folded into the math. The two also have different
-lifecycles: the runner **resets** `timing` to zero before every `step!`, whereas
-metrics are overwritten in place. (`IterationLog` likewise keeps `core_time_ns`
-distinct from its metric fields.)
+`TimingGroup` is kept separate from `MetricsGroup` even though it holds a single field — the reason is categorical, not structural.
+`MetricsGroup` holds *convergence mathematics the algorithm produces* (objective, gradient norm, …);
+`core_time_ns` is a *measurement*, and honest measurement is this framework's whole thesis, so it earns its own home rather than being folded into the math.
+The two also have different lifecycles:
+the runner **resets** `timing` to zero before every `step!`, whereas metrics are overwritten in place.
+(`IterationLog` likewise keeps `core_time_ns` distinct from its metric fields.)
 
-> **What the metric fields mean — and which certify stationarity.** `objective` is the
-> *total* objective `f(x_k) + Σ gᵢ(x_k)`. The other three are **method-defined**: every
-> method writes them, but the exact quantity — and whether it says anything about
-> optimality — depends on the method and the problem class. Each method's spec states
-> precisely what it writes; the canonical readings are:
+> **What the metric fields mean — and which certify stationarity.**
+> `objective` is the *total* objective `f(x_k) + Σ gᵢ(x_k)`.
+> The other three are **method-defined**:
+> every method writes them, but the exact quantity — and whether it says anything about optimality — depends on the method and the problem class.
+> Each method's spec states precisely what it writes; the canonical readings are:
 >
 > | field | canonical meaning | caveat |
 > | --- | --- | --- |
@@ -75,15 +71,15 @@ distinct from its metric fields.)
 > | `step_norm` | `‖x_{k+1} − x_k‖` | the right convergence proxy for composite problems — `ProximalGradient`'s value `‖xⁿ − x_k‖` is the gradient-mapping proxy, which *does* vanish at a composite stationary point |
 > | `dist_to_opt` | `‖x_k − x*‖` | set by the runner, not the algorithm; `Inf` when `problem.x_opt` is unset |
 >
-> **Stopping consequence:** `GradientTolerance` is a valid convergence test only for
-> smooth unconstrained problems; for composite ones use `StepTolerance` (the gradient
-> mapping) or `DistanceToOptimal`. See [Convergence & Cost](../convergence-and-cost.md)
-> for the full criterion-by-problem-class matrix.
+> **Stopping consequence:**
+> `GradientTolerance` is a valid convergence test only for smooth unconstrained problems;
+> for composite ones use `StepTolerance` (the gradient mapping) or `DistanceToOptimal`.
+> See [Convergence & Cost](../convergence-and-cost.md) for the full criterion-by-problem-class matrix.
 
-**Method-specific numerics module** (one per concrete method). "Numerics" is a
-*naming convention*, not a type: there is no abstract `Numerics` supertype. Each
-method defines its own concrete struct named `<Method>Numerics` (e.g.
-`GradientDescentNumerics`) and stores it in the state's `numerics` field.
+**Method-specific numerics module** (one per concrete method).
+"Numerics" is a *naming convention*, not a type:
+there is no abstract `Numerics` supertype.
+Each method defines its own concrete struct named `<Method>Numerics` (e.g. `GradientDescentNumerics`) and stores it in the state's `numerics` field.
 
 ```julia
 # Example for GradientDescent: the descent direction buffer and any
@@ -156,10 +152,10 @@ function step!(method::IterativeMethod, state, problem, iter::Int,
 function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog end
 ```
 
-`extract_log_entry` has a trivial default — it copies `state.metrics` and
-`state.timing.core_time_ns` into an `IterationLog` — so a method implements it only to
-add entries to the `extras` dict. That default, and the `IterationLog` shape it
-targets, are documented in [Logging & Verbosity](logging.md).
+`extract_log_entry` has a trivial default —
+it copies `state.metrics` and `state.timing.core_time_ns` into an `IterationLog` —
+so a method implements it only to add entries to the `extras` dict.
+That default, and the `IterationLog` shape it targets, are documented in [Logging & Verbosity](logging.md).
 
 ## Core Timing — `@core_timed`
 
@@ -190,18 +186,15 @@ macro core_timed(state, expr)
 end
 ```
 
-**What counts.** The rule of thumb: **time the mathematics that produces the next
-iterate; do not time quantities computed only to populate metrics for logging or
-stopping.** A norm is timed when the *update* uses it (a normalized-gradient step
-divides by ‖g‖) and left untimed when it is computed solely for a convergence metric.
+**What counts.**
+The rule of thumb: **time the mathematics that produces the next iterate;
+do not time quantities computed only to populate metrics for logging or stopping.**
+A norm is timed when the *update* uses it (e.g. a normalized-gradient step divides by ‖g‖) and left untimed when it is computed solely for a convergence metric.
 
-**Components self-time; `step!` does not wrap them.** A descent direction
-(`compute_direction`) and a step size (`compute_step_size`) each wrap their own core
-operations in `@core_timed`, so a component with internal bookkeeping — a line
-search's trial loop, a quasi-Newton two-loop recursion — counts only its kernel, not
-its scaffolding. The caller must therefore **not** wrap these calls (that would
-double-count). `grad!` and the iterate update have no such component, so `step!`
-times them directly:
+**Components self-time in `step!`: do not wrap them.**
+A descent direction (`compute_direction`) and a step size (`compute_step_size`) each wrap their own core operations in `@core_timed`, so a component with internal bookkeeping — a line search's trial loop, a quasi-Newton two-loop recursion — counts only its kernel, not its scaffolding.
+The caller must therefore **not** wrap these calls (that would double-count).
+`grad!` and the iterate update have no such component, so `step!` times them directly:
 
 ```julia
 function step!(m::GradientDescent, state, problem, iter, logger, rng)
@@ -221,41 +214,32 @@ function step!(m::GradientDescent, state, problem, iter, logger, rng)
 end
 ```
 
-**Timing a nested solve.** When a `step!` runs a sub-solver via `run_sub_method`, fold
-the sub-solver's reported core time into the outer step directly —
-`state.timing.core_time_ns += sub.core_time_ns` — and do **not** wrap the
-`run_sub_method` call in `@core_timed`, which would count the sub-run's wall /
-scaffolding time instead of its measured kernel. Each state keeps its own
-`TimingGroup`, so the inner core time also stays available separately for an
-inner/outer breakdown.
+**Timing a nested solve.**
+When a `step!` runs a sub-solver via `run_sub_method`, fold the sub-solver's reported core time into the outer step directly — `state.timing.core_time_ns += sub.core_time_ns` — and do **not** wrap the `run_sub_method` call in `@core_timed`, which would count the sub-run's wall / scaffolding time instead of its measured kernel.
+Each state keeps its own `TimingGroup`, so the inner core time also stays available separately for an inner/outer breakdown.
 
 Every concrete state struct contains a `TimingGroup` field named `timing`.
 The runner resets `state.timing.core_time_ns = 0` before each `step!` call so the logger always sees a single-step measurement.
 
-**Caveats — what the timer cannot separate.** `@core_timed` is wall-clock `time_ns`
-wrapped around the kernel, so it measures *elapsed* time, not pure arithmetic: a
-garbage-collection pause or allocation that lands inside the timed block is counted as
-core time. Keeping kernels allocation-light (as the least-squares `mul!` path does) keeps
-the measure clean. Likewise, first-call JIT compilation is not core math — warm up once
-before a measured run (the orchestrator's warm-up path and the `n_runs` loop both serve
-this). The reported `core_time / wall_time` ratio is honest about *measured* work with
-these two confounds understood; see [Convergence & Cost](../convergence-and-cost.md) for
-how it fits the broader cost model.
+**Caveats — what the timer cannot separate.**
+`@core_timed` is wall-clock `time_ns` wrapped around the kernel, so it measures *elapsed* time, not pure arithmetic:
+a garbage-collection pause or allocation that lands inside the timed block is counted as core time.
+Keeping kernels allocation-light (as the least-squares `mul!` path does) keeps the measure clean.
+Likewise, first-call JIT compilation is not core math — warm up once before a measured run (the orchestrator's warm-up path and the `n_runs` loop both serve this).
+The reported `core_time / wall_time` ratio is honest about *measured* work with these two confounds understood;
+see [Convergence & Cost](../convergence-and-cost.md) for how it fits the broader cost model.
 
 ## The Generic Runner
 
-The runner owns the loop. *"The runner"* (`run_method`) is the per-method iteration
-loop that drives **one** method to termination — not to be confused with **a run**,
-one seeded repetition of a whole experiment indexed by `run_id` (see
-[Experiment Orchestration](orchestration.md)).
+The runner owns the loop.
+*"The runner"* (`run_method`) is the per-method iteration loop that drives **one** method to termination —
+not to be confused with **a run**, one seeded repetition of a whole experiment indexed by `run_id` (see [Experiment Orchestration](orchestration.md)).
 
-Algorithms never hold a logger reference — the logger is passed as an explicit
-parameter to `step!` on every iteration. A `StoppingCriterion` object controls
-termination (see [Stopping Criteria](@ref)). If `problem.x_opt` is set, the runner
-computes `dist_to_opt` — for the initial snapshot and after each step — and stores it
-in `state.metrics` before `extract_log_entry`, so algorithms never read
-`problem.x_opt`. Debug checks run after logging, before the stopping check. A `step!`
-error is **not** caught: it propagates out of `run_method` as a clean failure.
+Algorithms never hold a logger reference — the logger is passed as an explicit parameter to `step!` on every iteration.
+A `StoppingCriterion` object controls termination (see [Stopping Criteria](@ref)).
+If `problem.x_opt` is set, the runner computes `dist_to_opt` — for the initial snapshot and after each step — and stores it in `state.metrics` before `extract_log_entry`, so algorithms never read `problem.x_opt`.
+Debug checks run after logging, before the stopping check.
+A `step!` error is **not** caught: it propagates out of `run_method` as a clean failure.
 
 ```julia
 function run_method(method   :: IterativeMethod,

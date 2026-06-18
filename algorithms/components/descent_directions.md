@@ -20,7 +20,7 @@ decreases $f$ for sufficiently small step sizes.
 ### Julia Type Hierarchy
 
 ```julia
-# In: algorithms/conventional/gradient_descent/components/descent_directions.jl
+# In: algorithms/components/descent_directions.jl
 
 abstract type DescentDirection end
 ```

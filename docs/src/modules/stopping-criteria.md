@@ -54,14 +54,11 @@ stop_when_any(cs...) = CompositeCriterion(criteria=collect(cs), mode=:any)
 stop_when_all(cs...) = CompositeCriterion(criteria=collect(cs), mode=:all)
 ```
 
-> **Choosing a *valid* convergence test.** These split into **budgets** (`MaxIterations`,
-> `TimeLimit` — they bound work, not optimality, and are always safe to include) and
-> **convergence tests** (the rest — sound only for the problem class whose optimality
-> condition they actually measure). In particular `GradientTolerance` reads `‖∇f‖`, the
-> *smooth-part* gradient, so it certifies convergence only for **smooth, unconstrained**
-> problems; on a composite `f + g` the smooth gradient need not vanish at the optimum, so
-> use `StepTolerance` (the gradient-mapping proxy) or `DistanceToOptimal` instead. The full
-> criterion-by-problem-class matrix is in [Convergence & Cost](../convergence-and-cost.md).
+> **Choosing a *valid* convergence test.**
+> These split into **budgets** (`MaxIterations`, `TimeLimit` — they bound work, not optimality, and are always safe to include) and **convergence tests** (the rest — sound only for the problem class whose optimality condition they actually measure).
+> In particular `GradientTolerance` reads `‖∇f‖`, the *smooth-part* gradient, so it certifies convergence only for **smooth, unconstrained** problems;
+> on a composite `f + g` the smooth gradient need not vanish at the optimum, so use `StepTolerance` (the gradient-mapping proxy) or `DistanceToOptimal` instead.
+> The full criterion-by-problem-class matrix is in [Convergence & Cost](../convergence-and-cost.md).
 
 ## The `should_stop` Interface
 
@@ -113,7 +110,7 @@ end
 The criteria above are the engine's generic set.
 Because `StoppingCriterion` is a plain dispatch point, **content can define its own criteria** by subtyping it and adding a `should_stop` method — exactly how a method defines `step!`.
 These stay out of the engine.
-For example, `TrustRegion`'s inner truncated-CG solve ships `NegativeCurvature` and `TrustRegionBoundary` (in `algorithms/conventional/trust_region/`), which read a method-specific inner-status accessor; being trust-region-specific, they live with the method, not here.
+For example, `TrustRegion`'s inner truncated-CG solve ships `NegativeCurvature` and `TrustRegionBoundary` (in `algorithms/trust_region/`), which read a method-specific inner-status accessor; being trust-region-specific, they live with the method, not here.
 
 ## Usage at Experiment Definition
 

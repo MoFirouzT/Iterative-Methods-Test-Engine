@@ -30,7 +30,7 @@ Both are valid step-size strategies, so they share an umbrella abstract type
 `StepSize`. `LineSearch <: StepSize` is the sub-hierarchy of genuine 1D searches:
 
 ```julia
-# In: algorithms/conventional/gradient_descent/components/step_sizes.jl
+# In: algorithms/components/step_sizes.jl
 
 abstract type StepSize end
 abstract type LineSearch <: StepSize end    # subset that performs an actual 1D search

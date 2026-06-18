@@ -1,7 +1,7 @@
 # Architecture reference
 
-A map of **every document in the project** — personal table of contents. The engine
-architecture reference is a **Documenter site** (one page per concern) under
+A map of **every document in the project** — personal table of contents.
+The engine architecture reference is a **Documenter site** (one page per concern) under
 [`docs/src/`](src/), published to GitHub Pages; the method / problem / component specs are
 **co-located** with their source.
 
@@ -39,10 +39,10 @@ architecture reference is a **Documenter site** (one page per concern) under
 
 **Methods**
 
-- [Gradient Descent](../algorithms/conventional/gradient_descent.md)
-- [Proximal Gradient (ISTA / FISTA)](../algorithms/conventional/proximal_gradient/proximal_gradient.md)
-- [Trust Region + Steihaug-CG](../algorithms/conventional/trust_region/trust_region.md)
-- [PreconditionedGradient (experimental)](../algorithms/experimental/preconditioned_gradient/preconditioned_gradient.md)
+- [Gradient Descent](../algorithms/gradient_descent/gradient_descent.md)
+- [Proximal Gradient (ISTA / FISTA)](../algorithms/proximal_gradient/proximal_gradient.md)
+- [Trust Region + Steihaug-CG](../algorithms/trust_region/trust_region.md)
+- [PreconditionedGradient (experimental)](../algorithms/preconditioned_gradient/preconditioned_gradient.md)
 
 **Shared components** (the method-construction vocabulary)
 

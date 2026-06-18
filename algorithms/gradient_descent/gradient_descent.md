@@ -2,8 +2,8 @@
 
 > **Related specs** (read these first):
 > - `problems/rosenbrock/rosenbrock.md` — problem interface, `Objective`, `grad!`, `hessian`
-> - `algorithms/conventional/gradient_descent/components/descent_directions.md` — `DescentDirection` abstraction
-> - `algorithms/conventional/gradient_descent/components/step_sizes.md` — `StepSize` / `LineSearch` abstractions
+> - `algorithms/components/descent_directions.md` — `DescentDirection` abstraction
+> - `algorithms/components/step_sizes.md` — `StepSize` / `LineSearch` abstractions
 > - `docs/src/modules/algorithm-core.md` — state groups, runner contract, `@core_timed`, logger injection
 
 ---
@@ -65,7 +65,7 @@ the step-size axis is exercised in the current setup.
 ### 3.1 Method Struct
 
 ```julia
-# In: algorithms/conventional/gradient_descent/gradient_descent.jl
+# In: algorithms/gradient_descent/gradient_descent.jl
 
 @kwdef struct GradientDescent <: IterativeMethod
     direction :: DescentDirection = SteepestDescent()

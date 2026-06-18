@@ -96,7 +96,8 @@ end
 # Plotting — 2×2 panel with shared legend on the right
 # ---------------------------------------------------------------------------
 
-function plot_stage1(df::DataFrame; outpath::String = "stage1_convergence.pdf")
+function plot_stage1(df::DataFrame;
+                     outpath::String = joinpath(@__DIR__, "figures", "stage1_convergence.pdf"))
     fig = Figure(size = (1400, 850))
 
     # (row, col, df-column, panel title, y-axis label)
@@ -149,7 +150,11 @@ end
 function main()
     results = run_stage1()
     df      = results_to_df(results)
-    plot_stage1(df; outpath = "stage1_convergence.pdf")
+    # Write into stages/figures/ rather than the project root, alongside the
+    # other staged figures.
+    figdir = joinpath(@__DIR__, "figures")
+    mkpath(figdir)
+    plot_stage1(df; outpath = joinpath(figdir, "stage1_convergence.pdf"))
     return df
 end
 

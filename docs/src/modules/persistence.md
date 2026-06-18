@@ -3,14 +3,14 @@
 Two formats are always written together for every experiment:
 
 | Format | Purpose |
-|--------|---------|
+| -------- | --------- |
 | `result.jld2` | Full binary — preserves all Julia types, fast reload |
 | `run{N}_{MethodName}.csv` | Per-method per-run CSV — human-readable, grep-able |
 | `manifest.json` | Experiment metadata and human name; no binary load needed |
 
 ## File Layout on Disk
 
-```
+```text
 logs/
 └── 20260417/
     ├── 001/
@@ -25,14 +25,14 @@ logs/
 ```
 
 CSV sidecar contract:
-The CSV writer records the fixed IterationLog fields plus all extras whose values are CSV-scalar: 
-numbers (incl. Bool), strings, symbols, missing, nothing. 
-Vector-valued and composite extras (e.g. :x_iter, :sub_logs, custom dicts) are intentionally omitted — 
-they have no stable text representation and inflating them inline would defeat the CSV's purpose as a grep-able artifact. 
+The CSV writer records the fixed IterationLog fields plus all extras whose values are CSV-scalar:
+numbers (incl. Bool), strings, symbols, missing, nothing.
+Vector-valued and composite extras (e.g. :x_iter, :sub_logs, custom dicts) are intentionally omitted —
+they have no stable text representation and inflating them inline would defeat the CSV's purpose as a grep-able artifact.
 The full payload remains in result.jld2 and is recovered transparently by load_experiment.
-The set of skipped keys is recorded in manifest.json under csv_skipped_extras, with a human-readable note pointing to JLD2 for the full payload. 
+The set of skipped keys is recorded in manifest.json under csv_skipped_extras, with a human-readable note pointing to JLD2 for the full payload.
 The classifier rule is all-or-nothing per key: a single non-scalar occurrence demotes the whole column to JLD2-only, so the CSV never contains half a column.
-Adding a new CSV-scalar type is one method: _is_csv_scalar(::DateTime) = true in persistence.jl.
+Adding a new CSV-scalar type is one method:_is_csv_scalar(::DateTime) = true in persistence.jl.
 
 ## API
 
@@ -90,9 +90,9 @@ not stylistic.
 iter-log payload, JLD2's built-in codec is a net loss:
 
 | variant | size |
-|---|---|
+| --- | --- |
 | `compress = false` | 19.3 MB |
-| `compress = true`  | 20.2 MB (**104.8%** — overhead exceeds savings) |
+| `compress = true` | 20.2 MB (**104.8%** — overhead exceeds savings) |
 
 The MethodResult payload is dominated by `extras::Dict{Symbol,Any}` per
 `IterationLog`, whose typing/dispatch overhead doesn't compress and adds
@@ -140,4 +140,3 @@ not blocking. (Listed under planned work in
 [experiments/README.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/experiments/README.md).)
 
 ---
-

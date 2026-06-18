@@ -36,7 +36,7 @@ See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the
 ```bash
 git clone <this repo> && cd Iterative-Methods-Test-Engine
 julia --project -e 'using Pkg; Pkg.instantiate()'    # one-time: fetch deps
-julia --project scripts/reproduce.jl                 # writes all figures to figures/
+julia --project reproduce.jl                         # writes all figures to figures/
 ```
 
 `reproduce.jl` runs each portfolio experiment in its own process and writes the five
@@ -67,20 +67,27 @@ That staged build log lives in **[experiments/stages](experiments/stages/)**.
 ## Run the tests
 
 ```bash
-julia --project test/runtests.jl     # 200 tests
+julia --project test/runtests.jl     # full unit + cross-validation suite
 ```
 
 ## Layout
 
 ```text
 src/                 TestEngine module — abstractions + machinery only
-algorithms/          content: components/ (step sizes, preconditioners, …),
-                     conventional/ (GradientDescent, ProximalGradient, TrustRegion),
-                     experimental/ (PreconditionedGradient)
+algorithms/          content: components/ (step sizes, preconditioners, …) and one
+                     directory per method (gradient_descent, proximal_gradient,
+                     trust_region, preconditioned_gradient). Role (baseline vs
+                     experimental) is set per experiment, not by directory.
 problems/            content: rosenbrock, least_squares, lasso,
                      separable_quadratic, regularizers
 experiments/         exp_*.jl portfolio scripts (+ _bootstrap.jl loader, _shared.jl helpers)
 experiments/stages/  the staged Rosenbrock build log (dev scaffold, not figures)
-scripts/reproduce.jl one command → all figures
+reproduce.jl         one command → all figures
 test/                runtests.jl + per-area test files
 ```
+
+## Documentation
+
+[**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) is the map of every document in the
+project — the hosted [Documenter site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)
+for the engine reference, plus the method/problem/component specs co-located with their source.

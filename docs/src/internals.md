@@ -70,12 +70,12 @@ TestEngine.jl/
 │   │   ├── extrapolation.{md,jl}        # Extrapolation + NoExtrapolation/Momentum/Nesterov
 │   │   │                                #   + extrapolate / advance_momentum behavior (FISTA)
 │   │   └── preconditioners.{md,jl}      # Preconditioner + Identity/Jacobi; precondition()
-│   ├── conventional/
-│   │   ├── gradient_descent.jl
-│   │   ├── proximal_gradient/    # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
-│   │   └── trust_region/         # trust_region.{md,jl} — QuadraticModel + SteihaugCG + TrustRegion
-│   └── experimental/
-│       └── preconditioned_gradient/ # preconditioned_gradient.{md,jl} — PreconditionedGradient
+│   │                            #   (role — baseline vs experimental — is set per
+│   │                            #    experiment, not by directory)
+│   ├── gradient_descent/        # gradient_descent.{md,jl} — GradientDescent
+│   ├── proximal_gradient/       # proximal_gradient.{md,jl} — ProximalGradient (ISTA/FISTA)
+│   ├── trust_region/            # trust_region.{md,jl} — QuadraticModel + SteihaugCG + TrustRegion
+│   └── preconditioned_gradient/ # preconditioned_gradient.{md,jl} — PreconditionedGradient
 │
 ├── problems/                     # CONTENT — concrete problem families (self-register on load)
 │   ├── rosenbrock/               # rosenbrock.{md,jl} — RosenbrockObjective; :rosenbrock
@@ -99,6 +99,9 @@ TestEngine.jl/
 │       ├── smoke_test.jl                  #   Stage 0: end-to-end runner-contract smoke check (in CI)
 │       ├── figures/                       #   stage2_trajectories.png (surfaced in the README)
 │       └── README.md                      #   the build-log writeup
+│
+├── reproduce.jl                  # one command → regenerates every portfolio figure into figures/
+├── figures/                      # portfolio figures (committed PNGs; written by reproduce.jl)
 │
 ├── logs/                         # Git-ignored; written at runtime
 │   └── <date>/<NNN>/             #   manifest.json, result.jld2, run{N}_{method}.csv

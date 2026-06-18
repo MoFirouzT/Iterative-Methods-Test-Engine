@@ -22,17 +22,13 @@ end
 It is updated by the runner (never by the algorithm) when `problem.x_opt` is non-`nothing`.
 Analysis code can test `isfinite(entry.dist_to_opt)` to determine whether optimality tracking was active.
 
-`IterationLog` mirrors the fixed fields of `MetricsGroup`, so the meaning of
-`gradient_norm` and `step_norm` is **method-defined** (e.g. `gradient_norm` is the
-smooth-part gradient, *not* a composite-stationarity certificate) — see
-[the metric-fields note](algorithm-core.md) for the per-method readings and the stopping
+`IterationLog` mirrors the fixed fields of `MetricsGroup`, so the meaning of `gradient_norm` and `step_norm` is **method-defined**
+(e.g. `gradient_norm` is the smooth-part gradient, *not* a composite-stationarity certificate) —
+see [the metric-fields note](algorithm-core.md) for the per-method readings and the stopping
 consequences.
 
-The `extras` dict carries algorithm-specific fields and, when nested algorithms are
-used, `:sub_logs` containing the full `Vector{IterationLog}` from each sub-method run.
-When `ExperimentConfig.count_oracles` is on, the runner also adds the cumulative
-`:n_value` / `:n_grad` / `:n_hvp` oracle counts to each entry's `extras` (see
-[oracle counting](problem-interface.md)).
+The `extras` dict carries algorithm-specific fields and, when nested algorithms are used, `:sub_logs` containing the full `Vector{IterationLog}` from each sub-method run.
+When `ExperimentConfig.count_oracles` is on, the runner also adds the cumulative `:n_value` / `:n_grad` / `:n_hvp` oracle counts to each entry's `extras` (see [oracle counting](problem-interface.md)).
 
 ## Logger
 
@@ -72,8 +68,7 @@ end
 ### `extract_log_entry` — the default
 
 `extract_log_entry(method, state, iter)` dispatches on the method type.
-Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is
-trivial — it copies the metrics and core time straight across — so a method overrides it only to populate `extras`:
+Because `state.metrics` mirrors `IterationLog`'s fixed fields, the default implementation is trivial — it copies the metrics and core time straight across — so a method overrides it only to populate `extras`:
 
 ```julia
 function extract_log_entry(method::IterativeMethod, state, iter::Int)::IterationLog

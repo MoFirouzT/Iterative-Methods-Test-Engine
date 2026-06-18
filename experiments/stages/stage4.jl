@@ -279,7 +279,7 @@ function print_timing_table(exp_result::ExperimentResult,
         if total_ratio < CORE_WALL_LO
             println("  Aggregate core/wall below $(round(Int, 100 * CORE_WALL_LO))% — the kernel is a small")
             println("  fraction of per-iter work. Candidates to investigate:")
-            println("    • @core_timed scope in algorithms/conventional/gradient_descent.jl")
+            println("    • @core_timed scope in algorithms/gradient_descent/gradient_descent.jl")
             println("      currently omits step!'s norm/copy bookkeeping (lines 128-132,")
             println("      151-155, 164-166). Widen the scope if these belong in 'kernel'.")
             println("    • problem dimension may still be too small for kernel-dominated work.")
