@@ -59,6 +59,7 @@ export save_experiment, load_experiment, load_manifest, list_experiments
 export MethodStyle, METHOD_PALETTE, METHOD_COLOR_REGISTRY
 export method_color, register_method_color!, get_method_color
 export PlotSpec, FigureLayout, render_plot!, render_figure, save_figure
+export grid_styles
 export to_dataframe, filter_methods, aggregate_runs
 
 end

@@ -106,10 +106,6 @@ end
 # Figure: f(xₖ) − f* vs iteration (log-log), Jacobi family vs Identity family
 # ---------------------------------------------------------------------------
 
-# Color by preconditioner family; line style by step-size rule.
-const PRECOND_COLOR = Dict("Identity" => "#D55E00", "Jacobi" => "#0072B2", "baseline" => :black)
-const STEP_STYLE    = Dict("Fixed" => :solid, "Armijo" => :dash, "Cauchy" => :dot)
-
 # Downsample a long curve to ~400 log-spaced points for a light figure.
 function _downsample(xs, ys; n = 400)
     length(xs) <= n && return (xs, ys)
@@ -133,14 +129,19 @@ function plot_precond(results::Dict, baseline, experimental;
             markersize = 6, label = abbreviate(split(name, '[')[1]) * label_suffix(name))
     end
 
-    for (name, method) in experimental
-        precond = occursin("preconditioner=Jacobi", name) ? "Jacobi" : "Identity"
-        step    = occursin("step_size=Fixed", name) ? "Fixed" :
-                  occursin("step_size=Armijo", name) ? "Armijo" : "Cauchy"
-        plot_curve!(name, PRECOND_COLOR[precond], STEP_STYLE[step])
+    # Grid-aware styling: color by preconditioner family, dash by step-size rule.
+    # Read straight from the grid's axes — no string-matching on variant names.
+    styles = grid_styles(precond_grid();
+        color_by   = :preconditioner, style_by = :step_size,
+        colors     = Dict("Identity" => "#D55E00", "Jacobi" => "#0072B2"),
+        linestyles = Dict("Fixed" => :solid, "Armijo" => :dash, "Cauchy" => :dot))
+
+    for (name, _) in experimental
+        st = styles[name]
+        plot_curve!(name, st.color, st.linestyle)
     end
-    # baseline
-    plot_curve!(baseline[1][1], PRECOND_COLOR["baseline"], :dashdot)
+    # baseline is not part of the grid — style it explicitly.
+    plot_curve!(baseline[1][1], :black, :dashdot)
 
     axislegend(ax; position = :lb, framevisible = true, nbanks = 2, labelsize = 11)
     mkpath(dirname(outpath)); save(outpath, fig)

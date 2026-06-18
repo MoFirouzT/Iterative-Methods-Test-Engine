@@ -7,8 +7,8 @@ The analysis module has two roles:
 2. **Figure layout system** — compose any number of plots in any formation and
    render them to a single PDF or image file.
 
-There is no grid-aware analysis layer.
-Because variant names embed axis information (e.g. `GradientDescent[step_size=Armijo]`), the user can always parse or filter on names as plain strings if needed.
+The *rendering* layer is deliberately grid-blind: `PlotSpec` / `render_plot!` consume a flat DataFrame grouped by `:method_name` plus a `method_styles` dict, and know nothing about grids.
+Grid structure stays recoverable, though — variant names embed axis information (e.g. `GradientDescent[step_size=Armijo]`), so you can filter on names as plain strings, and the opt-in `grid_styles` helper (below) turns a `VariantGrid`'s axes directly into a `method_styles` dict with no name string-matching at the plot site.
 
 ## Loading and Transforming
 
@@ -54,6 +54,23 @@ for t in transforms; df = t(df); end
     label     :: Union{Nothing, String} = nothing
 end
 ```
+
+### Grid-aware styling
+
+`PlotSpec.method_styles` is a `Dict{String,MethodStyle}` keyed by `:method_name`. You can write it by hand, but for variants from a `VariantGrid` the `grid_styles` helper derives it from the grid's axes — mapping one axis to color and an optional second to line style:
+
+```julia
+grid_styles(grid::VariantGrid; color_by, style_by = nothing,
+            colors = nothing, linestyles = nothing,
+            palette = METHOD_PALETTE,
+            linestyle_cycle = [:solid, :dash, :dot, :dashdot]) :: Dict{String, MethodStyle}
+
+# color the curves by the preconditioner axis, dash them by the step-size axis
+styles = grid_styles(precond_grid(); color_by = :preconditioner, style_by = :step_size)
+PlotSpec(data = df, y = :objective, yscale = :log10, method_styles = styles)
+```
+
+A visual channel encodes a *dimension of variation*: `color_by` / `style_by` must name axes the grid actually varies. A parameter held fixed across the grid is a constant, not a channel — it belongs in the title. The number of channels equals the number of varied axes: **one axis → color, two → color + line style, three or more → facet into panels** with `FigureLayout` rather than inventing a third channel. `grid_styles` only *produces* a `method_styles` dict; `render_plot!` itself stays grid-blind. Optional `colors` / `linestyles` `Dict("label" => value)` arguments override the defaults per axis label.
 
 ## Method Color Registry
 
