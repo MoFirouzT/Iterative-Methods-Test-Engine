@@ -4,6 +4,9 @@
 # (This is a script-style project with no [name]/[uuid], so the package
 # [extras]/[targets] test-dependency mechanism does not apply; were this packaged,
 # these two would move there.) ProximalOperators IS a runtime dep (regularizers).
+# IJulia is NOTEBOOK-ONLY — it provides the Jupyter kernel for guided_tour.ipynb;
+# not imported by src/ or any experiment. (Pkg rewrites this file and drops
+# comments on add/rm — restore this note if that happens.)
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
@@ -11,6 +14,7 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataFramesMeta = "1313f7d8-7da2-5740-9ea0-a2ca25f37964"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

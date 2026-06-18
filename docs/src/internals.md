@@ -101,6 +101,7 @@ TestEngine.jl/
 │       └── README.md                      #   the build-log writeup
 │
 ├── reproduce.jl                  # one command → regenerates every portfolio figure into figures/
+├── walkthrough.ipynb             # end-to-end how-to: define a problem + method → experiment → run → analyze
 ├── figures/                      # portfolio figures (committed PNGs; written by reproduce.jl)
 │
 ├── logs/                         # Git-ignored; written at runtime

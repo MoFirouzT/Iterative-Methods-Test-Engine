@@ -88,6 +88,12 @@ test/                runtests.jl + per-area test files
 
 ## Documentation
 
+[**walkthrough.ipynb**](walkthrough.ipynb) is a complete, runnable walkthrough of *using*
+the framework: define and register your own problem (ridge regression), author a custom
+method (heavy-ball), set up an experiment with a variant grid and baseline/experimental
+roles, run it, persist & reload, and plot the comparison. Best starting point if you want
+to learn how to drive the tool.
+
 [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) is the map of every document in the
 project — the hosted [Documenter site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)
 for the engine reference, plus the method/problem/component specs co-located with their source.
