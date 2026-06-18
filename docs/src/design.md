@@ -11,9 +11,11 @@ forward references.
 
 The framework is built on six Julia-native principles:
 
-- **Multiple dispatch over class hierarchies.** Every algorithm, component, stopping
-  criterion, and problem is a dispatch point. Adding a new variant never requires
-  touching existing code.
+- **Dispatch for extension, components for variation.** Every algorithm, stopping
+  criterion, and problem is an extension point — a new one is a new type + a method,
+  never an edit to existing code. Variation rides on *components* specifically: the
+  swappable pieces inside a method (step size, descent direction, extrapolation,
+  preconditioner) are what the variant grid sweeps.
 - **Engine / content separation.** `src/` (the `TestEngine` module) ships only
   abstractions and machinery; every concrete method, problem, and component is *content*
   that extends the engine via `import .TestEngine`. The engine never names a concrete

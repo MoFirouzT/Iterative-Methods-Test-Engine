@@ -10,26 +10,19 @@ reproducible harness.
 
 ## Design philosophy
 
-- **Multiple dispatch over hierarchies** — every method, component (step size, descent
-  direction, extrapolation, preconditioner), stopping criterion, and problem is a dispatch
-  point; adding a variant never edits existing code.
-- **Engine / content separation** — `src/` (the `TestEngine` module) ships only
-  abstractions and machinery; every concrete method, problem, and component is *content*
-  that extends the engine via `import .TestEngine`.
-- **Scientific measurement discipline** — `@core_timed` measures only the core math inside
-  each step; logging, stopping checks, and bookkeeping are excluded. At `n = 1000` the
-  least-squares matvec dominates and `core_time/wall_time` lands at ~98%; at `n = 10` it is
-  ~2% (the kernel is below the timing floor). That honest ratio is itself a result.
-- **Declarative, reproducible experiments** — an experiment is a serializable
-  `ExperimentConfig`; all randomness derives from a single seed.
-- **Spec-driven** — every problem and method ships a co-located `.md` spec.
-- **Separation of concerns across modules** — algorithms know nothing about logging,
-  loggers nothing about plotting, stopping criteria nothing about algorithms; each module
-  talks to the next through plain data structures.
+- **Dispatch for extension, components for variation**:
+  a new method, problem, or stopping criterion is a new type + a method on the relevant function — never an edit to existing code.
+  Within a method, the swappable pieces (step size, descent direction,
+  extrapolation, preconditioner, ...) are the components you sweep as variants.
+- **Engine / content separation**:
+  `src/` (the `TestEngine` module) ships only abstractions and machinery; every concrete method, problem, and component is *content* that extends the engine via `import .TestEngine`.
+  Each module talks to the next through plain data structures, so any one can be read, tested, or replaced in isolation.
+- **Honest timing**:
+  `@core_timed` measures only the core math inside each step — logging, stopping checks, and bookkeeping are excluded — so "is it actually faster?" gets a fair answer.
+- **Declarative, reproducible experiments**:
+  an experiment is a serializable `ExperimentConfig`; all randomness derives from a single seed.
 
-See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the
-**[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)**
-(one page per module) for the full maintainer view.
+See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the **[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)** (one page per module) for the full details.
 
 ## Portfolio experiments
 
@@ -49,8 +42,9 @@ with what each one demonstrates and all five figures, see
 ![ISTA vs FISTA on the lasso: FISTA's O(1/k²) acceleration over ISTA's O(1/k), and exact support recovery](figures/lasso_ista_fista.png)
 
 > **The flagship figure (above).** Proximal gradient on the sparse-recovery lasso
-> `min ½‖Ax−b‖² + λ‖x‖₁`. *Left:* FISTA's `O(1/k²)` convergence visibly beats ISTA's
-> `O(1/k)` — a ~1000× smaller objective gap by iteration 50. *Right:* the recovered
+> `min ½‖Ax−b‖² + λ‖x‖₁`. *Left:* FISTA's acceleration visibly beats ISTA — a ~1000×
+> smaller objective gap by iteration 50 (the `O(1/k)`-vs-`O(1/k²)` sublinear-rate
+> *slope* separation is measured directly in `test/test_proximal_gradient.jl`). *Right:* the recovered
 > solution lands exactly on the planted ±1 spikes, with a clean zero baseline.
 
 ## Going deeper

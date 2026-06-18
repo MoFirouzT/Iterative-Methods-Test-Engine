@@ -75,9 +75,10 @@ else is bookkeeping the clock never sees:
 | `advance_momentum`, `gradient_norm`, metric writes | no |
 
 Postconditions mirror the GD contract: `x` holds `x_{k+1}`, `x_prev` holds `x_k`, and
-`α_k` / `t` are stored for logging. The **reported gradient is the smooth part at the
-evaluation point** `y`, reused from the step's single eval — so `gradient_norm = ‖∇f(y)‖`
-is *not* a composite-stationarity certificate (see §5).
+`α_k` / `t` are stored for logging. The reported **gradient vector** `state.iterate.gradient`
+is the smooth part at the evaluation point `y` (reused from the step's single eval); the
+reported **`gradient_norm`** is the gradient-mapping norm `‖G_γ(y)‖`, a valid composite
+stationarity residual (see §5).
 
 **`extract_log_entry`.** Adds `:step_size` and `:t` to `extras`, plus `:x_iter` (a copy
 of the iterate) when `dim ≤ 2`, for trajectory plots.
@@ -85,11 +86,13 @@ of the iterate) when `dim ≤ 2`, for trajectory plots.
 ## 5. Metrics & conventions
 
 - `objective = total_objective(p, x) = f(x) + g(x)` (the composite value).
-- `gradient_norm = ‖∇f(y_k)‖` — the smooth-part gradient at the **evaluation
-  point** (cheap; no extra eval). Not a composite stationarity certificate;
-  use `step_norm` (the gradient-mapping proxy `‖xⁿ − x‖`) or
-  `DistanceToOptimal` for convergence in experiments.
-- `step_norm = ‖xⁿ − x‖`.
+- `gradient_norm = ‖G_γ(y_k)‖ = ‖(y_k − xⁿ)/γ‖` — the norm of the (prox-)gradient
+  **mapping** at the evaluation point. This is the proper composite-stationarity
+  residual: `G_γ(y) → 0` iff `0 ∈ ∇f(y) + ∂g(y)`, so `GradientTolerance` is a valid
+  stopping test even on composite problems. Computed from `y`, `xⁿ`, `γ` already in
+  hand — **no extra gradient or prox eval**. With no regularizer the prox is the
+  identity and `G_γ(y) = ∇f(y)`, recovering the smooth-case `‖∇f(y)‖` exactly.
+- `step_norm = ‖xⁿ − x‖` (for ISTA, `= γ‖G_γ(x_k)‖`; an equivalent stationarity proxy).
 
 ## 6. Restrictions
 
@@ -99,6 +102,9 @@ of the iterate) when `dim ≤ 2`, for trajectory plots.
 ## 7. Win conditions (lasso experiment)
 
 - `prox` called once per step with step `γ`; `total_objective` sums `f + g`.
-- FISTA's `f − f*` curve visibly beats ISTA's (`O(1/k²)` vs `O(1/k)`).
+- FISTA's `f − f*` curve visibly beats ISTA's (acceleration). On this well-conditioned
+  instance both converge linearly once the support is identified; the sublinear
+  `O(1/k)`-vs-`O(1/k²)` slope separation is measured on a dedicated non-strongly-convex
+  instance in `test/test_proximal_gradient.jl`.
 - At sufficiently large `λ`, recovered support ⊆ true support; off-support
   coordinates are within one soft-threshold (`|x_i| ≤ γλ`) of zero.

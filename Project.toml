@@ -4,7 +4,7 @@
 # (This is a script-style project with no [name]/[uuid], so the package
 # [extras]/[targets] test-dependency mechanism does not apply; were this packaged,
 # these two would move there.) ProximalOperators IS a runtime dep (regularizers).
-# IJulia is NOTEBOOK-ONLY — it provides the Jupyter kernel for guided_tour.ipynb;
+# IJulia is NOTEBOOK-ONLY — it provides the Jupyter kernel for walkthrough.ipynb;
 # not imported by src/ or any experiment. (Pkg rewrites this file and drops
 # comments on add/rm — restore this note if that happens.)
 

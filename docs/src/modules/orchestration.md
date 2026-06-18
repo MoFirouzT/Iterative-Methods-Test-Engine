@@ -108,6 +108,7 @@ end
     tags                 :: Dict{String,Any}           = Dict()
     debug                :: DebugConfig                = DebugConfig()
     count_oracles        :: Bool                       = false
+    persist              :: PersistPolicy              = PersistPolicy()
 end
 ```
 

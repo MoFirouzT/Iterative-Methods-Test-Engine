@@ -160,7 +160,15 @@ function step!(method::ProximalGradient, state::ProximalGradientState,
 	# ── Bookkeeping (untimed) ─────────────────────────────────────────────────
 	#    Report the smooth-part gradient at the evaluation point (no extra eval).
 	state.iterate.gradient = g
-	state.metrics.gradient_norm = norm(g)
+	#    gradient_norm is the (prox-)gradient-mapping norm ‖G_γ(y)‖ = ‖(y − xⁿ)/γ‖,
+	#    the proper composite-stationarity residual (→ 0 iff 0 ∈ ∇f + ∂g). When there
+	#    is no regularizer the prox is the identity, so xⁿ = y − γ∇f(y) and this is
+	#    exactly ‖∇f(y)‖ — a strict generalization at zero extra cost (reuses y, xⁿ, γ;
+	#    no extra grad/prox eval, so the one-prox-per-step invariant holds). This makes
+	#    GradientTolerance a valid stopping test on composite problems too.
+	state.metrics.gradient_norm = isempty(problem.gs) ?
+		norm(g) :                                          # smooth: ‖∇f(y)‖ exactly
+		norm(y .- state.iterate.x) / γ                     # composite: ‖G_γ(y)‖
 end
 
 

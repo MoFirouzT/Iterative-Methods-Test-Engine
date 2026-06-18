@@ -5,8 +5,10 @@
 # sparse-recovery lasso  min_x ½‖Ax−b‖² + λ‖x‖₁, at the textbook step γ = 1/L.
 #
 # Two-panel money figure:
-#   (left)  f − f*  vs iteration on log-y — FISTA's O(1/k²) visibly beats
-#           ISTA's O(1/k).
+#   (left)  f − f*  vs iteration on log-y — FISTA's acceleration visibly beats
+#           ISTA (both converge linearly once the support is identified; the
+#           sublinear O(1/k) vs O(1/k²) slope separation is measured in
+#           test/test_proximal_gradient.jl).
 #   (right) recovered x̂ (FISTA) vs the planted sparse signal x_star.
 #
 # Naming: `exp_<problem>.jl` (this file) is a portfolio experiment — one curated
@@ -33,8 +35,8 @@ const RUN_ID = 1
 const C_ISTA  = "#E69F00"   # orange
 const C_FISTA = "#0072B2"   # blue
 
-# Instance chosen so the O(1/k) vs O(1/k²) gap is visible before both curves
-# reach machine precision.
+# Instance chosen so FISTA's acceleration over ISTA is visible before both
+# curves reach machine precision.
 const LASSO_PARAMS = (m = 200, n = 512, k = 15, λ = 0.05)
 const K_PLOT = 200       # iterations shown / run for the comparison
 const K_REF  = 20_000    # long FISTA reference run to estimate f*
@@ -122,7 +124,7 @@ function plot_lasso(df::DataFrame, problem, results;
         xlabel = "iteration  k",
         ylabel = "f(xₖ) − f*",
         yscale = :log10,
-        title  = "Convergence: FISTA O(1/k²) vs ISTA O(1/k)",
+        title  = "Convergence: FISTA accelerates over ISTA",
         method_styles = Dict(
             "ISTA"  => MethodStyle(color = C_ISTA,  linewidth = 2.5),
             "FISTA" => MethodStyle(color = C_FISTA, linewidth = 2.5),

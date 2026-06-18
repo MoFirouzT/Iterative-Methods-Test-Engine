@@ -1,56 +1,44 @@
 # DESIGN — a five-minute tour
 
-This is the short read. For the full maintainer reference see the
-[architecture docs site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)
-(one page per module); for the one-command demo see [README.md](README.md).
+This is the short read.
+For the full maintainer reference see the [architecture docs site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine) (one page per module);
+for the one-command demo see [README.md](README.md).
 
 ## The problem it solves
 
-When you are developing an iterative optimization method, the questions that actually
-matter are comparative: *Does my variant beat the baselines? On which problems? How does
-it scale with dimension and conditioning? Is it actually faster, or just doing less
-bookkeeping?* Answering these by hand means re-plumbing a run loop, a logger, a timing
-harness, and a plotting pipeline for every experiment — and the comparisons drift apart.
+When you are developing an iterative optimization method, the questions you are facing and actually matter are comparative:
+*Does my variant beat the conventional methods?
+How does it scale with dimension, conditioning or any other variation?
+Is it actually faster, or just doing less bookkeeping?*
+Answering these by hand means re-plumbing a run loop, a logger, a timing harness, and a plotting pipeline for every experiment — and the comparisons drift apart.
 
-This engine makes the comparison the unit of work. You define a method once; the harness
-runs it (and its swept variants, and the conventional baselines) on shared problems under
-identical stopping criteria, records convergence and *core* compute time the same way for
-every method, and hands back a serializable result you can plot or reload. The guiding
-rule is **demonstrate, don't advertise**: every capability the framework claims has
-exactly one clean, working consumer you can watch run — not an exported abstraction taken
-on faith.
+This engine makes the comparison the unit of work.
+You define a method once; the harness runs it (and its swept variants, and the conventional baselines) on a shared problem under identical stopping criteria, records convergence metrics and *core* compute time the same way for every method, and hands back a serializable result you can plot or reload.
 
 ## Six design principles
 
-1. **Multiple dispatch over hierarchies.** Methods, components (step size, descent
-   direction, extrapolation, preconditioner), stopping criteria, problems, and Hessian
-   representations are all dispatch points. A new variant is a new type + a method on the
-   relevant function — never an edit to existing code.
+1. **Dispatch for extension, components for variation.**
+   Methods, stopping criteria, problems, and Hessian representations are all extension points:
+   a new one is a new type + a method on the relevant function, never an edit to existing code.
+   Variation rides on *components* specifically — the swappable pieces inside a method (step size, descent direction, extrapolation, preconditioner, ...) are what the variant-grid engine sweeps.
 
-2. **Engine / content separation.** `src/` (the `TestEngine` module) ships only
-   abstractions and machinery: the `Problem`/`Objective`/`Hessian` interfaces, the
-   `run_method` loop, stopping criteria, the variant-grid engine, logging, persistence,
-   plotting. Every *concrete* method, problem, and component is **content** under
-   `algorithms/` and `problems/` that extends the engine via `import .TestEngine`. The
-   engine never names a concrete method — so it stays small and dependency-lean.
+2. **Engine / content separation.**
+   `src/` (the `TestEngine` module) ships only abstractions and machinery:
+   the `Problem`/`Objective`/`Hessian` interfaces, the `run_method` loop, stopping criteria, the variant-grid engine, logging, persistence, plotting.
+   Every *concrete* method, problem, and component is **content** under `algorithms/` and `problems/` that extends the engine via `import .TestEngine`.
+   The engine never names a concrete method — so it stays lean.
 
-3. **Scientific measurement discipline.** A step wraps its real mathematics in
-   `@core_timed`; logging, stopping-criterion checks, and verbosity are deliberately
-   excluded from measured time. This makes "is it faster?" answerable honestly: on 2-D
-   Rosenbrock the kernel is below the timing floor, but on `n = 1000` least squares the
-   `O(mn)` matvec dominates and `core_time/wall_time` climbs to ~98% — the ratio itself is
-   a reported result, not an afterthought.
+3. **Scientific measurement discipline.**
+   A step wraps its real mathematics in `@core_timed`;
+   logging, stopping-criterion checks, and verbosity are deliberately excluded from measured time.
+   This makes "is it faster?" answerable honestly.
 
-4. **Declarative, reproducible experiments.** An experiment is a plain `ExperimentConfig`
-   value. Running it, saving it, and reloading it are independent operations, and every
-   source of randomness (data, warm-up, `x0`, stochastic steps, sub-solvers) derives from a
-   single seed by deterministic hashing.
+4. **Declarative, reproducible experiments.**
+   An experiment is a plain `ExperimentConfig` value.
+   Running it, saving it, and reloading it are independent operations, and every source of randomness (data, warm-up, `x0`, stochastic steps, sub-solvers) derives from a single seed by deterministic hashing.
 
-5. **Specification-driven.** Every problem and method ships a co-located `.md` spec that is
-   the single source of truth for the math, the implementation contract (`init_state`,
-   `step!`, `extract_log_entry`), and the win conditions its demonstrating experiment must
-   show (a symbol→code variable-mapping table is optional, used only where the mapping
-   isn't obvious from the code).
+5. **Specification-driven.**
+   Every problem and method ships a co-located `.md` spec that is the single source of truth for the math, the implementation contract (`init_state`, `step!`, `extract_log_entry`), and the win conditions its demonstrating experiment must show (a symbol→code variable-mapping table is optional, used only where the mapping isn't obvious from the code).
 
 6. **Separation of concerns across modules.** Algorithms know nothing about logging,
    loggers nothing about plotting, stopping criteria nothing about algorithms. Each module
@@ -79,8 +67,12 @@ applies the `prox` of `λ‖x‖₁` (soft-thresholding):
 ![ISTA vs FISTA](figures/lasso_ista_fista.png)
 
 *Left:* `f(xₖ) − f*` on a log axis. FISTA's curve plunges below ISTA's and stays ~3–4 orders
-of magnitude lower through the interesting regime — the textbook `O(1/k²)` vs `O(1/k)` gap,
-with FISTA's characteristic non-monotone ripple. *Right:* the recovered iterate's nonzeros
+of magnitude lower through the interesting regime — FISTA's acceleration, with its
+characteristic non-monotone ripple. (The methods' worst-case rates are `O(1/k²)` vs `O(1/k)`;
+on this well-conditioned instance both *ultimately* converge linearly once the support is
+identified, so the figure shows the acceleration, while the clean `O(1/k)`-vs-`O(1/k²)` log-log
+*slope* separation is measured on a non-strongly-convex instance in
+`test/test_proximal_gradient.jl`.) *Right:* the recovered iterate's nonzeros
 coincide with the planted ±1 support, against a flat zero baseline.
 
 **Why it's trustworthy.** The regularizer's `prox` is provided by
@@ -89,8 +81,12 @@ engine's `prox` contract, and the converged solution is cross-checked against
 [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)'s
 ForwardBackward/FastForwardBackward (`test/test_external_validation.jl`). The same harness
 also surfaced — and fixed — two latent bugs that 2-D Rosenbrock never triggered: a Cauchy
-step-size curvature guard that misfired as `‖∇f‖→0`, and a missing-import break in
-`diagonal(::MatrixHessian)`. A capability is only demonstrated by watching it run.
+step-size curvature guard that misfired as `‖∇f‖→0` (the scale-relative-guard fix is pinned
+by the regression test in [`test/test_least_squares.jl`](test/test_least_squares.jl) —
+`< 5000` iters where the old absolute guard stalled at ~240k), and a missing-import break in
+`diagonal(::MatrixHessian)` (now exercised by the Jacobi-on-`MatrixHessian` tests in
+[`test/test_preconditioned_gradient.jl`](test/test_preconditioned_gradient.jl)).
+A capability is only demonstrated by watching it run.
 
 ## Where to go next
 

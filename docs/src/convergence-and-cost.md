@@ -59,16 +59,24 @@ recovery reference, and converge on `StepTolerance` or an `f − f*` estimate in
 
 ## Reading an empirical convergence rate
 
-Rates are read off the logs as slopes, not asserted:
+Rates are read off the logs as slopes. Most are reported rather than asserted; the
+exception is the ISTA/FISTA sublinear rate, which `test/test_proximal_gradient.jl`
+fits and bounds (see below):
 
 - **Rate vs. conditioning** (the `ls2` conditioning sweep). Plot iterations-to-tolerance
   against `κ` on **log–log** axes; the slope is the exponent. Slope ≈ 1 means `O(κ)`
   (Fixed / Armijo / Cauchy on a quadratic); slope ≈ ½ means `O(√κ)` (Barzilai–Borwein) —
   the slope *difference* is the result.
-- **Rate vs. iteration** (ISTA → FISTA on the lasso). Plot `f(x_k) − f*` on a **log-y**
-  axis against `k`; a `−1` log–log slope is `O(1/k)` (ISTA), a `−2` slope is `O(1/k²)`
-  (FISTA). Because `f*` is unknown, estimate it from a long reference run (do **not** use
-  `f(x_star)`), then plot the gap.
+- **Rate vs. iteration** (ISTA vs FISTA). On a smooth, *non-strongly-convex* problem,
+  plot `f(x_k) − f*` on a **log-y** axis against `k`; a `−1` log–log slope is `O(1/k)`
+  (ISTA / plain proximal gradient), a `−2` slope is `O(1/k²)` (FISTA).
+  `test/test_proximal_gradient.jl` fits these slopes on a quadratic with a dense
+  near-zero spectrum and asserts ≈ `−1` and ≈ `−2`. The lasso flagship figure shows the
+  resulting *acceleration*, but on that well-conditioned instance both methods converge
+  **linearly** once the support is identified — its slope is steeper than `−2`, so read
+  the sublinear rates off the non-strongly-convex instance, not the lasso. Because `f*`
+  is unknown, estimate it from a long reference run (do **not** use `f(x_star)`), then
+  plot the gap.
 - **Caveat — fit the asymptotic regime.** Early iterations are pre-asymptotic; estimate
   the slope on the straight portion of the curve, after transients and before the
   floating-point floor.

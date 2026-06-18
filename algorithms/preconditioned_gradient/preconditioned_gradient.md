@@ -27,8 +27,8 @@ end
 - `step_size` — any shared `StepSize` rule applied along `d` (see the BB caveat in §5).
 
 Both fields are abstract, so any concrete `Preconditioner` / `StepSize` composes without
-touching `step!`. See [preconditioners.md](../../components/preconditioners.md) and
-[step_sizes.md](../../components/step_sizes.md).
+touching `step!`. See [preconditioners.md](../components/preconditioners.md) and
+[step_sizes.md](../components/step_sizes.md).
 
 ## 2. Iteration
 
@@ -98,8 +98,8 @@ For a separable quadratic `f(x) = ½ Σᵢ dᵢ xᵢ²` the Hessian is `diag(d)`
 `M⁻¹∇f = D⁻¹(D x) = x` and a unit step gives `x − x = 0` — the minimizer — in **one
 iteration**, independent of the condition number `κ = max d / min d`. Plain gradient
 descent on the same problem crawls at rate `1 − 1/κ`. Full derivation in
-[preconditioners.md](../../components/preconditioners.md) and
-[separable_quadratic.md](../../../problems/separable_quadratic/separable_quadratic.md).
+[preconditioners.md](../components/preconditioners.md) and
+[separable_quadratic.md](../../problems/separable_quadratic/separable_quadratic.md).
 
 ## 7. Win conditions (preconditioning experiment)
 
