@@ -27,7 +27,7 @@ The correct stationarity measure for `f + g` is the **gradient mapping**
 gradient-mapping norm — it vanishes precisely at a composite stationary point. This is why
 `ProximalGradient` reports `step_norm = ‖x⁺ − x‖` as its convergence proxy and why its
 `gradient_norm` (the smooth part `‖∇f(y)‖`, kept only because it is free) is *not* a
-stationarity certificate. See the [metric-fields note](modules/algorithm-core.md).
+stationarity certificate. See the [metric-fields note](@ref metric-fields).
 
 ## Which stopping criterion certifies convergence
 
@@ -91,7 +91,7 @@ against iterations, core time, *and* (where relevant) evaluations for exactly th
 Set `ExperimentConfig.count_oracles = true` to record cumulative `value` / `grad!` /
 Hessian-vector counts (`:n_value` / `:n_grad` / `:n_hvp`) in each log entry; the counter is
 transparent and captures nested-solver work too (see
-[oracle counting](modules/problem-interface.md)). It is opt-in so the default core-time
+[oracle counting](modules/problem-interface.md#Oracle-counting-(opt-in-instrumentation))). It is opt-in so the default core-time
 path stays unperturbed. Plot any convergence metric against `:n_grad` (or the sum) for an
 implementation-independent comparison.
 

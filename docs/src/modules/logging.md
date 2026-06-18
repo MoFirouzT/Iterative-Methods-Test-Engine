@@ -24,11 +24,11 @@ Analysis code can test `isfinite(entry.dist_to_opt)` to determine whether optima
 
 `IterationLog` mirrors the fixed fields of `MetricsGroup`, so the meaning of `gradient_norm` and `step_norm` is **method-defined**
 (e.g. `gradient_norm` is the smooth-part gradient, *not* a composite-stationarity certificate) —
-see [the metric-fields note](algorithm-core.md) for the per-method readings and the stopping
+see [the metric-fields note](@ref metric-fields) for the per-method readings and the stopping
 consequences.
 
 The `extras` dict carries algorithm-specific fields and, when nested algorithms are used, `:sub_logs` containing the full `Vector{IterationLog}` from each sub-method run.
-When `ExperimentConfig.count_oracles` is on, the runner also adds the cumulative `:n_value` / `:n_grad` / `:n_hvp` oracle counts to each entry's `extras` (see [oracle counting](problem-interface.md)).
+When `ExperimentConfig.count_oracles` is on, the runner also adds the cumulative `:n_value` / `:n_grad` / `:n_hvp` oracle counts to each entry's `extras` (see [oracle counting](problem-interface.md#Oracle-counting-(opt-in-instrumentation))).
 
 ## Logger
 

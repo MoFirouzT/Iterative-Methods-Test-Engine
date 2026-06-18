@@ -118,7 +118,7 @@ end
 
 ## Adding a new problem
 
-Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`:
+Create `problems/<name>/<name>.md` following [`problems/rosenbrock/rosenbrock.md`](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/problems/rosenbrock/rosenbrock.md):
 
 1. State the optimization problem in standard form.
 2. Derive and document $\nabla f$, and the Hessian (full matrix or H·d) **only if** the
@@ -126,9 +126,9 @@ Create `problems/<name>/<name>.md` following `problems/rosenbrock/rosenbrock.md`
 3. Provide the known minimizer `x_opt` if it exists analytically; document why it
    is `nothing` if it does not.
 4. Add a **Win-conditions** section — what a method run on this problem must
-   demonstrate (see `separable_quadratic.md` and `lasso.md`). A variable-mapping
+   demonstrate (see [`separable_quadratic.md`](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/problems/separable_quadratic/separable_quadratic.md) and [`lasso.md`](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/problems/lasso/lasso.md)). A variable-mapping
    table is **optional**: include one only where the math↔code mapping isn't
-   obvious from the annotated code (as in `rosenbrock.md`), and omit it otherwise.
+   obvious from the annotated code (as in [`rosenbrock.md`](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/problems/rosenbrock/rosenbrock.md)), and omit it otherwise.
 5. Include the `register_analytic_problem!` / `register_random_problem!` call.
 
 Then implement `problems/<name>/<name>.jl` with `value`, `grad!`, optionally `hessian`
