@@ -33,18 +33,35 @@ The full payload remains in result.jld2 and is recovered transparently by load_e
 The set of skipped keys is recorded in manifest.json under csv_skipped_extras, with a human-readable note pointing to JLD2 for the full payload.
 The classifier rule is all-or-nothing per key: a single non-scalar occurrence demotes the whole column to JLD2-only, so the CSV never contains half a column.
 Adding a new CSV-scalar type is one method:_is_csv_scalar(::DateTime) = true in persistence.jl.
+Method names are unique per run, but if two sanitize to the same filename the writer raises rather than silently overwriting one run with another.
+
+## Durability
+
+Each experiment directory is reserved atomically: `next_experiment_path` creates
+the numbered directory with `mkdir` (throws on `EEXIST`), so concurrent writers
+can't collide on the same counter. The two load-bearing artifacts — `result.jld2`
+and `manifest.json` — are written to a temp sibling and atomically renamed into
+place, so a crash mid-write never leaves a truncated binary for `load_experiment`
+or a half-written manifest for `list_experiments`. CSV sidecars are written
+directly; a truncated one is self-evident and not consulted by reload or indexing.
 
 ## API
 
 ```julia
 # Save — called automatically at the end of run_experiment.
-# `compress = true` (default) writes the JLD2 binary with on-the-fly compression.
+# `compress = false` (default) writes the JLD2 binary uncompressed; see the
+# "JLD2 compression" section below for why off is the empirical default and
+# when to override. `true` selects JLD2's built-in codec; a specific
+# `TranscodingStreams` codec value is also accepted and passed through verbatim.
+# `persist` prunes heavy per-iteration extras from the binary (see "Selective
+# saving" below); the default keeps everything.
 # `extra_manifest` merges its keys into manifest.json after the framework's own
 # fields, so an experiment can record stage-specific results (milestone iters,
 # tolerances, ...) for later `jq` access without loading the JLD2.
 save_experiment(result::ExperimentResult;
-                compress::Bool = true,
-                extra_manifest::Dict{String,Any} = Dict{String,Any}())
+                compress = false,
+                extra_manifest::Dict{String,Any} = Dict{String,Any}(),
+                persist::PersistPolicy = PersistPolicy())
 
 # Reload for analysis — one call restores everything
 result = load_experiment("logs/20260417/001/")
@@ -73,6 +90,10 @@ Every `manifest.json` carries:
   no `Inf`/`NaN`, so the manifest sanitizes them on write.
 - `csv_skipped_extras` (only present when non-empty) — keys whose values
   were non-scalar and therefore omitted from the CSV sidecar.
+- `persist_dropped_extras` / `persist_decimated` (only when a non-default
+  `PersistPolicy` was used) — which extras keys were pruned from `result.jld2`
+  and the per-key decimation factors. Makes the pruning auditable from the
+  manifest alone.
 
 Stage-specific summary data (e.g. Stage 4's iters-to-milestone and the
 distance/gradient tolerances used) is delivered via `extra_manifest` and
@@ -80,63 +101,76 @@ merged after the base fields. Stage 4 uses this to record the milestone
 threshold and per-method iters-to-milestone so cold-restart `jq` queries
 can answer "did BB1 cross 1e-6 here?" without recomputing from the CSVs.
 
+## On-disk layout — column-major
+
+In memory a `MethodResult` holds `Vector{IterationLog}`, one `Dict`-bearing
+struct per iteration. Serializing that array-of-structs directly would make JLD2
+store the dict's type machinery *per row*, which both bloats the file and gives
+the compressor nothing to chew on.
+
+Instead, `result.jld2` stores each method's iter logs **column-major** (a
+`JLD2.writeas` shim on `MethodResult`): parallel typed vectors for the fixed
+metrics (`iter`, `objective`, `gradient_norm`, …) plus one vector per `extras`
+key (`Dict{Symbol,Vector}`, with a private `_ABSENT` sentinel for iters that
+lack a key — distinct from a genuine `missing` *value*, which round-trips
+unchanged). The conversion is invisible to callers: `load_experiment`
+reconstructs the identical `Vector{IterationLog}`, so analysis code and
+`to_dataframe` are unaffected.
+
+Measured impact (single-method synthetic payloads), against the naive
+array-of-structs serialization:
+
+| payload | array-of-structs | column-major |
+| --- | --- | --- |
+| low-dim (2-D `x_iter`, 20 000 iters) | 15.5 MB | **3.7 MB** (≈4.2×) |
+| high-dim (1000-D `x_iter`, 5 000 iters) | 43.8 MB | 40.9 MB |
+
+The columnar layout wins big when the per-row dict overhead dominates (low-dim,
+many iters). It barely helps high-dim payloads, where the bytes *are* the
+`:x_iter` trajectory — that case is for **selective saving** below.
+
+## Selective saving (`PersistPolicy`)
+
+The columnar layout shrinks the per-row overhead but not the trajectory data
+itself. On high-dimensional problems `:x_iter` (a full-iterate snapshot every
+iteration) dominates the file, and it's only needed for trajectory plots.
+`save_experiment(...; persist = PersistPolicy(...))` (and the `persist` field on
+`ExperimentConfig`, threaded through `run_experiment`) prunes it from the binary:
+
+```julia
+# drop a key entirely from result.jld2
+ExperimentConfig(...; persist = PersistPolicy(drop = [:x_iter]))
+
+# or thin it: keep :x_iter on iter 0 and every 10th iteration
+ExperimentConfig(...; persist = PersistPolicy(decimate = Dict(:x_iter => 10)))
+```
+
+Scalar metric columns are **never** touched — they're always full-resolution.
+Only named extras keys are pruned, and only from `result.jld2`; CSV sidecars are
+written from the full result and carry scalar extras regardless. What was pruned
+is recorded in `manifest.json` (`persist_dropped_extras` / `persist_decimated`).
+
+Measured impact (same payloads, `drop = [:x_iter]`):
+
+| payload | keep all | drop `:x_iter` | + `compress = true` |
+| --- | --- | --- | --- |
+| low-dim, 20 000 iters | 3.7 MB | 1.15 MB | **0.58 MB** |
+| high-dim, 5 000 iters | 40.9 MB | 0.31 MB | **0.17 MB** |
+
 ## JLD2 compression
 
-`save_experiment` accepts a `compress` kwarg that is passed verbatim to
-`JLD2.save`. Default is **`compress = false`** — the choice is empirical,
-not stylistic.
+`save_experiment` accepts a `compress` kwarg passed verbatim to `JLD2.save`
+(`false` default; `true` for the built-in codec; or a specific
+`TranscodingStreams` codec like `ZstdCompressor()`).
 
-**Why default off.** Measured on a single-method 20 000-iter Rosenbrock
-iter-log payload, JLD2's built-in codec is a net loss:
+The default is off because compression only pays *after* the heavy extras are
+gone. On the columnar layout with `:x_iter` still present, the vector-of-vectors
+columns don't compress and the codec is a net loss (3.7 → 4.0 MB). Drop or
+decimate `:x_iter` first, and then `compress = true` is worth it (1.15 → 0.58 MB
+low-dim; 0.31 → 0.17 MB high-dim, per the table above).
 
-| variant | size |
-| --- | --- |
-| `compress = false` | 19.3 MB |
-| `compress = true` | 20.2 MB (**104.8%** — overhead exceeds savings) |
-
-The MethodResult payload is dominated by `extras::Dict{Symbol,Any}` per
-`IterationLog`, whose typing/dispatch overhead doesn't compress and adds
-codec block headers. The scalar numeric columns (objective, gradient norm,
-step norm, dist-to-opt, core time) are too thinly slotted across the
-Dict-per-row structure for the codec to find repeated patterns.
-
-**When to override.**
-
-- Pass `compress = true` if you're storing problem families where the
-  iter-log payload is denser numeric arrays (e.g. high-dim x_iter
-  snapshots stored directly, not via Dict extras), where compression
-  may actually pay off.
-- Pass a specific `TranscodingStreams` codec (e.g. `ZstdCompressor()`
-  from CodecZstd.jl) if you've benchmarked it against your payload and
-  it wins.
-- The kwarg exists precisely to keep that escape hatch available; the
-  default just reflects what wins on the routine path *today*.
-
-**What's NOT compressed.**
-
-CSV sidecars and `manifest.json` are plain text — they exist precisely
-to be `grep`-able / `jq`-able and compressing them would defeat that.
-
-**Loading.** `load_experiment` reads either form transparently — JLD2
-detects the codec from the file header, no matching kwarg needed. Old
-files written under either default load without change.
-
-**Future work — schema migration.** The realistic path to shrinking
-`result.jld2` is to change the on-disk layout, not the codec.
-
-- *Current (array-of-structs):* one `IterationLog` per iter, each carrying
-  its own `Dict{Symbol,Any}` extras — JLD2 stores the dict's type machinery
-  per row, which is what defeats the codec.
-- *Proposed (struct-of-arrays per method):* one column-major struct per
-  method holding `iter::Vector{Int}`, `objective::Vector{Float64}`,
-  `gradient_norm::Vector{Float64}`, … plus a single
-  `extras::Dict{Symbol,Vector{Any}}` keyed by extras name (one cell per
-  iter, `missing` where absent).
-
-Estimated payoff: **5–10×** on Rosenbrock-style payloads where the columns
-are uniformly typed and densely populated. Cost: a versioned-manifest
-persistence migration plus `to_dataframe` / `iter_logs` rewrites — deferred,
-not blocking. (Listed under planned work in
-[experiments/README.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/experiments/README.md).)
+CSV sidecars and `manifest.json` are never compressed — they exist to be
+`grep`-able / `jq`-able. `load_experiment` reads any codec transparently (JLD2
+detects it from the file header), so no matching kwarg is needed on load.
 
 ---

@@ -114,6 +114,32 @@ end
 
 
 """
+	PersistPolicy
+
+Save-time control over which per-iteration `extras` are written to
+`result.jld2`. The scalar metric columns (`objective`, `gradient_norm`,
+`step_norm`, `dist_to_opt`, `core_time_ns`) are **never** affected — they are
+always persisted at full resolution. Only named `extras` keys are pruned.
+
+- `drop::Vector{Symbol}` — keys removed from the JLD2 payload entirely. The
+  usual target is `:x_iter` (full-iterate snapshots) or `:sub_logs`, which
+  dominate the on-disk size on high-dimensional problems but are only needed
+  for trajectory plots.
+- `decimate::Dict{Symbol,Int}` — `key => k` keeps that key only on iters where
+  `iter % k == 0` (plus iter 0), dropping it elsewhere. Use this to thin a
+  trajectory without losing it entirely.
+
+The default keeps everything, so existing behaviour is unchanged. CSV sidecars
+are independent of this policy — they only ever carry scalar extras and are
+written from the full result. What was pruned is recorded in `manifest.json`.
+"""
+@kwdef struct PersistPolicy
+	drop::Vector{Symbol} = Symbol[]
+	decimate::Dict{Symbol,Int} = Dict{Symbol,Int}()
+end
+
+
+"""
 	ExperimentConfig
 
 Declarative experiment definition.
@@ -143,6 +169,10 @@ Declarative experiment definition.
 	# surface cumulative :n_value/:n_grad/:n_hvp in the logs. Off by default so the
 	# core-time measurement path is unperturbed.
 	count_oracles::Bool = false
+	# Save-time pruning of heavy per-iteration extras from result.jld2 (see
+	# PersistPolicy). Default keeps everything; set drop=[:x_iter] (or decimate)
+	# to shrink the binary on high-dimensional problems.
+	persist::PersistPolicy = PersistPolicy()
 end
 
 
@@ -233,23 +263,38 @@ end
 """
 	next_experiment_path(log_root::String) -> String
 
-Returns a date/counter path like `logs/YYYYMMDD/001`.
+Atomically reserves and returns a date/counter path like `logs/YYYYMMDD/001`.
+
+The numbered directory is created with `mkdir` (not `mkpath`), which throws on
+`EEXIST`. Two processes that compute the same next number therefore can't both
+win: the loser catches the collision, re-scans, and takes the next free slot.
+The returned path is guaranteed to exist and be owned by this caller.
 """
 function next_experiment_path(log_root::String)::String
 	date_str = Dates.format(today(), "yyyymmdd")
 	day_dir = joinpath(log_root, date_str)
 	mkpath(day_dir)
 
-	entries = readdir(day_dir)
-	nums = Int[]
-	for name in entries
-		if occursin(r"^\d{3,}$", name)
-			push!(nums, parse(Int, name))
+	while true
+		nums = Int[]
+		for name in readdir(day_dir)
+			if occursin(r"^\d{3,}$", name)
+				push!(nums, parse(Int, name))
+			end
+		end
+
+		next_num = isempty(nums) ? 1 : maximum(nums) + 1
+		candidate = joinpath(day_dir, lpad(next_num, 3, '0'))
+
+		try
+			mkdir(candidate)            # atomic reservation; throws on EEXIST
+			return candidate
+		catch err
+			# Lost the race for this number — another writer created it between
+			# our readdir and mkdir. Re-scan and retry; any other error is real.
+			(err isa Base.IOError && err.code == Base.UV_EEXIST) || rethrow()
 		end
 	end
-
-	next_num = isempty(nums) ? 1 : maximum(nums) + 1
-	joinpath(day_dir, lpad(next_num, 3, '0'))
 end
 
 
@@ -282,14 +327,6 @@ function _to_method_result(name::String, result)
 		result.n_iters,
 		hasproperty(result, :events) ? result.events : NamedTuple[],
 	)
-end
-
-
-function _save_experiment_if_available(result::ExperimentResult)
-	if @isdefined(save_experiment)
-		save_experiment(result)
-	end
-	return nothing
 end
 
 
@@ -345,6 +382,8 @@ function run_experiment(config::ExperimentConfig,
 	end
 
 	exp_result = ExperimentResult(config, exp_path, now(), gethostname(), run_results)
-	_save_experiment_if_available(exp_result)
+	# `save_experiment` lives in persistence.jl, included after this file; the
+	# global is resolved at call time, by which point the module is fully loaded.
+	save_experiment(exp_result; persist = config.persist)
 	return exp_result
 end

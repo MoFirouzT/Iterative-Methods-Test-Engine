@@ -72,7 +72,5 @@ is blocked on the noted work, not on the engine design.
   correctness beyond smooth Rosenbrock, to catch step-selection bugs.
 - **BB nonmonotone (GLL) safeguard** — the real fix for BB's clamp limitation
   (analysis in [`step_sizes.md §5.2`](../algorithms/components/step_sizes.md)).
-- **JLD2 struct-of-arrays schema migration** — ~5–10× smaller `result.jld2`
-  (analysis in [`persistence.md`](../docs/src/modules/persistence.md)).
 - **Smaller swept variants** — a `MomentumStep` (heavy-ball) figure, a lasso
   sparsity-vs-λ sweep, and an `L2Norm` ridge demo are all cheap one-offs.

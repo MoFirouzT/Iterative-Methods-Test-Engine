@@ -45,7 +45,7 @@ export SILENT, MILESTONE, SUMMARY, DETAILED, DEBUG
 export make_logger
 export elapsed_core_s, elapsed_wall_s
 
-export ExperimentConfig, MethodResult, RunResult, ExperimentResult
+export ExperimentConfig, MethodResult, RunResult, ExperimentResult, PersistPolicy
 export resolve_methods, next_experiment_path, run_experiment
 export WarmupStrategy, NoWarmup, IterativeWarmup, FunctionWarmup
 export register_warmup!, run_warmup, WARMUP_FUNCTIONS

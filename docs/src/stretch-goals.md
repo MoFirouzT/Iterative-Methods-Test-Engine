@@ -99,9 +99,6 @@ each analysed next to the code it touches:
   BB's `[α_min, α_max]` clamp, permitting BB's load-bearing excursions while catching
   genuine divergence. Full derivation and a ~30-line implementation sketch in
   [`step_sizes.md` §5.2](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/algorithms/components/step_sizes.md).
-- **JLD2 struct-of-arrays schema migration** — a column-major on-disk layout that is
-  expected to shrink `result.jld2` by ~5–10× on densely-typed payloads. Measured
-  rationale and the proposed schema in [`persistence.md`](modules/persistence.md).
 
 ## Requires moving a boundary — engine extension
 

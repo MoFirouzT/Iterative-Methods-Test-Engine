@@ -55,6 +55,110 @@ Base.convert(::Type{VariantGrid}, s::_SerializedVariantGrid) = VariantGrid(
 )
 
 
+# ── Columnar (struct-of-arrays) serialization shim for MethodResult ─────────
+# In memory a MethodResult holds `Vector{IterationLog}`, one Dict-bearing struct
+# per iteration. Serializing that directly makes JLD2 store the Dict's type
+# machinery per row, which both bloats the file and defeats the compressor
+# (measured: a 2-D 20k-iter payload is 15.5 MB and *grows* under zlib). Instead
+# `result.jld2` stores the data column-major — parallel typed vectors for the
+# fixed metrics plus one vector per extras key — which is ~4× smaller and lets
+# compression pay. The conversion is invisible to callers: `load_experiment`
+# reconstructs the identical `Vector{IterationLog}`.
+#
+# Absent extras: a key present on only some iters gets an `_Absent` sentinel in
+# the rows that lack it, so reconstruction restores exactly which entries had the
+# key — distinct from a genuine `missing` *value*, which round-trips unchanged.
+struct _Absent end
+const _ABSENT = _Absent()
+
+struct _SerializedMethodResult
+	method_name::String
+	iter::Vector{Int}
+	core_time_ns::Vector{Int64}
+	objective::Vector{Float64}
+	gradient_norm::Vector{Float64}
+	step_norm::Vector{Float64}
+	dist_to_opt::Vector{Float64}
+	extras::Dict{Symbol,Vector}        # key => per-iter column (_ABSENT where absent)
+	final_state::Any
+	stop_reason::Symbol
+	n_iters::Int
+	events::Vector{NamedTuple}
+end
+
+# Build one column per extras key. Keys present on every iter become a narrowly
+# typed vector (e.g. Vector{Float64}, Vector{Vector{Float64}}) that compresses
+# well; sparse keys fall back to a sentinel-padded Vector{Any}.
+function _columnize_extras(iter_logs::Vector{IterationLog})
+	all_keys = Set{Symbol}()
+	for e in iter_logs
+		union!(all_keys, keys(e.extras))
+	end
+	cols = Dict{Symbol,Vector}()
+	n = length(iter_logs)
+	for k in all_keys
+		if all(e -> haskey(e.extras, k), iter_logs)
+			cols[k] = identity.([e.extras[k] for e in iter_logs])   # narrows eltype
+		else
+			col = Vector{Any}(undef, n)
+			for (i, e) in enumerate(iter_logs)
+				col[i] = haskey(e.extras, k) ? e.extras[k] : _ABSENT
+			end
+			cols[k] = col
+		end
+	end
+	return cols
+end
+
+function _decolumnize_extras(cols::Dict{Symbol,Vector}, n::Int)
+	out = [Dict{Symbol,Any}() for _ in 1:n]
+	for (k, col) in cols
+		for i in 1:n
+			v = col[i]
+			v === _ABSENT && continue
+			out[i][k] = v
+		end
+	end
+	return out
+end
+
+JLD2.writeas(::Type{MethodResult}) = _SerializedMethodResult
+
+function Base.convert(::Type{_SerializedMethodResult}, m::MethodResult)
+	logs = m.iter_logs
+	_SerializedMethodResult(
+		m.method_name,
+		[e.iter         for e in logs],
+		[e.core_time_ns for e in logs],
+		[e.objective    for e in logs],
+		[e.gradient_norm for e in logs],
+		[e.step_norm    for e in logs],
+		[e.dist_to_opt  for e in logs],
+		_columnize_extras(logs),
+		m.final_state,
+		m.stop_reason,
+		m.n_iters,
+		m.events,
+	)
+end
+
+function Base.convert(::Type{MethodResult}, s::_SerializedMethodResult)
+	n = length(s.iter)
+	extras = _decolumnize_extras(s.extras, n)
+	logs = [IterationLog(
+				iter          = s.iter[i],
+				core_time_ns  = s.core_time_ns[i],
+				objective     = s.objective[i],
+				gradient_norm = s.gradient_norm[i],
+				step_norm     = s.step_norm[i],
+				dist_to_opt   = s.dist_to_opt[i],
+				extras        = extras[i],
+			) for i in 1:n]
+	return MethodResult(s.method_name, logs, s.final_state, s.stop_reason,
+	                    s.n_iters, s.events)
+end
+
+
 # ── CSV scalar predicate and classifier ────────────────────────────────────
 # A value is "CSV-friendly" if CSV.write can render it as a single cell
 # without information loss. Composite values (Vector, Tuple, Dict, sub-logs,
@@ -150,6 +254,10 @@ end
 
 function _write_csv_sidecars(result::ExperimentResult)
 	skipped = Set{Symbol}()
+	# Method names are unique per run (Dict keys), but `_sanitize_filename` can
+	# collapse two distinct names to the same on-disk file. Detect that and fail
+	# loudly rather than silently overwrite one method's run with another's.
+	written = Set{String}()
 	for run_result in result.run_results
 		for (_, method_result) in run_result.method_results
 			df, vector_keys = _methodresult_dataframe(run_result.run_id, method_result)
@@ -157,6 +265,12 @@ function _write_csv_sidecars(result::ExperimentResult)
 			csv_name = string("run", run_result.run_id, "_",
 			                   _sanitize_filename(method_result.method_name), ".csv")
 			csv_path = joinpath(result.experiment_path, csv_name)
+			if csv_path in written
+				error("CSV sidecar name collision on $(repr(csv_name)): two " *
+				      "method names sanitize to the same file. Rename a method " *
+				      "so its on-disk artifact stays distinct.")
+			end
+			push!(written, csv_path)
 			CSV.write(csv_path, df)
 		end
 	end
@@ -222,6 +336,75 @@ function _manifest_payload(result::ExperimentResult, skipped_extras::Vector{Symb
 end
 
 
+# Write via a temp sibling then atomically rename, so a crash mid-write never
+# leaves a truncated `result.jld2` (which `load_experiment` would choke on) or a
+# half-written `manifest.json` (which `list_experiments` keys off). `tempname`
+# places the temp inside the destination directory, so the rename stays on one
+# filesystem and is therefore atomic. CSV sidecars are written directly — they
+# are per-method grep artifacts, individually self-evident if truncated, and not
+# load-bearing for reload or indexing.
+function _atomic_write(f::Function, path::String)
+	# Keep the original extension: `JLD2.save` dispatches on it via FileIO, and
+	# a temp without `.jld2` raises "No applicable_savers found".
+	tmp = string(tempname(dirname(path); cleanup = false), splitext(path)[2])
+	try
+		f(tmp)
+		mv(tmp, path; force = true)
+	catch
+		isfile(tmp) && rm(tmp; force = true)
+		rethrow()
+	end
+	return nothing
+end
+
+
+# ── Save-time extras pruning (PersistPolicy) ────────────────────────────────
+# Produce a copy of `result` whose iter-log `extras` have been pruned per the
+# policy, leaving every scalar metric column untouched. Returns `result`
+# unchanged (no copy) when the policy is a no-op, so the common path is free.
+_persist_is_noop(p::PersistPolicy) = isempty(p.drop) && isempty(p.decimate)
+
+# iter 0 (the init/warm-up row) is always kept for any decimated key so the
+# trajectory still has a starting point; otherwise keep iters where iter % k == 0.
+function _prune_extras(extras::Dict{Symbol,Any}, iter::Int, policy::PersistPolicy)
+	out = Dict{Symbol,Any}()
+	for (k, v) in extras
+		k in policy.drop && continue
+		if haskey(policy.decimate, k)
+			k_keep = policy.decimate[k]
+			(iter == 0 || iter % k_keep == 0) || continue
+		end
+		out[k] = v
+	end
+	return out
+end
+
+function _apply_persist_policy(result::ExperimentResult, policy::PersistPolicy)
+	_persist_is_noop(policy) && return result
+
+	new_runs = RunResult[]
+	for rr in result.run_results
+		new_methods = Dict{String,MethodResult}()
+		for (name, m) in rr.method_results
+			new_logs = [IterationLog(
+							iter          = e.iter,
+							core_time_ns  = e.core_time_ns,
+							objective     = e.objective,
+							gradient_norm = e.gradient_norm,
+							step_norm     = e.step_norm,
+							dist_to_opt   = e.dist_to_opt,
+							extras        = _prune_extras(e.extras, e.iter, policy),
+						) for e in m.iter_logs]
+			new_methods[name] = MethodResult(m.method_name, new_logs, m.final_state,
+			                                 m.stop_reason, m.n_iters, m.events)
+		end
+		push!(new_runs, RunResult(rr.run_id, new_methods))
+	end
+	return ExperimentResult(result.config, result.experiment_path,
+	                        result.timestamp, result.host, new_runs)
+end
+
+
 # JSON has no Inf/NaN. Map non-finite reals to `nothing` (→ null) so manifests
 # stay valid for problems without a known optimum (where dist_to_opt = Inf).
 _json_safe(x::AbstractFloat)  = isfinite(x) ? x : nothing
@@ -248,35 +431,56 @@ extras were dropped.
 - `compress` — controls JLD2 compression for `result.jld2`. `false`
   (default) writes uncompressed; `true` uses JLD2's built-in codec; a
   specific `TranscodingStreams` codec value is also accepted and passed
-  through verbatim. **Default is `false`** because on the Rosenbrock
-  iter-log payload the built-in codec is a net loss (~5% overhead — the
-  Dict{Symbol,Any} extras dominate and don't compress); see
-  [docs/src/modules/persistence.md — JLD2 compression] for measurements and the
-  scenarios where opting in pays off. `load_experiment` reads either form
-  transparently — no matching kwarg required.
+  through verbatim. **Default is `false`**: with the iter logs stored
+  column-major, the remaining bulk is `:x_iter`-style
+  vector-of-vectors columns, which don't compress and where the codec is a
+  net loss. Compression only pays once those heavy extras are removed via
+  `persist` — then `compress = true` is worth it. See
+  [docs/src/modules/persistence.md — JLD2 compression] for measurements.
+  `load_experiment` reads either form transparently — no matching kwarg required.
 - `extra_manifest::Dict{String,Any}` — keys merged into `manifest.json`
   after the framework's own fields. Use this to record stage-specific
   results (e.g. iters-to-milestone, tolerances used) so cold-restart
   queries can answer questions without recomputing from CSVs. Keys in
   `extra_manifest` override the base fields if they collide — caller's
   problem if that's not intended.
+- `persist::PersistPolicy` — save-time pruning of heavy per-iteration extras
+  (e.g. `drop = [:x_iter]`) from `result.jld2`. The default keeps everything.
+  CSV sidecars are unaffected (they carry only scalar extras and are written
+  from the full result); the JLD2 binary honours the policy and the manifest
+  records what was pruned under `persist_dropped_extras` / `persist_decimated`.
 """
 function save_experiment(result::ExperimentResult;
                          compress = false,
-                         extra_manifest::Dict{String,Any} = Dict{String,Any}())
+                         extra_manifest::Dict{String,Any} = Dict{String,Any}(),
+                         persist::PersistPolicy = PersistPolicy())
 	mkpath(result.experiment_path)
 
+	# Prune heavy extras for the binary only; CSVs below use the full result.
+	to_store = _apply_persist_policy(result, persist)
+
 	jld_path = joinpath(result.experiment_path, "result.jld2")
-	JLD2.save(jld_path, Dict("result" => result); compress = compress)
+	_atomic_write(jld_path) do tmp
+		JLD2.save(tmp, Dict("result" => to_store); compress = compress)
+	end
 
 	skipped = _write_csv_sidecars(result)
 
 	manifest = _manifest_payload(result, skipped)
+	if !isempty(persist.drop)
+		manifest["persist_dropped_extras"] = sort!(string.(persist.drop))
+	end
+	if !isempty(persist.decimate)
+		manifest["persist_decimated"] =
+			Dict(string(k) => v for (k, v) in persist.decimate)
+	end
 	merge!(manifest, extra_manifest)
 
 	manifest_path = joinpath(result.experiment_path, "manifest.json")
-	open(manifest_path, "w") do io
-		JSON3.pretty(io, _json_safe(manifest))
+	_atomic_write(manifest_path) do tmp
+		open(tmp, "w") do io
+			JSON3.pretty(io, _json_safe(manifest))
+		end
 	end
 
 	return nothing
