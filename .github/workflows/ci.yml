@@ -17,12 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.10', '1']   # declared floor (compat) + latest stable 1.x
-        os: [ubuntu-latest]
-        include:
-          # Also exercise macOS on latest Julia — the primary dev platform.
-          - julia-version: '1'
-            os: macOS-latest
+        julia-version: ['1']           # latest stable 1.x (matches the compat floor)
+        os: [ubuntu-latest, macOS-latest]   # Linux (CI/most users) + the dev platform
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +33,8 @@ jobs:
       # This is a script-style project (no package name/UUID), so tests run via
       # `test/runtests.jl` rather than Pkg.test(). Manifest.toml is committed, so
       # instantiate installs the exact pinned versions — CI is reproducible and
-      # matches `scripts/reproduce.jl`.
+      # matches `reproduce.jl`. (A Manifest is Julia-version-specific, so CI tracks
+      # a single Julia version, matching the compat floor in Project.toml.)
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
