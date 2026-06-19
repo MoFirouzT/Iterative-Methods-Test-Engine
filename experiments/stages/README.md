@@ -10,20 +10,20 @@ stages on a single 2D Rosenbrock problem (ρ = 100, x₀ = (−1.2, 1) unless no
 each stage validating one architectural block before the next depends on it. This
 directory is that build log; it is **development scaffold, not a portfolio result**.
 
-The curated, problem-named experiments that produce the portfolio figures live one
-level up (`experiments/exp_<problem>.jl`) and are the project's headline
+The curated, topic-named experiments that produce the portfolio figures live one
+level up (`experiments/exp_<topic>.jl`) and are the project's headline
 deliverables. These stages are the rehearsal behind them.
 
 > The build-up is intentional. Stages 0–4 hand-roll the per-method RNG derivation
 > and run loop, rehearsing the orchestrator's contract before depending on it.
 > Stage 5 is the orchestrator's debut; Stages 6–8 build on it. After Stage 7,
 > every block that *can* be validated on Rosenbrock has been; the rest require
-> other problem types (see the [planned-work list](../README.md#planned--not-yet-built)).
+> other problem types (see [where the design extends next](../README.md#where-the-design-extends-next)).
 
 ## The stages
 
 | # | Stage | File | What it validates |
-|---|-------|------|-------------------|
+| --- | ------- | ------ | ------------------- |
 | 0 | Smoke test | [`smoke_test.jl`](smoke_test.jl) | Runner contract end-to-end; objective monotone + decreasing (asserted — runs in CI) |
 | 1 | Convergence panels | [`stage1.jl`](stage1.jl) | Five GD variants on Rosenbrock; 2×2 panel of f, ‖∇f‖, ‖x−x*‖, αₖ |
 | 2 | Trajectories | [`stage2.jl`](stage2.jl) | `extras` → DataFrame plumbing (`:x_iter`); the contour-map trajectory recipe (figure above) |
@@ -36,5 +36,5 @@ deliverables. These stages are the rehearsal behind them.
 
 Each stage file's header comment carries the full `Exercises:` / `Validates:`
 breakdown — kept next to the code it checks so it can't drift from this table.
-Blocks that Rosenbrock structurally can't reach are listed under
-[planned work](../README.md#planned--not-yet-built).
+Blocks that Rosenbrock structurally can't reach are noted under
+[where the design extends next](../README.md#where-the-design-extends-next).

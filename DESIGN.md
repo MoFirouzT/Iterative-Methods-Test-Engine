@@ -1,7 +1,9 @@
-# DESIGN — a five-minute tour
+# DESIGN — why it's built this way
 
-This is the short read.
-For the full maintainer reference see the [architecture docs site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine) (one page per module);
+This is the design rationale: the problem the engine solves, the principles it rests on,
+and one annotated flagship experiment that shows them at work.
+To *use* the tool hands-on, start with the [walkthrough notebook](walkthrough.ipynb);
+for the full maintainer reference see the [architecture docs site](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine) (one page per module);
 for the one-command demo see [README.md](README.md).
 
 ## The problem it solves
@@ -77,23 +79,16 @@ iterate's nonzeros coincide with the planted ±1 support, against a flat zero ba
 What the figure shows is the *acceleration ordering*, not the asymptotic rates: on this
 benign, well-conditioned instance all three ultimately converge linearly once the support
 is identified (and a larger heavy-ball `α` would match or beat FISTA — it is optimal for
-nice problems). The clean `O(1/k)`-vs-`O(1/k²)` slope separation is measured separately, on
-a dedicated non-strongly-convex instance — see
+nice problems). The clean `O(1/k)`-vs-`O(1/k²)` slope separation is measured separately, on a dedicated non-strongly-convex instance — see
 [Reading an empirical convergence rate](docs/src/convergence-and-cost.md#reading-an-empirical-convergence-rate)
 and `test/test_proximal_gradient.jl`.
 
-**Why it's trustworthy.** The regularizer's `prox` is provided by
-[ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) behind the
-engine's `prox` contract, and the converged solution is cross-checked against
-[ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)'s
-ForwardBackward/FastForwardBackward (`test/test_external_validation.jl`). The same harness
-also surfaced — and fixed — two latent bugs that 2-D Rosenbrock never triggered: a Cauchy
-step-size curvature guard that misfired as `‖∇f‖→0` (the scale-relative-guard fix is pinned
-by the regression test in [`test/test_least_squares.jl`](test/test_least_squares.jl) —
-`< 5000` iters where the old absolute guard stalled at ~240k), and a missing-import break in
-`diagonal(::MatrixHessian)` (now exercised by the Jacobi-on-`MatrixHessian` tests in
-[`test/test_preconditioned_gradient.jl`](test/test_preconditioned_gradient.jl)).
-A capability is only demonstrated by watching it run.
+**Why it's trustworthy.** The converged solution is cross-checked against an independent
+implementation ([ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)),
+and running real problems through the harness surfaced and fixed two latent bugs that 2-D
+Rosenbrock never triggered. The full validation story — external cross-checks and the two
+regression-pinned bugs — is in
+[External validation & trustworthiness](docs/src/convergence-and-cost.md#external-validation--trustworthiness).
 
 ## Where to go next
 

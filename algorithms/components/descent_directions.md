@@ -95,7 +95,7 @@ end
 > `compute_direction` is called inside `step!`, the caller has already computed
 > and stored the gradient in `state.iterate.gradient`. Reading it directly avoids
 > a redundant evaluation.
-
+>
 > No variable-mapping table: $d_k^{SD} = -\nabla f(x_k) = $
 > `-state.iterate.gradient` (stored in `state.numerics.direction`) is direct enough
 > that the code is its own mapping.

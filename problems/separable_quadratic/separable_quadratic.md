@@ -1,6 +1,8 @@
 # `:separable_quadratic` — diagonal quadratic
 
-    f(x) = ½ Σᵢ dᵢ xᵢ²,   dᵢ > 0
+```text
+f(x) = ½ Σᵢ dᵢ xᵢ²,   dᵢ > 0
+```
 
 The smallest interesting problem with a non-trivial, *diagonal* Hessian. Its
 purpose is to exercise `DiagonalHessian` and give the Jacobi preconditioner a

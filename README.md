@@ -18,9 +18,10 @@ way for every one. It is a method-comparison harness — not a unit-test framewo
 
 ## See how it works
 
-[**walkthrough.ipynb**](walkthrough.ipynb) is a complete, runnable walkthrough of *using* the framework:
+**Start here to use it.** [**walkthrough.ipynb**](walkthrough.ipynb) is a complete, runnable walkthrough of *using* the framework:
 define and register your own problem (ridge regression), author a custom method (heavy-ball), set up an experiment with a variant grid and baseline/experimental roles, run it, persist & reload, and plot the comparison —
 the best place to start if you want to see the tool driven end to end.
+For *why* it's built this way — the design rationale and the annotated flagship — read [**DESIGN.md**](DESIGN.md).
 
 ## Design philosophy
 
@@ -39,7 +40,7 @@ The engine rests on six principles; these four do most of the visible work
 - **Declarative, reproducible experiments**:
   an experiment is a serializable `ExperimentConfig`; all randomness derives from a single seed.
 
-See **[DESIGN.md](DESIGN.md)** for a five-minute tour, or the **[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)** (one page per module) for the full details.
+See **[DESIGN.md](DESIGN.md)** for the design rationale, or the **[architecture reference](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)** (one page per module) for the full details.
 
 ## Portfolio experiments
 
@@ -62,7 +63,7 @@ The engine was built and validated capability-by-capability across nine stages o
 Rosenbrock — first a convergence figure, then trajectories, persistence, stopping
 criteria, the orchestrator, multi-run aggregation, observability, and cross-cutting
 validation. That staged build log — with its own trajectory figures — lives in
-**[experiments/stages](experiments/stages/)**.
+**[experiments/stages/README.md](experiments/stages/README.md)**.
 
 ## Tests & validation
 

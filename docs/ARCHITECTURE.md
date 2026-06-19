@@ -60,11 +60,11 @@ The engine architecture reference is a **Documenter site** (one page per concern
 
 ## Experiments & build log
 
-- [Experiments overview](../experiments/README.md) — the portfolio demonstrators + planned work
+- [Experiments overview](../experiments/README.md) — the portfolio demonstrators + extension notes
 - [Development stages](../experiments/stages/README.md) — the staged Rosenbrock build log
 
 ## Project-level
 
 - [README](../README.md) — one-command demo, layout, how to run
-- [DESIGN](../DESIGN.md) — the five-minute tour
-- [Copilot agent instructions](../.github/copilot-instructions.md)
+- [DESIGN](../DESIGN.md) — the design rationale (why it's built this way)
+- [walkthrough.ipynb](../walkthrough.ipynb) — runnable end-to-end tour of *using* the framework

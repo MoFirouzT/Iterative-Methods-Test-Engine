@@ -1,9 +1,16 @@
 # experiments/_shared.jl
 #
-# Shared plotting recipes consumed by experiment stages.
+# Shared helpers consumed by both the portfolio experiments (exp_*.jl) and the
+# development stages (stages/stageN.jl).
 # Not a runnable experiment — leading underscore signals "helper".
 #
-# Currently exposes:
+# Exposes:
+#   • PLOT_ORDER, COLORS — the method draw-order and Wong palette shared across
+#       the GD step-size comparisons (ls1/ls2/tr and Stages 1–4).
+#   • build_standard_methods() — the five-rule GD baseline tuned for Rosenbrock
+#       (Stages 1–4).
+#   • build_ls_methods(L) — the same five rules tuned for a least-squares
+#       quadratic (the ls1/ls2/tr portfolio experiments).
 #   • plot_trajectories(df, problem; outpath, plot_order, colors, ...)
 #       The canonical Rosenbrock-2D trajectory figure: heatmap shading of
 #       log₁₀(f), gray contour lines, per-method trajectories with cadence
@@ -25,9 +32,9 @@ using DataFrames
 using CairoMakie
 
 # ---------------------------------------------------------------------------
-# Shared constants — used by Stages 1–4 (Stages 5+ use the long
-# "GradientDescent[step_size=Armijo]" form via the VariantGrid orchestrator,
-# so they keep their own naming).
+# Shared constants — used by the ls1/ls2/tr portfolio experiments and Stages
+# 1–4 (Stages 5+ use the long "GradientDescent[step_size=Armijo]" form via the
+# VariantGrid orchestrator, so they keep their own naming).
 # ---------------------------------------------------------------------------
 
 const PLOT_ORDER = ["Fixed", "Armijo", "Cauchy", "BB1", "BB2"]

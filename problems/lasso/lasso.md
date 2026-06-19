@@ -2,7 +2,9 @@
 
 The flagship composite problem for `ProximalGradient` (ISTA / FISTA):
 
-    min_x  ½‖A x − b‖²  +  λ‖x‖₁
+```text
+min_x  ½‖A x − b‖²  +  λ‖x‖₁
+```
 
 It reuses existing content — `LeastSquares` (data fidelity) and `L1Norm` (the
 regularizer) — so this file only **registers a random generator**; it defines

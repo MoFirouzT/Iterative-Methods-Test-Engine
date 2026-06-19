@@ -2,7 +2,9 @@
 
 A first-order method whose descent direction is **preconditioned**:
 
-    x_{k+1} = x_k + α_k · d_k,    d_k = −M⁻¹ ∇f(x_k)
+```text
+x_{k+1} = x_k + α_k · d_k,    d_k = −M⁻¹ ∇f(x_k)
+```
 
 It crosses a **preconditioner** axis (`M⁻¹`) with a **step-size** axis (`α_k` along `d_k`),
 and is the framework's showcase of the *signature workflow*: define **one** experimental

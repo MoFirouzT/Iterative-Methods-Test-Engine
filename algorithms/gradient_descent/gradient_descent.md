@@ -1,6 +1,7 @@
 # Gradient Descent
 
 > **Related specs** (read these first):
+>
 > - `problems/rosenbrock/rosenbrock.md` — problem interface, `Objective`, `grad!`, `hessian`
 > - `algorithms/components/descent_directions.md` — `DescentDirection` abstraction
 > - `algorithms/components/step_sizes.md` — `StepSize` / `LineSearch` abstractions
@@ -105,6 +106,7 @@ end
 ```
 
 > **Field ownership.**
+>
 > - `direction` — written by `step!` via `compute_direction`; read by
 >   `compute_step_size`.
 > - `α_k` — written by `step!` immediately after `compute_step_size` returns;

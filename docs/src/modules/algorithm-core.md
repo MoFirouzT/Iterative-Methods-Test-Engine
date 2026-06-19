@@ -58,7 +58,7 @@ The two also have different lifecycles:
 the runner **resets** `timing` to zero before every `step!`, whereas metrics are overwritten in place.
 (`IterationLog` likewise keeps `core_time_ns` distinct from its metric fields.)
 
-#### [What the metric fields mean — and which certify stationarity](@id metric-fields)
+### [What the metric fields mean — and which certify stationarity](@id metric-fields)
 
 > `objective` is the *total* objective `f(x_k) + Σ gᵢ(x_k)`.
 > The other three are **method-defined**:

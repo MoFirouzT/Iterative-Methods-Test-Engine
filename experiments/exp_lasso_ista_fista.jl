@@ -13,9 +13,10 @@
 #           is measured in test/test_proximal_gradient.jl).
 #   (right) recovered x̂ (FISTA) vs the planted sparse signal x_star.
 #
-# Naming: `exp_<problem>.jl` (this file) is a portfolio experiment — one curated
-# figure per capability. The GD-on-Rosenbrock build log under experiments/stages/
-# is the capability-by-capability validation behind these (see stages/README.md).
+# Naming: `exp_<topic>.jl` (this file) is a portfolio experiment — one curated
+# figure per capability, named after its headline topic. The GD-on-Rosenbrock
+# build log under experiments/stages/ is the capability-by-capability validation
+# behind these (see stages/README.md).
 #
 # To run, from project root:
 #     julia --project=. experiments/exp_lasso_ista_fista.jl

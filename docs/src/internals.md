@@ -1,4 +1,5 @@
 # Repository Internals
+
 ## Directory & File Structure
 
 The **engine** (`src/`) contains only abstractions, machinery, and dependency-free
@@ -7,7 +8,7 @@ utilities — no concrete problem, method, or regularizer. Concrete **content** 
 assembled together with the engine by `experiments/_bootstrap.jl` (which experiments and
 tests `include`). This keeps the engine standalone and dependency-lean.
 
-```
+```text
 TestEngine.jl/
 ├── src/
 │   ├── TestEngine.jl     # Module entry; includes the src/ engine files only (NO content);
@@ -86,9 +87,9 @@ TestEngine.jl/
 │   └── regularizers/             # regularizers.jl   — L1/L2/Zero, prox via ProximalOperators.jl
 │
 ├── experiments/                  # load engine + content via _bootstrap.jl
-│   ├── README.md                # folder guide: portfolio track, stages, planned work
+│   ├── README.md                # folder guide: portfolio track, stages, extension notes
 │   ├── _bootstrap.jl             # assembles engine (TestEngine) + all content, in order
-│   ├── _shared.jl                # shared plotting helpers (Rosenbrock trajectory figure)
+│   ├── _shared.jl                # shared method builders, palette + plotting (trajectory figure)
 │   ├── exp_lasso_ista_fista.jl            # portfolio experiment: lasso (flagship)
 │   ├── exp_ls1_dimension.jl               #   ls1: dimension scaling + timing pillar
 │   ├── exp_ls2_conditioning.jl            #   ls2: GD rate vs κ (slope 1 vs √κ)
@@ -102,7 +103,7 @@ TestEngine.jl/
 │
 ├── reproduce.jl                  # one command → regenerates every portfolio figure into figures/
 ├── walkthrough.ipynb             # end-to-end how-to: define a problem + method → experiment → run → analyze
-├── figures/                      # portfolio figures (committed PNGs; written by reproduce.jl)
+├── figures/                      # portfolio figures (committed PNGs; written by reproduce.jl + walkthrough_ridge.png from the notebook)
 │
 ├── logs/                         # Git-ignored; written at runtime
 │   └── <date>/<NNN>/             #   manifest.json, result.jld2, run{N}_{method}.csv
@@ -124,16 +125,16 @@ TestEngine.jl/
 
 ## Data Flow Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  DEFINITION PHASE                                                       │
 │                                                                         │
-│  problems.jl        Objective / Hessian / Regularizer / Problem        │
+│  problems.jl        Objective / Hessian / Regularizer / Problem         │
 │       │             AnalyticProblem / FileProblem / RandomProblem       │
 │       │                                                                 │
-│  variants.jl        VariantAxis(:step_size, FixedStep=>"Fix", ...)     │
+│  variants.jl        VariantAxis(:step_size, FixedStep=>"Fix", ...)      │
 │       │                   │                                             │
-│       └──────────► VariantGrid → expand() → [VariantSpec, ...]         │
+│       └──────────► VariantGrid → expand() → [VariantSpec, ...]          │
 │                                     │                                   │
 │  stopping.jl        StoppingCriterion (per-experiment or per-method)    │
 │                                     │                                   │
@@ -147,14 +148,14 @@ TestEngine.jl/
 │                                                                         │
 │         run_experiment(config, log_root)                                │
 │                  │                                                      │
-│         next_experiment_path()  →  logs/YYYYMMDD/NNN/ (atomic mkdir)   │
-│         resolve_methods()       →  routes by role metadata             │
-│                                     (baseline / experimental)          │
+│         next_experiment_path()  →  logs/YYYYMMDD/NNN/ (atomic mkdir)    │
+│         resolve_methods()       →  routes by role metadata              │
+│                                     (baseline / experimental)           │
 │                  │                                                      │
 │   ┌──── WARM-UP (once per run, if configured) ──────────────────────┐   │
 │   │  rng_warmup = Xoshiro(hash((seed, run_id, :warmup)))            │   │
 │   │  x0_warm   = run_warmup(config.warmup, problem, rng_warmup, …)  │   │
-│   │  problem   = Problem(…, x0=x0_warm, …)   ← shared by all       │   │
+│   │  problem   = Problem(…, x0=x0_warm, …)   ← shared by all        │   │
 │   └─────────────────────────────────────────────────────────────────┘   │
 │                  │                                                      │
 │        for each run × method:                                           │
@@ -191,15 +192,15 @@ TestEngine.jl/
 │                                                                         │
 │   save_experiment()                                                     │
 │       ├── result.jld2              (full binary, fast reload)           │
-│       ├── run{N}_{method}.csv      (per-method, human-readable,        │
-│       │                            includes dist_to_opt column)        │
-│       └── manifest.json           (name, metadata, no binary needed)   │
+│       ├── run{N}_{method}.csv      (per-method, human-readable,         │
+│       │                            includes dist_to_opt column)         │
+│       └── manifest.json           (name, metadata, no binary needed)    │
 └─────────────────────────────────────┬───────────────────────────────────┘
                                       │
 ┌─────────────────────────────────────▼───────────────────────────────────┐
 │  ANALYSIS PHASE                                                         │
 │                                                                         │
-│   load_experiment()  ──►  to_dataframe()  (incl. :dist_to_opt col)     │
+│   load_experiment()  ──►  to_dataframe()  (incl. :dist_to_opt col)      │
 │                                │                                        │
 │                      filter_methods() / aggregate_runs()                │
 │                                │                                        │
@@ -208,7 +209,7 @@ TestEngine.jl/
 │                       METHOD_COLOR_REGISTRY + MethodStyle               │
 │                       PlotSpec / FigureLayout                           │
 │                                │                                        │
-│                      render_figure()  ──►  save_figure(.pdf / .png)    │
+│                      render_figure()  ──►  save_figure(.pdf / .png)     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -249,6 +250,3 @@ TestEngine.jl/
 | `FigureLayout` as `Matrix{Union{PlotSpec,Nothing}}` | Any grid formation expressible as a Julia matrix literal; blank cells are `nothing`; arbitrary sizes |
 | Transforms as `DataFrame -> DataFrame` | No DSL to learn; composable with DataFramesMeta; independently unit-testable |
 | CSV sidecar holds scalar extras only; vector / composite extras are JLD2-only | CSV is for grep-able tabular data; vectors and composites have no stable text encoding. JLD2 captures everything; the manifest records which keys were dropped so the omission is auditable without loading the binary. |
-
----
-

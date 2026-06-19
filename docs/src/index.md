@@ -8,8 +8,10 @@ measures *core* compute time, not bookkeeping.
 This is the **architecture reference** (the contributor / maintainer view). If you only
 want to run it, start with the
 [README](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine#readme) for the
-one-command demo, or the
-[five-minute tour](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md).
+one-command demo or the
+[walkthrough notebook](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/walkthrough.ipynb)
+to drive it end to end; for *why* it's built this way, read the
+[design rationale](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md).
 
 ![One ProximalGradient on the lasso with its extrapolation component swept — ISTA, heavy-ball, FISTA — and exact support recovery](https://raw.githubusercontent.com/MoFirouzT/Iterative-Methods-Test-Engine/main/figures/lasso_ista_fista.png)
 
@@ -17,7 +19,9 @@ one-command demo, or the
 
 The engine solves finite-dimensional optimization problems in **composite form**:
 
-    min_x  f(x) + Σᵢ gᵢ(x),    x ∈ ℝⁿ
+```text
+min_x  f(x) + Σᵢ gᵢ(x),    x ∈ ℝⁿ
+```
 
 `f` is the smooth **objective** — its gradient is always available, its Hessian available
 to methods that use curvature — and each `gᵢ` is a **simple regularizer** reached through

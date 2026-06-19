@@ -2,7 +2,9 @@
 
 A composite-objective method for problems
 
-    min_x  f(x) + g(x)
+```text
+min_x  f(x) + g(x)
+```
 
 with `f` smooth (gradient available) and `g` "simple" (proximal operator
 available). Exercises the composite branch of the framework: `prox` dispatch,
@@ -33,7 +35,7 @@ Each `step!`, in order:
 2. **Gradient of the smooth part at `y`.** `g = ∇f(y)` (one gradient eval/step).
 3. **Step size.** `γ = compute_step_size(step_size, …)`. The supported rule is
    `FixedStep(α = 1/L)` with `L` the Lipschitz constant of `∇f` (the lasso
-   generator stores `L = ‖A‖² ` in `meta[:L]`). Backtracking line search here
+   generator stores `L = ‖A‖²` in `meta[:L]`). Backtracking line search here
    would need a *proximal* sufficient-decrease test — not implemented; future
    work.
 4. **Proximal step.** `xⁿ = prox(g_reg, y − γ·∇f(y), γ)` (identity if no

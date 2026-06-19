@@ -20,7 +20,9 @@ Two notions are tracked, and they are not interchangeable:
 
 The correct stationarity measure for `f + g` is the **gradient mapping**
 
-    G_γ(x) = ( x − prox_{γg}( x − γ∇f(x) ) ) / γ
+```text
+G_γ(x) = ( x − prox_{γg}( x − γ∇f(x) ) ) / γ
+```
 
 `x` is stationary for `f + g` iff `G_γ(x) = 0`. A proximal-gradient step is exactly
 `x⁺ = x − γ·G_γ(x)`, so the step displacement `‖x⁺ − x‖ = γ·‖G_γ(x)‖` is a scaled
@@ -109,3 +111,29 @@ implementation-independent comparison.
 ratio is itself a result. Two confounds matter when interpreting it — garbage-collection /
 allocation inside a timed block, and first-call JIT compilation — both detailed under
 **Caveats** in [Algorithm, Core Timing & the Runner](modules/algorithm-core.md).
+
+## External validation & trustworthiness
+
+A measured rate or timing is only worth as much as the correctness of the iterate it was
+measured on, so converged solutions are cross-checked against independent implementations
+rather than trusted on their own.
+
+For the flagship lasso, the regularizer's `prox` is provided by
+[ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) behind the
+engine's `prox` contract, and the converged solution is cross-checked against
+[ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)'s
+ForwardBackward / FastForwardBackward in `test/test_external_validation.jl`. Smooth solvers
+are likewise checked against `A\b` and [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl)
+(GradientDescent / LBFGS) in the same file.
+
+Running real problems through the harness — rather than only the 2-D Rosenbrock used to build
+it — surfaced and fixed two latent bugs that the toy problem never triggered:
+
+- A Cauchy step-size curvature guard that misfired as `‖∇f‖→0`. The scale-relative-guard fix
+  is pinned by a regression test in `test/test_least_squares.jl` — `< 5000` iters where the
+  old absolute guard stalled at ~240k.
+- A missing-import break in `diagonal(::MatrixHessian)`, now exercised by the
+  Jacobi-on-`MatrixHessian` tests in `test/test_preconditioned_gradient.jl`.
+
+Both are the design principle *claims are demonstrated, not asserted* doing its job: a
+capability is only real once you can watch it run.

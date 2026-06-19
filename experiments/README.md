@@ -2,8 +2,9 @@
 
 Runnable scripts that drive the engine end-to-end. Two tracks live here:
 
-- **Portfolio experiments** (`exp_<problem>.jl`) — the curated demonstrators,
-  named after their problem (the two least-squares experiments are `ls1`/`ls2`).
+- **Portfolio experiments** (`exp_<topic>.jl`) — the curated demonstrators, named
+  after their headline topic: sometimes the problem (`ls1`/`ls2` least-squares),
+  sometimes the method or capability (`precond`, `tr_steihaug_cg`, `lasso_ista_fista`).
   They produce the five figures in [`figures/`](../figures/), catalogued with what
   each one demonstrates below. One clean experiment per capability — the headline
   deliverables.
@@ -15,7 +16,8 @@ Runnable scripts that drive the engine end-to-end. Two tracks live here:
   [stages/README.md](stages/README.md).
 
 `_bootstrap.jl` loads the engine + all content in dependency order; `_shared.jl`
-holds shared plotting recipes. Both are includes, not runnable scripts.
+holds the shared method builders, palette, and plotting recipes used across the
+GD step-size comparisons. Both are includes, not runnable scripts.
 
 ## Portfolio experiments
 
@@ -55,22 +57,15 @@ and [`ProximalAlgorithms.jl`](https://github.com/JuliaFirstOrder/ProximalAlgorit
 <img src="../figures/tr_steihaug_cg.png" width="560" alt="TrustRegion with a Steihaug-CG inner solve: nested optimization with inner-vs-outer core time"><br>
 *`tr_steihaug_cg` — nested optimization: `TrustRegion` with a Steihaug-CG inner solve.*
 
-## Planned — not yet built
+## Where the design extends next
 
-Deliberate scope boundary, listed so the extension points don't get lost. Each
-is blocked on the noted work, not on the engine design.
+These figures cover the deterministic method families end-to-end. The one method
+*category* they don't exercise is the **stochastic `step!` / rng path** — an
+SGD-flavored method on a mini-batched problem (logistic regression), with
+seed-variance bands over per-`(seed, run_id)` sampling. The hooks for it already
+exist in the engine; it's the natural next demonstrator.
 
-- **SGD / logistic regression** — exercises the stochastic `step!` rng path
-  *functionally* (per-`(seed, run_id)` row sampling, seed-variance IQR bands).
-  Needs an SGD-flavored method + a logistic problem with mini-batches.
-- **Constrained / projection problems** — an indicator-function regularizer
-  (`prox` = projection) + a projected-gradient method on a box-constrained
-  quadratic; a different `prox` shape from the lasso.
-- **File-loaded problem** — exercise `FileProblem` / `register_file_loader!` in
-  the live experiment path (unit-tested in `test/test_module9.jl`, no experiment).
-- **`numerical_gradient` on an anisotropic problem** — central-difference
-  correctness beyond smooth Rosenbrock, to catch step-selection bugs.
-- **BB nonmonotone (GLL) safeguard** — the real fix for BB's clamp limitation
-  (analysis in [`step_sizes.md §5.2`](../algorithms/components/step_sizes.md)).
-- **Smaller swept variants** — a `MomentumStep` (heavy-ball) figure, a lasso
-  sparsity-vs-λ sweep, and an `L2Norm` ridge demo are all cheap one-offs.
+Adding any new method, problem, or component is the same one-type-plus-one-method
+extension shown in [walkthrough.ipynb](../walkthrough.ipynb) and
+[extending.md](../docs/src/extending.md) — that's the design working as intended,
+not a backlog.

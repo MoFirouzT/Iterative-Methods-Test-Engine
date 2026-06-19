@@ -2,7 +2,9 @@
 
 A `Preconditioner` supplies `M⁻¹` for the preconditioned gradient direction
 
-    d = −M⁻¹ ∇f(x)
+```text
+d = −M⁻¹ ∇f(x)
+```
 
 It is one axis of `PreconditionedGradient` (the experimental method), crossed
 with a step-size axis. The engine grid machinery is preconditioner-agnostic.

@@ -9,9 +9,11 @@ floor; an `n = 1000` matvec does not).
 
 ## Objective
 
-    f(x) = ½‖A x − b‖²,   A ∈ ℝ^{m×n}
-    ∇f(x)  = Aᵀ(A x − b)
-    ∇²f    = AᵀA          (constant)
+```text
+f(x) = ½‖A x − b‖²,   A ∈ ℝ^{m×n}
+∇f(x)  = Aᵀ(A x − b)
+∇²f    = AᵀA          (constant)
+```
 
 ```julia
 mutable struct LeastSquaresKernel
@@ -58,6 +60,7 @@ without any method change.
 ## Families
 
 ### `:quadratic` (analytic)
+
 A small explicit quadratic `½‖A x − b‖²` from caller-supplied `A`, `b`, `x0`
 (defaults to 2×2 identity). Used by the early stage tests.
 

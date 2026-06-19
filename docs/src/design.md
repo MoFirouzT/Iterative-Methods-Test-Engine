@@ -1,7 +1,7 @@
 # Design Philosophy
 
 **Audience.** This document is the contributor / maintainer reference.
-If you only want to use the framework, start with the [README](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine#readme) and the [five-minute tour](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md), then the co-located method and problem design notes (e.g. `gradient_descent.md`).
+If you only want to use the framework, start with the [README](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine#readme) and the [walkthrough notebook](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/walkthrough.ipynb); for the design rationale read [DESIGN.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/DESIGN.md), then the co-located method and problem design notes (e.g. `gradient_descent.md`).
 
 **Terminology.** The framework is organized into a number of cohesive *modules*.
 Earlier drafts used the word "layer," but the structure is hub-and-spoke (the
@@ -69,4 +69,3 @@ both depend on the same base types, and the nested infrastructure (`run_sub_meth
 calls the `init_state` / `step!` defined alongside it.
 
 ---
-

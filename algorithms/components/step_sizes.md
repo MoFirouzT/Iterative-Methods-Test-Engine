@@ -365,7 +365,7 @@ genuinely diverging ones are caught. *Sketch:* give `GradientDescentNumerics` a
 `compute_step_size` for BB peek at it and the candidate `α`, and backtrack
 inside the rule when the condition fails — or wrap BB in a higher-order
 `NonmonotoneSafeguard(BarzilaiBorwein(...))` rule. Either is ~30 lines; not yet
-implemented (see [experiments/README.md](../../experiments/README.md) planned work).
+implemented.
 
 ### 5.3 Julia Struct
 

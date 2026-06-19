@@ -163,7 +163,7 @@ change, touching engine core types rather than adding to them.
 Distinct from the architectural stretch goals above is the backlog of demonstrator
 *experiments* — SGD / logistic regression, constrained / projection problems, a live
 `FileProblem` path, and smaller swept-variant figures — tracked in
-[experiments/README.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/experiments/README.md#planned--not-yet-built).
+[experiments/README.md](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/blob/main/experiments/README.md#where-the-design-extends-next).
 These are blocked on new content (and, where noted above, on the matching engine
 extension — e.g. the stochastic oracle behind an SGD demonstrator), not on a gap in the
 engine's design.
