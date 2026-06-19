@@ -1,5 +1,5 @@
 """
-	Module 9 — Problem Factory
+	Problem Factory
 
 Defines the problem abstraction: data fidelity (loss), regularizers, and the
 `Problem` composite. Provides a `ProblemSpec` type hierarchy for declarative,
@@ -289,16 +289,23 @@ diagonal(H::CountingHessian)    = diagonal(H.inner)
 
 A composite optimization problem: minimize f(x) + g₁(x) + g₂(x) + …
 
+Parametrized on the objective type `F` so `f` is stored concretely: this makes
+`value(p.f, x)` / `grad!(g, p.f, x)` statically dispatched on the timed hot path,
+which both speeds up and de-noises the `@core_timed` measurements (an abstract
+`f::Objective` field would force a dynamic dispatch — and box — on every call).
+The `Problem` UnionAll still matches any instance, so `problem::Problem` method
+signatures and `make_problem`'s return type are unaffected.
+
 # Fields
-- `f::Objective` — the objective (loss) term
+- `f::F` — the objective (loss) term, `F<:Objective`
 - `gs::Vector{Regularizer}` — vector of regularizers (may be empty)
 - `x0::Vector{Float64}` — initial point
 - `n::Int` — problem dimension
 - `meta::Dict{Symbol,Any}` — optional metadata (condition number, sparsity, etc.)
 - `x_opt::Union{Nothing,Vector{Float64}}` — known optimal point (nothing if unavailable)
 """
-struct Problem
-	f::Objective
+struct Problem{F<:Objective}
+	f::F
 	gs::Vector{Regularizer}
 	x0::Vector{Float64}
 	n::Int

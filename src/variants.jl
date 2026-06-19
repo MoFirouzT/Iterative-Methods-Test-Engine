@@ -1,5 +1,5 @@
 """
-	Module 2 — Variant Grid Engine
+	Variant Grid Engine
 
 Defines the shared component vocabulary for experimental methods and provides
 Cartesian expansion plus deterministic auto-naming for variant grids.

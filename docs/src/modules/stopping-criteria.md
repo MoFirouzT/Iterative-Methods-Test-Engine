@@ -94,13 +94,21 @@ function should_stop(c::DistanceToOptimal, state, iter, logger)
     state.metrics.dist_to_opt <= c.tol ? (true, :optimal_reached) : (false, :none)
 end
 
+# Short-circuits without materializing a per-criterion result vector — this is
+# the default `stopping_criteria` and runs every iteration, so it stays allocation-free.
 function should_stop(c::CompositeCriterion, state, iter, logger)
-    results = [should_stop(sub, state, iter, logger) for sub in c.criteria]
     if c.mode == :any
-        idx = findfirst(r -> r[1], results)
-        isnothing(idx) ? (false, :none) : results[idx]
-    else  # :all
-        all(r -> r[1], results) ? (true, :all_criteria_met) : (false, :none)
+        for sub in c.criteria
+            stop, reason = should_stop(sub, state, iter, logger)
+            stop && return (true, reason)
+        end
+        return (false, :none)
+    else  # :all — an empty criteria list is never "all met"
+        isempty(c.criteria) && return (false, :none)
+        for sub in c.criteria
+            should_stop(sub, state, iter, logger)[1] || return (false, :none)
+        end
+        return (true, :all_criteria_met)
     end
 end
 ```

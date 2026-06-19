@@ -1,5 +1,5 @@
 """
-	Module 8 — Persistence & Experiment Naming
+	Persistence & Experiment Naming
 
 Writes and restores experiment outputs in three formats:
 - Full binary: result.jld2  (everything; all Julia types preserved)
@@ -200,7 +200,7 @@ function _classify_extras(iter_logs::Vector{IterationLog})
 end
 
 
-function _iterlog_row(run_id::Int, method_name::String, entry::IterationLog,
+function _csv_row(run_id::Int, method_name::String, entry::IterationLog,
                        scalar_keys::Vector{Symbol})
 	row = Dict{Symbol,Any}(
 		:run_id => run_id,
@@ -231,7 +231,7 @@ manifest. Column order is stable: fixed fields first, scalar extras after.
 function _methodresult_dataframe(run_id::Int, method_result::MethodResult)
 	iter_logs = method_result.iter_logs
 	scalar_keys, vector_keys = _classify_extras(iter_logs)
-	rows = [_iterlog_row(run_id, method_result.method_name, entry, scalar_keys)
+	rows = [_csv_row(run_id, method_result.method_name, entry, scalar_keys)
 	        for entry in iter_logs]
 
 	if isempty(rows)

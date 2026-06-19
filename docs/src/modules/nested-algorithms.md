@@ -60,7 +60,8 @@ function run_sub_method(config       :: SubRunConfig{M},
     # Derive a child RNG — deterministic, independent of outer rng's future draws
     sub_rng    = Xoshiro(rand(outer_rng, UInt64))
     sub_state  = init_state(config.method, problem, sub_rng)
-    sub_logger = make_sub_logger(config.verbosity)
+    sub_logger = make_logger(string(typeof(config.method)), outer_logger.run_id,
+                             outer_logger.exp_path, config.verbosity)
     iter       = 0
 
     while true

@@ -1,5 +1,5 @@
 """
-	Module 1 — Algorithm Abstraction & Core Timing
+	Algorithm Abstraction & Core Timing
 
 Defines the core method hierarchy, canonical state parameter groups, required
 dispatch points, `@core_timed`, and the generic `run_method` loop.
@@ -150,7 +150,7 @@ end
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Nested Algorithm Infrastructure (Module 4)
+# Nested Algorithm Infrastructure
 # ─────────────────────────────────────────────────────────────────────────
 
 """
@@ -193,27 +193,6 @@ end
 
 
 """
-	make_sub_logger(method, outer_logger, verbosity) -> Logger
-
-Constructs an in-memory logger for nested runs.
-"""
-function make_sub_logger(method::IterativeMethod, outer_logger::Logger, verbosity::VerbosityConfig)
-	Logger(
-		string(typeof(method)),
-		outer_logger.run_id,
-		outer_logger.exp_path,
-		verbosity,
-		IterationLog[],
-		NamedTuple[],
-		Dict{Symbol,Any}(),
-		0.0,
-		0,
-		IterationLog[],
-	)
-end
-
-
-"""
 	run_sub_method(config, problem, outer_logger) -> SubResult
 
 Runs a nested method with its own state and logger. If configured, sub-iteration
@@ -224,7 +203,8 @@ function run_sub_method(config::SubRunConfig{M}, problem, outer_logger::Logger, 
 	sub_rng = Xoshiro(rand(outer_rng, UInt64))
 	sub_state = init_state(config.method, problem, sub_rng)
 
-	sub_logger = make_sub_logger(config.method, outer_logger, config.verbosity)
+	sub_logger = make_logger(string(typeof(config.method)), outer_logger.run_id,
+	                         outer_logger.exp_path, config.verbosity)
 	log_init!(sub_logger, config.method, sub_state)
 
 	iter = 0

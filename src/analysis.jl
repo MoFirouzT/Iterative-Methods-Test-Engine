@@ -62,7 +62,7 @@ const _ANALYSIS_BASE_COLUMNS = [:run_id, :method_name, :iter, :objective, :gradi
 								:step_norm, :dist_to_opt, :core_time_ns]
 
 
-function _iterlog_row(run_id::Int, method_name::String, entry::IterationLog)
+function _dataframe_row(run_id::Int, method_name::String, entry::IterationLog)
 	row = Dict{Symbol,Any}(
 		:run_id => run_id,
 		:method_name => method_name,
@@ -104,6 +104,24 @@ function _ordered_row_keys(rows::Vector{Dict{Symbol,Any}})
 end
 
 
+# Materialize ordered, eltype-narrowed columns from row Dicts. Building each
+# column as Vector{Any} and then `identity.`-narrowing collapses it to the
+# tightest concrete eltype (e.g. Vector{Float64}, or Union{Missing,Float64}
+# where a key is absent on some rows) — so the resulting DataFrame is
+# type-stable for downstream plotting/filtering. Passing ordered Pairs (not a
+# Dict) also preserves `ordered_keys` as the column order.
+function _build_dataframe(rows::Vector{Dict{Symbol,Any}}, ordered_keys::Vector{Symbol})
+	pairs = map(ordered_keys) do key
+		col = Vector{Any}(undef, length(rows))
+		for (index, row) in enumerate(rows)
+			col[index] = get(row, key, missing)
+		end
+		key => identity.(col)
+	end
+	return DataFrame(pairs)
+end
+
+
 function to_dataframe(result::ExperimentResult)::DataFrame
 	rows = Dict{Symbol,Any}[]
 
@@ -111,97 +129,80 @@ function to_dataframe(result::ExperimentResult)::DataFrame
 		for method_name in sort(collect(keys(run_result.method_results)))
 			method_result = run_result.method_results[method_name]
 			for entry in method_result.iter_logs
-				push!(rows, _iterlog_row(run_result.run_id, method_name, entry))
+				push!(rows, _dataframe_row(run_result.run_id, method_name, entry))
 			end
 		end
 	end
 
 	isempty(rows) && return DataFrame()
 
-	ordered_keys = _ordered_row_keys(rows)
-	columns = Dict(key => Vector{Any}(undef, length(rows)) for key in ordered_keys)
-
-	for (index, row) in enumerate(rows)
-		for key in ordered_keys
-			columns[key][index] = get(row, key, missing)
-		end
-	end
-
-	return DataFrame(columns)
+	return _build_dataframe(rows, _ordered_row_keys(rows))
 end
 
 
 function filter_methods(df::DataFrame, methods::Vector{String})::DataFrame
-    :method_name in propertynames(df) || return copy(df)
-    mask = in.(df[!, :method_name], Ref(methods))
-    return df[mask, :]
+	:method_name in propertynames(df) || return copy(df)
+	mask = in.(df[!, :method_name], Ref(methods))
+	return df[mask, :]
 end
 
 
 function _aggregate_column(values::AbstractVector, mode::Symbol)
-    filtered = collect(skipmissing(values))
-    isempty(filtered) && return missing
+	filtered = collect(skipmissing(values))
+	isempty(filtered) && return missing
 
-    if mode == :mean
-        return mean(filtered)
-    elseif mode == :median
-        return median(filtered)
-    else
-        throw(ArgumentError("unsupported aggregation mode $(mode)"))
-    end
+	if mode == :mean
+		return mean(filtered)
+	elseif mode == :median
+		return median(filtered)
+	else
+		throw(ArgumentError("unsupported aggregation mode $(mode)"))
+	end
 end
 
 
 function aggregate_runs(df::DataFrame, mode::Symbol)::DataFrame
-    mode == :all && return copy(df)
-    mode in (:mean, :median) || throw(ArgumentError("aggregate_runs mode must be :all, :mean, or :median"))
-    isempty(df) && return copy(df)
+	mode == :all && return copy(df)
+	mode in (:mean, :median) || throw(ArgumentError("aggregate_runs mode must be :all, :mean, or :median"))
+	isempty(df) && return copy(df)
 
-    column_names = collect(propertynames(df))
+	column_names = collect(propertynames(df))
 
-    group_keys = Symbol[]
-    for key in (:method_name, :iter)
-        key in column_names && push!(group_keys, key)
-    end
+	group_keys = Symbol[]
+	for key in (:method_name, :iter)
+		key in column_names && push!(group_keys, key)
+	end
 
-    grouped = isempty(group_keys) ? [df] : groupby(df, group_keys; sort = true)
-    out_rows = Dict{Symbol,Any}[]
+	grouped = isempty(group_keys) ? [df] : groupby(df, group_keys; sort = true)
+	out_rows = Dict{Symbol,Any}[]
 
-    for subdf in grouped
-        row = Dict{Symbol,Any}()
+	for subdf in grouped
+		row = Dict{Symbol,Any}()
 
-        for key in group_keys
-            row[key] = subdf[1, key]
-        end
+		for key in group_keys
+			row[key] = subdf[1, key]
+		end
 
-        for name in column_names
-            name in group_keys && continue
-            name == :run_id && continue
+		for name in column_names
+			name in group_keys && continue
+			name == :run_id && continue
 
-            column = subdf[!, name]
-            if all(v -> v === missing || v isa Number, column)
-                row[name] = _aggregate_column(column, mode)
-            elseif all(ismissing, column)
-                row[name] = missing
-            else
-                row[name] = first(skipmissing(column))
-            end
-        end
+			column = subdf[!, name]
+			if all(v -> v === missing || v isa Number, column)
+				row[name] = _aggregate_column(column, mode)
+			elseif all(ismissing, column)
+				row[name] = missing
+			else
+				row[name] = first(skipmissing(column))
+			end
+		end
 
-        push!(out_rows, row)
-    end
+		push!(out_rows, row)
+	end
 
-    isempty(out_rows) && return DataFrame()
+	isempty(out_rows) && return DataFrame()
 
-    ordered_keys = _ordered_row_keys(out_rows)
-    columns = Dict(key => Vector{Any}(undef, length(out_rows)) for key in ordered_keys)
-    for (index, row) in enumerate(out_rows)
-        for key in ordered_keys
-            columns[key][index] = get(row, key, missing)
-        end
-    end
-
-    return DataFrame(columns)
+	return _build_dataframe(out_rows, _ordered_row_keys(out_rows))
 end
 
 
@@ -306,49 +307,49 @@ end
 
 
 function _style_for_group(spec::PlotSpec, group_name::AbstractString)
-    if haskey(spec.method_styles, group_name)
-        return spec.method_styles[group_name]
-    end
+	if haskey(spec.method_styles, group_name)
+		return spec.method_styles[group_name]
+	end
 
-    return MethodStyle(color = get_method_color(group_name))
+	return MethodStyle(color = get_method_color(group_name))
 end
 
 
 function _render_lines!(ax, spec::PlotSpec)
-    if isempty(spec.data) || !(spec.group_by in propertynames(spec.data))
-        return nothing
-    end
+	if isempty(spec.data) || !(spec.group_by in propertynames(spec.data))
+		return nothing
+	end
 
-    grouped = groupby(spec.data, spec.group_by; sort = true)
-    for subdf in grouped
-        group_value = subdf[1, spec.group_by]
-        group_name = string(group_value)
-        style = _style_for_group(spec, group_name)
-        sorted = sort(subdf, spec.x)
+	grouped = groupby(spec.data, spec.group_by; sort = true)
+	for subdf in grouped
+		group_value = subdf[1, spec.group_by]
+		group_name = string(group_value)
+		style = _style_for_group(spec, group_name)
+		sorted = sort(subdf, spec.x)
 
-        line_kwargs = merge(Dict{Symbol,Any}(
-            :color => style.color,
-            :linestyle => style.linestyle,
-            :linewidth => style.linewidth,
-            :label => isnothing(style.label) ? group_name : style.label,
-        ), spec.extra_kwargs)
+		line_kwargs = merge(Dict{Symbol,Any}(
+			:color => style.color,
+			:linestyle => style.linestyle,
+			:linewidth => style.linewidth,
+			:label => isnothing(style.label) ? group_name : style.label,
+		), spec.extra_kwargs)
 
-        lines!(ax, sorted[!, spec.x], sorted[!, spec.y]; line_kwargs...)
+		lines!(ax, sorted[!, spec.x], sorted[!, spec.y]; line_kwargs...)
 
-        if !isnothing(style.marker)
-            scatter_kwargs = merge(Dict{Symbol,Any}(
-                :color => style.color,
-                :marker => style.marker,
-            ), spec.extra_kwargs)
-            scatter!(ax, sorted[!, spec.x], sorted[!, spec.y]; scatter_kwargs...)
-        end
-    end
+		if !isnothing(style.marker)
+			scatter_kwargs = merge(Dict{Symbol,Any}(
+				:color => style.color,
+				:marker => style.marker,
+			), spec.extra_kwargs)
+			scatter!(ax, sorted[!, spec.x], sorted[!, spec.y]; scatter_kwargs...)
+		end
+	end
 
-    if spec.legend
-        axislegend(ax)
-    end
+	if spec.legend
+		axislegend(ax)
+	end
 
-    return nothing
+	return nothing
 end
 
 

@@ -1,5 +1,5 @@
 """
-	Module 5 — Experiment Orchestration
+	Experiment Orchestration
 
 Defines experiment configuration and typed results, resolves methods from direct
 lists + variant grids, and provides the multi-run `run_experiment` driver.
@@ -87,7 +87,7 @@ function run_warmup(::NoWarmup, problem, ::AbstractRNG)
 end
 
 function run_warmup(w::IterativeWarmup, problem, rng::AbstractRNG)
-	warmup_logger = _make_logger("__warmup__", 0, "", w.verbosity)
+	warmup_logger = make_logger("__warmup__", 0, "", w.verbosity)
 	result = run_method(w.method, problem, w.criteria, warmup_logger, rng)
 	return copy(result.final_state.iterate.x)
 end
@@ -298,22 +298,6 @@ function next_experiment_path(log_root::String)::String
 end
 
 
-function _make_logger(method_name::String, run_id::Int, exp_path::String, verbosity)
-	Logger(
-		method_name,
-		run_id,
-		exp_path,
-		verbosity,
-		IterationLog[],
-		NamedTuple[],
-		Dict{Symbol,Any}(),
-		0.0,
-		0,
-		IterationLog[],
-	)
-end
-
-
 function _to_method_result(name::String, result)
 	if result isa MethodResult
 		return result
@@ -368,7 +352,7 @@ function run_experiment(config::ExperimentConfig,
 		method_results = Dict{String,MethodResult}()
 		for (name, method) in all_methods
 			criteria = get(config.method_criteria, name, config.stopping_criteria)
-			logger = _make_logger(name, run_id, exp_path, verbosity)
+			logger = make_logger(name, run_id, exp_path, verbosity)
 			method_rng = Xoshiro(hash((root_seed, run_id, name)))
 			# Opt-in oracle counting: wrap per method so each gets a fresh tally
 			# (after warm-up, so warm-up evaluations are excluded from the measured run).

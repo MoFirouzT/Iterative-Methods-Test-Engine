@@ -14,8 +14,11 @@ floor; an `n = 1000` matvec does not).
     ∇²f    = AᵀA          (constant)
 
 ```julia
-struct LeastSquaresKernel; A::Matrix{Float64}; b::Vector{Float64}; residual::Vector{Float64}; end
-LeastSquaresKernel(A, b) = LeastSquaresKernel(A, b, similar(b))   # all call sites use this 2-arg form
+mutable struct LeastSquaresKernel
+    A::Matrix{Float64}; b::Vector{Float64}; residual::Vector{Float64}
+    AtA::Union{Nothing,Matrix{Float64}}     # memoized AᵀA for :matrix-mode Hessian (lazy)
+end
+LeastSquaresKernel(A, b) = LeastSquaresKernel(A, b, similar(b), nothing)  # all call sites use this 2-arg form
 struct LeastSquares <: Objective; kernel::LeastSquaresKernel; hessian_mode::Symbol; end
 LeastSquares(kernel) = LeastSquares(kernel, :matrix)   # default preserves prior behavior
 ```
@@ -28,8 +31,13 @@ method — so on `n = 1000` the change drops `GradientDescent` from ~10 length-`
 temporaries/step to ~2 (the residual buffer is single-threaded scratch; the
 engine runs methods sequentially). Per-step allocation is `O(n)` bytes while the
 dense matvec is `O(n²)` FLOPs, so the allocation share vanishes at the scale
-where the timing pillar speaks. The `:operator` Hessian's `apply` (used by
-`CauchyStep`) still allocates its matvec intermediates by the `Hessian` contract.
+where the timing pillar speaks.
+
+The Hessian path is cached too, since `∇²f = AᵀA` is constant: `:matrix` mode
+memoizes `AᵀA` in the kernel and forms the `n×n` product at most once (lazily, on
+the first `hessian` call) instead of on every call; `:operator` mode's `apply`
+reuses a preallocated length-`m` scratch for `A d` via `mul!`, leaving only the
+fresh result `n`-vector that the `Hessian` contract requires callers to receive.
 
 ### Selectable Hessian representation (`hessian_mode`)
 

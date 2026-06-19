@@ -23,17 +23,23 @@ through `mul!` instead of allocating `A*x` and `A*x − b` each call. It is a
 single-threaded scratch: every call fully overwrites it from `x` before reading,
 so sequential reuse (the engine runs methods sequentially) is safe; do not share
 one kernel across threads.
+
+`AtA` memoizes `AᵀA` for the `:matrix`-mode Hessian: `A` is fixed, so the n×n
+product is constant and formed at most once (lazily, on the first matrix-mode
+`hessian` call) instead of on every call. It stays `nothing` in `:operator`
+mode, which never materializes it. This is why the kernel is `mutable`.
 """
-struct LeastSquaresKernel
+mutable struct LeastSquaresKernel
 	A::Matrix{Float64}
 	b::Vector{Float64}
 	residual::Vector{Float64}
+	AtA::Union{Nothing,Matrix{Float64}}
 end
 
 # Convenience constructor: allocate the scratch buffer once. All call sites use
-# this 2-arg form; the 3-arg inner constructor is for completeness.
+# this 2-arg form; the 4-arg inner constructor is for completeness.
 LeastSquaresKernel(A::Matrix{Float64}, b::Vector{Float64}) =
-	LeastSquaresKernel(A, b, similar(b))
+	LeastSquaresKernel(A, b, similar(b), nothing)
 
 
 """
@@ -79,12 +85,17 @@ end
 
 
 function hessian(f::LeastSquares, x::Vector{Float64})::Hessian
-	A = f.kernel.A
+	k = f.kernel
+	A = k.A
 	if f.hessian_mode === :operator
-		n = size(A, 2)
-		return OperatorHessian(d -> A' * (A * d), n)     # AᵀA d, never materialized
+		n  = size(A, 2)
+		Ad = similar(k.b)                          # m-vector scratch, reused across applies of THIS Hessian
+		# AᵀA d, never materialized; mul! into Ad avoids the A*d temporary each apply.
+		# The result is a fresh n-vector (callers use it immediately, never aliased).
+		return OperatorHessian(d -> A' * mul!(Ad, A, d), n)
 	elseif f.hessian_mode === :matrix
-		return MatrixHessian(A' * A)
+		k.AtA === nothing && (k.AtA = A' * A)      # constant; form at most once
+		return MatrixHessian(k.AtA)
 	else
 		throw(ArgumentError("LeastSquares hessian_mode must be :matrix or :operator, got :$(f.hessian_mode)"))
 	end

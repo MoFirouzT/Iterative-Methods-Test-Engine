@@ -91,9 +91,13 @@ function step!(method::PreconditionedGradient, state::PreconditionedGradientStat
                problem::Problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
 	# ── Core: preconditioned descent direction at x_k ─────────────────────────
+	#    Write into the preallocated direction buffer (sized lazily) rather than
+	#    allocating a fresh `-M⁻¹g` each step.
 	@core_timed state begin
 		Minvg = precondition(method.preconditioner, state.iterate.gradient, problem, state.iterate.x)
-		state.numerics.direction = -Minvg
+		d = state.numerics.direction
+		length(d) == length(Minvg) || (d = state.numerics.direction = similar(Minvg))
+		d .= .-Minvg
 	end
 
 	# ── Step-size selection (BB reads the secant pair below; don't reorder) ───

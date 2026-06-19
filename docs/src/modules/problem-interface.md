@@ -9,8 +9,8 @@ scope and assumptions, see [Mathematical model & scope](../index.md).)
 ## Problem
 
 ```julia
-struct Problem
-    f     :: Objective
+struct Problem{F<:Objective}
+    f     :: F                                # objective, stored concretely (see below)
     gs    :: Vector{Regularizer}              # may be empty
     x0    :: Vector{Float64}                  # initial point
     n     :: Int                              # problem dimension
@@ -21,6 +21,14 @@ end
 
 This is the canonical, complete representation.
 Everything else should be an outer constructor that forwards into this shape.
+
+`Problem` is parametrized on the objective type `F` so `f` is stored concretely:
+this keeps `value(p.f, x)` / `grad!(g, p.f, x)` statically dispatched on the
+[`@core_timed`](algorithm-core.md) hot path (an abstract `f::Objective` field
+would force a dynamic dispatch — and a heap box — on every objective/gradient
+call, inflating and adding noise to the timing measurements). The `Problem`
+UnionAll still matches every instance, so `problem::Problem` method signatures and
+`make_problem`'s return type are unaffected.
 
 Convenience constructors keep simple problems simple:
 
