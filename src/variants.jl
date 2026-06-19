@@ -1,5 +1,5 @@
 """
-	Variant Grid Engine
+    Variant Grid Engine
 
 Defines the shared component vocabulary for experimental methods and provides
 Cartesian expansion plus deterministic auto-naming for variant grids.
@@ -22,30 +22,30 @@ using Base: @kwdef
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	VariantAxis
+    VariantAxis
 
 One named dimension of a variant grid.
 """
 struct VariantAxis
-	param::Symbol
-	values::Vector{Any}
-	labels::Vector{String}
+    param::Symbol
+    values::Vector{Any}
+    labels::Vector{String}
 end
 
 """
-	VariantAxis(param::Symbol, labeled_values::Pair...)
+    VariantAxis(param::Symbol, labeled_values::Pair...)
 
 Convenience constructor using `value => "label"` pairs.
 """
 function VariantAxis(param::Symbol, labeled_values::Pair...)
-	values = Any[first(pair) for pair in labeled_values]
-	labels = String[last(pair) for pair in labeled_values]
-	length(values) == length(labels) || throw(ArgumentError("values and labels must have the same length"))
-	VariantAxis(param, values, labels)
+    values = Any[first(pair) for pair in labeled_values]
+    labels = String[last(pair) for pair in labeled_values]
+    length(values) == length(labels) || throw(ArgumentError("values and labels must have the same length"))
+    VariantAxis(param, values, labels)
 end
 
 """
-	VariantGrid
+    VariantGrid
 
 Declarative description of a family of method variants.
 
@@ -56,16 +56,16 @@ bucket named by `role`. Defaults to `:experimental` (the typical variant-driven
 exploration); a grid of reference baselines should set `role = :baseline`.
 """
 @kwdef struct VariantGrid
-	base_name::String
-	axes::Vector{VariantAxis}
-	builder::Function
-	filters::Vector{Function} = Function[]
-	shared_params::NamedTuple = (;)
-	role::Symbol = :experimental
+    base_name::String
+    axes::Vector{VariantAxis}
+    builder::Function
+    filters::Vector{Function} = Function[]
+    shared_params::NamedTuple = (;)
+    role::Symbol = :experimental
 end
 
 """
-	VariantSpec
+    VariantSpec
 
 Concrete expanded variant ready to run.
 
@@ -75,10 +75,10 @@ declared on the producing `VariantGrid` via its `role`, and `resolve_methods`
 routes every spec from a grid into that grid's bucket.
 """
 struct VariantSpec
-	name::String
-	short_name::String
-	params::NamedTuple
-	method::IterativeMethod
+    name::String
+    short_name::String
+    params::NamedTuple
+    method::IterativeMethod
 end
 
 
@@ -91,7 +91,7 @@ end
 # (e.g. algorithms/components/extrapolation.jl, step_sizes.jl), keeping the engine
 # free of any concrete method/component vocabulary.
 const ABBREVIATIONS = Dict{String,String}(
-	"None" => "∅",
+    "None" => "∅",
 )
 
 abbreviate(value) = get(ABBREVIATIONS, string(value), string(value))
@@ -130,69 +130,69 @@ _short_name(base_name::AbstractString, pieces::Vector{String}) = isempty(pieces)
 # ─────────────────────────────────────────────────────────────────────────
 
 function _axis_choices(axis::VariantAxis)
-	length(axis.values) == length(axis.labels) || throw(ArgumentError("axis $(axis.param) has mismatched values and labels"))
-	collect(zip(axis.values, axis.labels))
+    length(axis.values) == length(axis.labels) || throw(ArgumentError("axis $(axis.param) has mismatched values and labels"))
+    collect(zip(axis.values, axis.labels))
 end
 
 function _combo_namedtuple(params::Vector{Pair{Symbol,Any}})
-	isempty(params) && return (;)
-	(; params...)
+    isempty(params) && return (;)
+    (; params...)
 end
 
 function _merge_namedtuples(axis_params::Vector{Pair{Symbol,Any}}, shared_params::NamedTuple)
-	merged_params = copy(axis_params)
-	for (key, value) in pairs(shared_params)
-		push!(merged_params, key => value)
-	end
-	_combo_namedtuple(merged_params)
+    merged_params = copy(axis_params)
+    for (key, value) in pairs(shared_params)
+        push!(merged_params, key => value)
+    end
+    _combo_namedtuple(merged_params)
 end
 
 function expand(grid::VariantGrid)::Vector{VariantSpec}
-	axis_choices = [_axis_choices(axis) for axis in grid.axes]
-	products = isempty(axis_choices) ? ((),) : Iterators.product(axis_choices...)
+    axis_choices = [_axis_choices(axis) for axis in grid.axes]
+    products = isempty(axis_choices) ? ((),) : Iterators.product(axis_choices...)
 
-	specs = VariantSpec[]
-	for selection in products
-		axis_params = Pair{Symbol,Any}[]
-		full_pieces = String[]
-		short_pieces = String[]
+    specs = VariantSpec[]
+    for selection in products
+        axis_params = Pair{Symbol,Any}[]
+        full_pieces = String[]
+        short_pieces = String[]
 
-		for (axis, choice) in zip(grid.axes, selection)
-			value, label = choice
-			push!(axis_params, axis.param => value)
-			push!(full_pieces, _format_full_piece(axis.param, label))
-			push!(short_pieces, _format_short_piece(label))
-		end
+        for (axis, choice) in zip(grid.axes, selection)
+            value, label = choice
+            push!(axis_params, axis.param => value)
+            push!(full_pieces, _format_full_piece(axis.param, label))
+            push!(short_pieces, _format_short_piece(label))
+        end
 
-		combo = _combo_namedtuple(axis_params)
+        combo = _combo_namedtuple(axis_params)
 
-		if !isempty(grid.shared_params)
-			for key in intersect(collect(keys(grid.shared_params)), collect(keys(combo)))
-				throw(ArgumentError("shared parameter $(key) conflicts with grid axis $(key)"))
-			end
-		end
+        if !isempty(grid.shared_params)
+            for key in intersect(collect(keys(grid.shared_params)), collect(keys(combo)))
+                throw(ArgumentError("shared parameter $(key) conflicts with grid axis $(key)"))
+            end
+        end
 
-		merged = _merge_namedtuples(axis_params, grid.shared_params)
+        merged = _merge_namedtuples(axis_params, grid.shared_params)
 
-		if !isempty(grid.shared_params)
-			for (key, value) in pairs(grid.shared_params)
-				shared_label = string(key, "=", value)
-				push!(full_pieces, shared_label)
-			end
-		end
+        if !isempty(grid.shared_params)
+            for (key, value) in pairs(grid.shared_params)
+                shared_label = string(key, "=", value)
+                push!(full_pieces, shared_label)
+            end
+        end
 
-		if any(filter -> !filter(merged), grid.filters)
-			continue
-		end
+        if any(filter -> !filter(merged), grid.filters)
+            continue
+        end
 
-		method = grid.builder(; merged...)
-		push!(specs, VariantSpec(
-			_full_name(grid.base_name, full_pieces),
-			_short_name(grid.base_name, short_pieces),
-			merged,
-			method,
-		))
-	end
+        method = grid.builder(; merged...)
+        push!(specs, VariantSpec(
+            _full_name(grid.base_name, full_pieces),
+            _short_name(grid.base_name, short_pieces),
+            merged,
+            method,
+        ))
+    end
 
-	specs
+    specs
 end

@@ -6,7 +6,7 @@ for the one-command demo see [README.md](README.md).
 
 ## The problem it solves
 
-When you are developing an iterative optimization method, the questions you are facing and actually matter are comparative:
+When you are developing an iterative optimization method, the questions that actually matter are comparative:
 *Does my variant beat the conventional methods?
 How does it scale with dimension, conditioning or any other variation?
 Is it actually faster, or just doing less bookkeeping?*
@@ -70,16 +70,17 @@ applies the `prox` of `λ‖x‖₁` (soft-thresholding). The figure holds the `
 ![One ProximalGradient on the lasso with its extrapolation component swept: ISTA, heavy-ball, FISTA, plus support recovery](figures/lasso_ista_fista.png)
 
 *Left:* `f(xₖ) − f*` on a log axis. The single swept component orders the convergence —
-**ISTA > heavy-ball > FISTA** — with FISTA's curve plunging lowest through the interesting
-regime, showing its characteristic non-monotone ripple, while heavy-ball's fixed momentum
-sits as a clean monotone middle tier. (The heavy-ball `α` is tuned to *stay* between the two
-through the readable regime; pushed larger it matches or beats FISTA on this benign instance,
-since heavy-ball is optimal for nice problems. The worst-case rates are `O(1/k²)` vs `O(1/k)`;
-on this well-conditioned instance all *ultimately* converge linearly once the support is
-identified, so the figure shows the acceleration ordering, while the clean
-`O(1/k)`-vs-`O(1/k²)` log-log *slope* separation is measured on a non-strongly-convex instance
-in `test/test_proximal_gradient.jl`.) *Right:* the recovered iterate's nonzeros coincide with
-the planted ±1 support, against a flat zero baseline.
+**ISTA > heavy-ball > FISTA** — FISTA plunging lowest with its characteristic non-monotone
+ripple, heavy-ball's fixed momentum a clean monotone middle tier. *Right:* the recovered
+iterate's nonzeros coincide with the planted ±1 support, against a flat zero baseline.
+
+What the figure shows is the *acceleration ordering*, not the asymptotic rates: on this
+benign, well-conditioned instance all three ultimately converge linearly once the support
+is identified (and a larger heavy-ball `α` would match or beat FISTA — it is optimal for
+nice problems). The clean `O(1/k)`-vs-`O(1/k²)` slope separation is measured separately, on
+a dedicated non-strongly-convex instance — see
+[Reading an empirical convergence rate](docs/src/convergence-and-cost.md#reading-an-empirical-convergence-rate)
+and `test/test_proximal_gradient.jl`.
 
 **Why it's trustworthy.** The regularizer's `prox` is provided by
 [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) behind the

@@ -19,7 +19,7 @@ TestEngine.jl/
 │   │                     #   Regularizer; Problem (with optional gs and x_opt) +
 │   │                     #   convenience constructors; total_objective; ProblemSpec
 │   │                     #   hierarchy (AnalyticProblem, FileProblem with FILE_LOADERS,
-│   │                     #   RandomProblem); make_problem dispatch; register_problem!,
+│   │                     #   RandomProblem); make_problem dispatch; register_analytic_problem!,
 │   │                     #   register_file_loader!, register_random_problem!
 │   │
 │   ├── core.jl           # Abstract types & type hierarchy; state groups

@@ -37,7 +37,7 @@ panel and as a distance reference. With noise and shrinkage, the actual lasso
 minimizer `x̂` differs from `x_star`, so:
 
 - Do **not** stop on `DistanceToOptimal` expecting it to hit `0` — it won't.
-- For convergence in the money figure, estimate `f* = min (f+g)` from a long
+- For convergence in the flagship figure, estimate `f* = min (f+g)` from a long
   reference run and plot `f − f*`; do not use `f(x_star)` as `f*`.
 
 ## Recovery regime caveat

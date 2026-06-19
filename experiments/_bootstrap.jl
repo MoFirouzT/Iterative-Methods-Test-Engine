@@ -14,32 +14,32 @@
 # rosenbrock.jl), then add an `include(...)` line in the matching section below.
 
 if !isdefined(Main, :_TESTENGINE_LOADED)
-	_BOOT_ROOT = normpath(joinpath(@__DIR__, ".."))
+    _BOOT_ROOT = normpath(joinpath(@__DIR__, ".."))
 
-	# 1. Engine module (abstractions + machinery only)
-	include(joinpath(_BOOT_ROOT, "src", "TestEngine.jl"))
-	using .TestEngine
+    # 1. Engine module (abstractions + machinery only)
+    include(joinpath(_BOOT_ROOT, "src", "TestEngine.jl"))
+    using .TestEngine
 
-	# 2. Algorithm components — shared method-construction vocabulary
-	include(joinpath(_BOOT_ROOT, "algorithms", "components", "descent_directions.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "components", "step_sizes.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "components", "extrapolation.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "components", "preconditioners.jl"))
+    # 2. Algorithm components — shared method-construction vocabulary
+    include(joinpath(_BOOT_ROOT, "algorithms", "components", "descent_directions.jl"))
+    include(joinpath(_BOOT_ROOT, "algorithms", "components", "step_sizes.jl"))
+    include(joinpath(_BOOT_ROOT, "algorithms", "components", "extrapolation.jl"))
+    include(joinpath(_BOOT_ROOT, "algorithms", "components", "preconditioners.jl"))
 
-	# 3. Methods — compose the components above. Role (baseline vs experimental)
-	#    is experiment-level metadata, not a property of the method, so methods
-	#    are not grouped by role on disk — each lives in its own directory.
-	include(joinpath(_BOOT_ROOT, "algorithms", "gradient_descent", "gradient_descent.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "proximal_gradient", "proximal_gradient.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "trust_region", "trust_region.jl"))
-	include(joinpath(_BOOT_ROOT, "algorithms", "preconditioned_gradient", "preconditioned_gradient.jl"))
+    # 3. Methods — compose the components above. Role (baseline vs experimental)
+    #    is experiment-level metadata, not a property of the method, so methods
+    #    are not grouped by role on disk — each lives in its own directory.
+    include(joinpath(_BOOT_ROOT, "algorithms", "gradient_descent", "gradient_descent.jl"))
+    include(joinpath(_BOOT_ROOT, "algorithms", "proximal_gradient", "proximal_gradient.jl"))
+    include(joinpath(_BOOT_ROOT, "algorithms", "trust_region", "trust_region.jl"))
+    include(joinpath(_BOOT_ROOT, "algorithms", "preconditioned_gradient", "preconditioned_gradient.jl"))
 
-	# 4. Regularizers + problem families — register themselves with the engine on load
-	include(joinpath(_BOOT_ROOT, "problems", "regularizers", "regularizers.jl"))
-	include(joinpath(_BOOT_ROOT, "problems", "least_squares", "least_squares.jl"))
-	include(joinpath(_BOOT_ROOT, "problems", "lasso", "lasso.jl"))
-	include(joinpath(_BOOT_ROOT, "problems", "separable_quadratic", "separable_quadratic.jl"))
-	include(joinpath(_BOOT_ROOT, "problems", "rosenbrock", "rosenbrock.jl"))
+    # 4. Regularizers + problem families — register themselves with the engine on load
+    include(joinpath(_BOOT_ROOT, "problems", "regularizers", "regularizers.jl"))
+    include(joinpath(_BOOT_ROOT, "problems", "least_squares", "least_squares.jl"))
+    include(joinpath(_BOOT_ROOT, "problems", "lasso", "lasso.jl"))
+    include(joinpath(_BOOT_ROOT, "problems", "separable_quadratic", "separable_quadratic.jl"))
+    include(joinpath(_BOOT_ROOT, "problems", "rosenbrock", "rosenbrock.jl"))
 
-	_TESTENGINE_LOADED = true
+    _TESTENGINE_LOADED = true
 end

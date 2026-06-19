@@ -52,7 +52,7 @@ contract made concrete:
 
 The default is `:matrix` so every existing call site (`:quadratic`, the lasso,
 the tests) is unchanged. `CauchyStep` only calls `apply`, so it works in either
-mode — which is what lets the `:operator` family light `OperatorHessian` up
+mode — which is what lets the `:operator` family exercise `OperatorHessian`
 without any method change.
 
 ## Families

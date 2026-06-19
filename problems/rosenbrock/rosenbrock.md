@@ -162,7 +162,7 @@ The Rosenbrock problem has no regularizer, so it should use the
 That keeps the registration readable while still allowing custom metadata:
 
 ```julia
-register_problem!(:rosenbrock, (params, rng) -> begin
+register_analytic_problem!(:rosenbrock, (params, rng) -> begin
     ρ   = get(params, :rho, 100.0)
     x0  = get(params, :x0, [-1.2, 1.0])    # Rosenbrock's classical starting point
     f   = RosenbrockObjective(RosenbrockKernel(ρ))
@@ -184,7 +184,6 @@ positionally.
 problem_spec = AnalyticProblem(
     name   = :rosenbrock,
     params = (rho = 100.0, x0 = [-1.2, 1.0]),
-    dim    = 2,
 )
 ```
 

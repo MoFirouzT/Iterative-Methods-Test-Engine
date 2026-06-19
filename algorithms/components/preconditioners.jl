@@ -75,11 +75,11 @@ precondition(::IdentityPreconditioner, g::Vector{Float64}, problem, x::Vector{Fl
 struct JacobiPreconditioner <: Preconditioner end
 
 function precondition(::JacobiPreconditioner, g::Vector{Float64}, problem, x::Vector{Float64})
-	H = hessian(problem.f, x)
-	_supports_diagonal(H) || throw(ArgumentError(
-		"JacobiPreconditioner requires a Hessian exposing `diagonal` " *
-		"(e.g. DiagonalHessian, MatrixHessian); got $(typeof(H)), which does not. " *
-		"Use IdentityPreconditioner, or a problem whose hessian is diagonal-capable."))
-	d = diagonal(H)
-	return g ./ d
+    H = hessian(problem.f, x)
+    _supports_diagonal(H) || throw(ArgumentError(
+        "JacobiPreconditioner requires a Hessian exposing `diagonal` " *
+        "(e.g. DiagonalHessian, MatrixHessian); got $(typeof(H)), which does not. " *
+        "Use IdentityPreconditioner, or a problem whose hessian is diagonal-capable."))
+    d = diagonal(H)
+    return g ./ d
 end

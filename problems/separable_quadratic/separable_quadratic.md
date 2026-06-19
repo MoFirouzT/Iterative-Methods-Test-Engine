@@ -3,7 +3,7 @@
     f(x) = ½ Σᵢ dᵢ xᵢ²,   dᵢ > 0
 
 The smallest interesting problem with a non-trivial, *diagonal* Hessian. Its
-purpose is to light up `DiagonalHessian` and give the Jacobi preconditioner a
+purpose is to exercise `DiagonalHessian` and give the Jacobi preconditioner a
 showcase where it is exactly Newton.
 
 ## Objective

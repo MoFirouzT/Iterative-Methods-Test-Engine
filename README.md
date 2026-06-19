@@ -3,10 +3,18 @@
 [![CI](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/ci.yml)
 [![Docs](https://github.com/MoFirouzT/Iterative-Methods-Test-Engine/actions/workflows/docs.yml/badge.svg)](https://MoFirouzT.github.io/Iterative-Methods-Test-Engine)
 
-A Julia framework for **side-by-side comparison of iterative optimization methods** —
-define a method once, sweep its variants, run them against conventional baselines on
-shared problems, and measure convergence and *core* compute time under one honest,
-reproducible harness.
+**A Julia harness for side-by-side comparison of iterative optimization methods.**
+Define a method once; the harness sweeps its variants, runs them against conventional
+baselines on shared problems, and reports convergence and *core* compute time the same
+way for every one. It is a method-comparison harness — not a unit-test framework.
+
+![One ProximalGradient on the lasso with its extrapolation component swept — ISTA, heavy-ball, FISTA — and exact support recovery](figures/lasso_ista_fista.png)
+
+> **Flagship — one `ProximalGradient` on the sparse-recovery lasso**, with only its
+> **extrapolation component swept**: the project's core idea in one figure.
+> `min ½‖Ax−b‖² + λ‖x‖₁`. No momentum (ISTA) → fixed momentum (heavy-ball) → Nesterov's
+> schedule (FISTA) orders the convergence (left); the recovered solution lands exactly on
+> the planted ±1 spikes (right). Full annotation in **[DESIGN.md](DESIGN.md)**.
 
 ## See how it works
 
@@ -15,6 +23,9 @@ define and register your own problem (ridge regression), author a custom method 
 the best place to start if you want to see the tool driven end to end.
 
 ## Design philosophy
+
+The engine rests on six principles; these four do most of the visible work
+(the full set is in [DESIGN.md](DESIGN.md)):
 
 - **Dispatch for extension, components for variation**:
   a new method, problem, or stopping criterion is a new type + a method on the relevant function — never an edit to existing code.
@@ -39,26 +50,19 @@ julia --project reproduce.jl                         # writes all figures to fig
 ```
 
 `reproduce.jl` runs each portfolio experiment in its own process and writes the five
-figures into `figures/` (flagship figure first).
+figures into `figures/` (the flagship, shown above, first).
 For a catalog of portfolio experiments — proximal-gradient on the lasso, least-squares
 dimension and conditioning sweeps, preconditioning, and a nested trust-region solve —
 with what each one demonstrates and all five figures, see
 **[experiments/README.md](experiments/README.md)**.
 
-![One ProximalGradient on the lasso with its extrapolation component swept — ISTA, heavy-ball, FISTA — and exact support recovery](figures/lasso_ista_fista.png)
-
-> **Flagship — one `ProximalGradient` on the sparse-recovery lasso**
-> `min ½‖Ax−b‖² + λ‖x‖₁`, with only its **extrapolation component swept**:
-> the project's core idea in one figure.
-> No momentum (ISTA) → fixed momentum (heavy-ball) → Nesterov's schedule (FISTA) orders the convergence (left);
-> the recovered solution lands exactly on the planted ±1 spikes (right).
-> Full annotation in **[DESIGN.md](DESIGN.md)**.
-
 ## Going deeper
 
-The engine itself developed and tested capability-by-capability across nine stages on Rosenbrock —
-first figure, then trajectories, persistence, stopping criteria, the orchestrator, multi-run, observability, cross-cutting validation.
-That staged build log — with its own trajectory figures — lives in **[experiments/stages](experiments/stages/)**.
+The engine was built and validated capability-by-capability across nine stages on
+Rosenbrock — first a convergence figure, then trajectories, persistence, stopping
+criteria, the orchestrator, multi-run aggregation, observability, and cross-cutting
+validation. That staged build log — with its own trajectory figures — lives in
+**[experiments/stages](experiments/stages/)**.
 
 ## Tests & validation
 

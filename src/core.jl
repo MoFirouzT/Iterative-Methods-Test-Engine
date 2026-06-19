@@ -1,5 +1,5 @@
 """
-	Algorithm Abstraction & Core Timing
+    Algorithm Abstraction & Core Timing
 
 Defines the core method hierarchy, canonical state parameter groups, required
 dispatch points, `@core_timed`, and the generic `run_method` loop.
@@ -14,7 +14,7 @@ using LinearAlgebra: norm
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	abstract type IterativeMethod
+    abstract type IterativeMethod
 
 Base type for all iterative algorithms — the single method category.
 
@@ -32,38 +32,38 @@ abstract type IterativeMethod end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	IterateGroup
+    IterateGroup
 
 Shared iterate-related fields used by all methods.
 """
 @kwdef mutable struct IterateGroup
-	x :: Vector{Float64}
-	gradient :: Vector{Float64}
-	x_prev :: Vector{Float64} = Float64[]
+    x :: Vector{Float64}
+    gradient :: Vector{Float64}
+    x_prev :: Vector{Float64} = Float64[]
 end
 
 
 """
-	MetricsGroup
+    MetricsGroup
 
 Scalar convergence metrics. Mirrors the fixed fields of IterationLog.
 """
 @kwdef mutable struct MetricsGroup
-	objective :: Float64 = Inf
-	gradient_norm :: Float64 = Inf
-	step_norm :: Float64 = Inf
-	dist_to_opt :: Float64 = Inf
+    objective :: Float64 = Inf
+    gradient_norm :: Float64 = Inf
+    step_norm :: Float64 = Inf
+    dist_to_opt :: Float64 = Inf
 end
 
 
 """
-	TimingGroup
+    TimingGroup
 
 Per-step core computation time accumulator in nanoseconds.
 The runner resets this before each step! call.
 """
 @kwdef mutable struct TimingGroup
-	core_time_ns :: Int64 = 0
+    core_time_ns :: Int64 = 0
 end
 
 
@@ -72,7 +72,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	init_state(method::IterativeMethod, problem, rng::AbstractRNG)
+    init_state(method::IterativeMethod, problem, rng::AbstractRNG)
 
 Create and return mutable algorithm state before the iteration loop.
 """
@@ -80,7 +80,7 @@ function init_state end
 
 
 """
-	step!(method::IterativeMethod, state, problem, iter::Int, logger::Logger, rng::AbstractRNG)
+    step!(method::IterativeMethod, state, problem, iter::Int, logger::Logger, rng::AbstractRNG)
 
 Advance one iteration by mutating state in place.
 Core mathematical kernels inside this function should use @core_timed.
@@ -90,7 +90,7 @@ function step! end
 
 
 """
-	extract_log_entry(method::IterativeMethod, state, iter::Int)
+    extract_log_entry(method::IterativeMethod, state, iter::Int)
 
 Build one IterationLog from the current state.
 Methods can overload this to add algorithm-specific extras.
@@ -100,30 +100,30 @@ function extract_log_entry end
 
 # Helpful default errors for algorithms that forgot to implement the interface.
 function init_state(method::IterativeMethod, problem, rng::AbstractRNG)
-	throw(MethodError(init_state, (method, problem, rng)))
+    throw(MethodError(init_state, (method, problem, rng)))
 end
 
 function step!(method::IterativeMethod, state, problem, iter::Int, logger::Logger, rng::AbstractRNG)
-	throw(MethodError(step!, (method, state, problem, iter, logger, rng)))
+    throw(MethodError(step!, (method, state, problem, iter, logger, rng)))
 end
 
 
 """
-	extract_log_entry(method::IterativeMethod, state, iter::Int)
+    extract_log_entry(method::IterativeMethod, state, iter::Int)
 
 Default extraction based on canonical MetricsGroup + TimingGroup.
 Override in concrete methods to populate extras.
 """
 function extract_log_entry(method::IterativeMethod, state, iter::Int)
-	IterationLog(
-		iter = iter,
-		core_time_ns = state.timing.core_time_ns,
-		objective = state.metrics.objective,
-		gradient_norm = state.metrics.gradient_norm,
-		step_norm = state.metrics.step_norm,
-		dist_to_opt = state.metrics.dist_to_opt,
-		extras = Dict{Symbol,Any}(),
-	)
+    IterationLog(
+        iter = iter,
+        core_time_ns = state.timing.core_time_ns,
+        objective = state.metrics.objective,
+        gradient_norm = state.metrics.gradient_norm,
+        step_norm = state.metrics.step_norm,
+        dist_to_opt = state.metrics.dist_to_opt,
+        extras = Dict{Symbol,Any}(),
+    )
 end
 
 
@@ -132,20 +132,20 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	@core_timed state expr
+    @core_timed state expr
 
 Evaluate expr and add elapsed nanoseconds to state.timing.core_time_ns.
 Multiple @core_timed blocks per step accumulate naturally.
 """
 macro core_timed(state, expr)
-	quote
-		_t0 = time_ns()
-		try
-			$(esc(expr))
-		finally
-			$(esc(state)).timing.core_time_ns += time_ns() - _t0
-		end
-	end
+    quote
+        _t0 = time_ns()
+        try
+            $(esc(expr))
+        finally
+            $(esc(state)).timing.core_time_ns += time_ns() - _t0
+        end
+    end
 end
 
 
@@ -154,86 +154,86 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	SubRunConfig
+    SubRunConfig
 
 Configuration for a nested algorithm invocation.
 """
 @kwdef struct SubRunConfig{M <: IterativeMethod}
-	method::M
-	criteria
-	log_sub_iters::Bool = true
-	verbosity::VerbosityConfig = VerbosityConfig(level=SILENT)
+    method::M
+    criteria
+    log_sub_iters::Bool = true
+    verbosity::VerbosityConfig = VerbosityConfig(level=SILENT)
 end
 
 
 """
-	SubResult
+    SubResult
 
 Result summary for one nested algorithm run.
 """
 struct SubResult{S}
-	converged::Bool
-	stop_reason::Symbol
-	n_iters::Int
-	final_state::S
-	iter_logs::Vector{Any}
-	core_time_ns::Int64
+    converged::Bool
+    stop_reason::Symbol
+    n_iters::Int
+    final_state::S
+    iter_logs::Vector{Any}
+    core_time_ns::Int64
 end
 
 
 """
-	is_converged_reason(reason::Symbol) -> Bool
+    is_converged_reason(reason::Symbol) -> Bool
 
 Classifies stop reasons that indicate successful convergence.
 """
 function is_converged_reason(reason::Symbol)
-	reason in (:gradient_converged, :step_converged, :objective_stagnated,
-	           :optimal_reached, :all_criteria_met)
+    reason in (:gradient_converged, :step_converged, :objective_stagnated,
+               :optimal_reached, :all_criteria_met)
 end
 
 
 """
-	run_sub_method(config, problem, outer_logger) -> SubResult
+    run_sub_method(config, problem, outer_logger) -> SubResult
 
 Runs a nested method with its own state and logger. If configured, sub-iteration
 logs are attached to the outer logger via `attach_sub_logs!`.
 """
 function run_sub_method(config::SubRunConfig{M}, problem, outer_logger::Logger, outer_rng::AbstractRNG)::SubResult where M
-	# Derive a child RNG deterministically from the outer RNG
-	sub_rng = Xoshiro(rand(outer_rng, UInt64))
-	sub_state = init_state(config.method, problem, sub_rng)
+    # Derive a child RNG deterministically from the outer RNG
+    sub_rng = Xoshiro(rand(outer_rng, UInt64))
+    sub_state = init_state(config.method, problem, sub_rng)
 
-	sub_logger = make_logger(string(typeof(config.method)), outer_logger.run_id,
-	                         outer_logger.exp_path, config.verbosity)
-	log_init!(sub_logger, config.method, sub_state)
+    sub_logger = make_logger(string(typeof(config.method)), outer_logger.run_id,
+                             outer_logger.exp_path, config.verbosity)
+    log_init!(sub_logger, config.method, sub_state)
 
-	iter = 0
-	while true
-		iter += 1
+    iter = 0
+    while true
+        iter += 1
 
-		sub_state.timing.core_time_ns = 0
-		step!(config.method, sub_state, problem, iter, sub_logger, sub_rng)
+        sub_state.timing.core_time_ns = 0
+        step!(config.method, sub_state, problem, iter, sub_logger, sub_rng)
 
-		entry = extract_log_entry(config.method, sub_state, iter)
-		log_iter!(sub_logger, entry)
+        entry = extract_log_entry(config.method, sub_state, iter)
+        log_iter!(sub_logger, entry)
 
-		stop, reason = should_stop(config.criteria, sub_state, iter, sub_logger)
-		if stop
-			if config.log_sub_iters
-				attach_sub_logs!(outer_logger, sub_logger.iter_logs)
-			end
+        stop, reason = should_stop(config.criteria, sub_state, iter, sub_logger)
+        if stop
+            if config.log_sub_iters
+                attach_sub_logs!(outer_logger, sub_logger.iter_logs)
+            end
 
-			total_core = sum(e.core_time_ns for e in sub_logger.iter_logs; init = Int64(0))
-			return SubResult{typeof(sub_state)}(
-				is_converged_reason(reason),
-				reason,
-				iter,
-				sub_state,
-				sub_logger.iter_logs,
-				total_core,
-			)
-		end
-	end
+            total_core = sum(e.core_time_ns for e in sub_logger.iter_logs; init = Int64(0))
+            return SubResult{typeof(sub_state)}(
+                is_converged_reason(reason),
+                reason,
+                iter,
+                sub_state,
+                sub_logger.iter_logs,
+                total_core,
+            )
+        end
+    end
 end
 
 
@@ -242,7 +242,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	run_method(method, problem, criteria, logger, rng)
+    run_method(method, problem, criteria, logger, rng)
 
 Generic iterative loop driven by stopping criteria.
 
@@ -257,64 +257,64 @@ On stop, records event and returns finalize!(logger, method, state).
 """
 function run_method(method::IterativeMethod, problem, criteria, logger, rng::AbstractRNG;
                     debug = nothing)
-	state = init_state(method, problem, rng)
+    state = init_state(method, problem, rng)
 
-	# The runner owns dist_to_opt: when the problem carries a known optimum, the
-	# runner fills state.metrics.dist_to_opt — here for the iter=0 snapshot and
-	# after each step! below. Algorithms therefore never read problem.x_opt;
-	# DistanceToOptimal and the dist_to_opt log column activate automatically.
-	if !isnothing(problem.x_opt)
-		state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
-	end
+    # The runner owns dist_to_opt: when the problem carries a known optimum, the
+    # runner fills state.metrics.dist_to_opt — here for the iter=0 snapshot and
+    # after each step! below. Algorithms therefore never read problem.x_opt;
+    # DistanceToOptimal and the dist_to_opt log column activate automatically.
+    if !isnothing(problem.x_opt)
+        state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
+    end
 
-	log_init!(logger, method, state)
-	iter = 0
-	prev_entry = nothing
+    log_init!(logger, method, state)
+    iter = 0
+    prev_entry = nothing
 
-	while true
-		iter += 1
-		state.timing.core_time_ns = 0           # reset per-step accumulator
+    while true
+        iter += 1
+        state.timing.core_time_ns = 0           # reset per-step accumulator
 
-		step!(method, state, problem, iter, logger, rng)
-		# step! errors propagate out of run_method by design — a clean failure,
-		# not a silent fallback (see test_preconditioned_gradient.jl).
+        step!(method, state, problem, iter, logger, rng)
+        # step! errors propagate out of run_method by design — a clean failure,
+        # not a silent fallback (see test_preconditioned_gradient.jl).
 
-		# Runner computes dist_to_opt — algorithms never access problem.x_opt.
-		if !isnothing(problem.x_opt)
-			state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
-		end
+        # Runner computes dist_to_opt — algorithms never access problem.x_opt.
+        if !isnothing(problem.x_opt)
+            state.metrics.dist_to_opt = norm(state.iterate.x .- problem.x_opt)
+        end
 
-		entry = extract_log_entry(method, state, iter)
+        entry = extract_log_entry(method, state, iter)
 
-		# Oracle counting (opt-in): when the problem's objective is a CountingObjective,
-		# surface the cumulative value/grad/Hvp counts in the entry's extras. Includes
-		# work issued inside line searches and nested sub-solvers (shared counter).
-		oc = oracle_counts(problem)
-		if oc !== nothing
-			entry.extras[:n_value] = oc.n_value
-			entry.extras[:n_grad]  = oc.n_grad
-			entry.extras[:n_hvp]   = oc.n_hvp
-		end
+        # Oracle counting (opt-in): when the problem's objective is a CountingObjective,
+        # surface the cumulative value/grad/Hvp counts in the entry's extras. Includes
+        # work issued inside line searches and nested sub-solvers (shared counter).
+        oc = oracle_counts(problem)
+        if oc !== nothing
+            entry.extras[:n_value] = oc.n_value
+            entry.extras[:n_grad]  = oc.n_grad
+            entry.extras[:n_hvp]   = oc.n_hvp
+        end
 
-		log_iter!(logger, entry)
+        log_iter!(logger, entry)
 
-		# Debug checks fire after the log entry is recorded so the check has
-		# access to a consistent (entry, prev_entry, state) triple. `debug`
-		# is left untyped here to avoid a hard dependency from src/core.jl
-		# on src/debug.jl (included later); the orchestrator passes a
-		# `DebugConfig` when it wants checks to run, `nothing` otherwise.
-		if debug !== nothing && debug.enabled
-			run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
-		end
-		prev_entry = entry
+        # Debug checks fire after the log entry is recorded so the check has
+        # access to a consistent (entry, prev_entry, state) triple. `debug`
+        # is left untyped here to avoid a hard dependency from src/core.jl
+        # on src/debug.jl (included later); the orchestrator passes a
+        # `DebugConfig` when it wants checks to run, `nothing` otherwise.
+        if debug !== nothing && debug.enabled
+            run_debug_checks!(debug, logger, state, problem, entry, prev_entry, iter)
+        end
+        prev_entry = entry
 
-		# Stopping check happens AFTER logging — never timed.
-		stop, reason = should_stop(criteria, state, iter, logger)
-		if stop
-			log_event!(logger, reason, iter)
-			break
-		end
-	end
+        # Stopping check happens AFTER logging — never timed.
+        stop, reason = should_stop(criteria, state, iter, logger)
+        if stop
+            log_event!(logger, reason, iter)
+            break
+        end
+    end
 
-	finalize!(logger, method, state)
+    finalize!(logger, method, state)
 end

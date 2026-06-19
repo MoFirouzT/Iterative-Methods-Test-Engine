@@ -1,5 +1,5 @@
 """
-	descent_directions.jl — Descent direction implementations
+    descent_directions.jl — Descent direction implementations
 
 Provides the `DescentDirection` abstraction and the `SteepestDescent`
 concrete direction (negative gradient).
@@ -11,7 +11,7 @@ using .TestEngine: @core_timed
 abstract type DescentDirection end
 
 """
-	compute_direction(dir, state, problem) -> Vector{Float64}
+    compute_direction(dir, state, problem) -> Vector{Float64}
 
 Returns the descent direction d_k at the current iterate.
 The returned vector is NOT normalized.
@@ -34,7 +34,7 @@ function compute_direction(dir::DescentDirection, state, problem)::Vector{Float6
 struct SteepestDescent <: DescentDirection end
 
 """
-	compute_direction(::SteepestDescent, state, problem) -> Vector{Float64}
+    compute_direction(::SteepestDescent, state, problem) -> Vector{Float64}
 
 Return the steepest descent direction d_k = -∇f(x_k).
 Reads `state.iterate.gradient`; mutates only `state.timing` (via `@core_timed`).
@@ -45,9 +45,9 @@ reads `state` and returns a fresh direction; the caller stores it. The per-step
 `O(mn)`-`O(n²)` kernel work at any scale where the timing pillar speaks.
 """
 function compute_direction(::SteepestDescent, state, problem)::Vector{Float64}
-	local d
-	@core_timed state begin
-		d = -state.iterate.gradient
-	end
-	return d
+    local d
+    @core_timed state begin
+        d = -state.iterate.gradient
+    end
+    return d
 end

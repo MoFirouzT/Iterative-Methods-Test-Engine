@@ -1,22 +1,22 @@
 """
-	rosenbrock.jl — Rosenbrock Problem Implementation
+    rosenbrock.jl — Rosenbrock Problem Implementation
 
 Implements the Rosenbrock function as an Objective:
 
-	f_ρ(x₁, x₂) = (1 - x₁)² + ρ·(x₂ - x₁²)²
+    f_ρ(x₁, x₂) = (1 - x₁)² + ρ·(x₂ - x₁²)²
 
 with analytical gradient and Hessian.
 """
 
 import .TestEngine: Objective, Hessian, MatrixHessian, Problem, value, grad!, hessian,
-	register_analytic_problem!
+    register_analytic_problem!
 
 # ─────────────────────────────────────────────────────────────────────────
 # Kernel & Fidelity Types
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	RosenbrockKernel
+    RosenbrockKernel
 
 Encapsulates the curvature parameter of the Rosenbrock function.
 
@@ -24,14 +24,14 @@ Encapsulates the curvature parameter of the Rosenbrock function.
 - `ρ::Float64` — curvature parameter (default 100.0)
 """
 struct RosenbrockKernel
-	ρ :: Float64
+    ρ :: Float64
 end
 
 RosenbrockKernel() = RosenbrockKernel(100.0)
 
 
 """
-	RosenbrockObjective <: Objective
+    RosenbrockObjective <: Objective
 
 The Rosenbrock objective function: f_ρ(x) = (1 - x₁)² + ρ·(x₂ - x₁²)²
 
@@ -39,7 +39,7 @@ The Rosenbrock objective function: f_ρ(x) = (1 - x₁)² + ρ·(x₂ - x₁²)�
 - `kernel::RosenbrockKernel` — contains the curvature parameter ρ
 """
 struct RosenbrockObjective <: Objective
-	kernel :: RosenbrockKernel
+    kernel :: RosenbrockKernel
 end
 
 RosenbrockObjective() = RosenbrockObjective(RosenbrockKernel())
@@ -50,52 +50,52 @@ RosenbrockObjective() = RosenbrockObjective(RosenbrockKernel())
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	value(f::RosenbrockObjective, x::Vector{Float64}) -> Float64
+    value(f::RosenbrockObjective, x::Vector{Float64}) -> Float64
 
 Evaluate the Rosenbrock function at x:
 
-	f(x) = (1 - x₁)² + ρ·(x₂ - x₁²)²
+    f(x) = (1 - x₁)² + ρ·(x₂ - x₁²)²
 """
 function value(f::RosenbrockObjective, x::Vector{Float64})::Float64
-	ρ  = f.kernel.ρ
-	x₁ = x[1]
-	x₂ = x[2]
-	return (1 - x₁)^2 + ρ * (x₂ - x₁^2)^2
+    ρ  = f.kernel.ρ
+    x₁ = x[1]
+    x₂ = x[2]
+    return (1 - x₁)^2 + ρ * (x₂ - x₁^2)^2
 end
 
 
 """
-	grad!(g::Vector{Float64}, f::RosenbrockObjective, x::Vector{Float64}) -> Vector{Float64}
+    grad!(g::Vector{Float64}, f::RosenbrockObjective, x::Vector{Float64}) -> Vector{Float64}
 
 Compute the gradient of the Rosenbrock function in-place:
 
-	∇f(x) = [
-		-2(1 - x₁) - 4ρ·x₁·(x₂ - x₁²)
-		2ρ·(x₂ - x₁²)
-	]
+    ∇f(x) = [
+        -2(1 - x₁) - 4ρ·x₁·(x₂ - x₁²)
+        2ρ·(x₂ - x₁²)
+    ]
 """
 function grad!(g::Vector{Float64}, f::RosenbrockObjective, x::Vector{Float64})::Vector{Float64}
-	ρ  = f.kernel.ρ
-	x₁ = x[1]
-	x₂ = x[2]
-	v  = x₂ - x₁^2    # shared intermediate: x₂ - x₁²
+    ρ  = f.kernel.ρ
+    x₁ = x[1]
+    x₂ = x[2]
+    v  = x₂ - x₁^2    # shared intermediate: x₂ - x₁²
 
-	g[1] = -2(1 - x₁) - 4ρ * x₁ * v
-	g[2] =  2ρ * v
+    g[1] = -2(1 - x₁) - 4ρ * x₁ * v
+    g[2] =  2ρ * v
 
-	return g
+    return g
 end
 
 
 """
-	hessian(f::RosenbrockObjective, x::Vector{Float64}) -> MatrixHessian
+    hessian(f::RosenbrockObjective, x::Vector{Float64}) -> MatrixHessian
 
 Compute the Hessian of the Rosenbrock function as a MatrixHessian object:
 
-	∇²f(x) = [
-		2 - 4ρ(x₂ - 3x₁²)    -4ρ·x₁
-		-4ρ·x₁                2ρ
-	]
+    ∇²f(x) = [
+        2 - 4ρ(x₂ - 3x₁²)    -4ρ·x₁
+        -4ρ·x₁                2ρ
+    ]
 
 # Arguments
 - `f::RosenbrockObjective` — the Rosenbrock objective
@@ -105,16 +105,16 @@ Compute the Hessian of the Rosenbrock function as a MatrixHessian object:
 - `MatrixHessian` — the 2×2 Hessian matrix
 """
 function hessian(f::RosenbrockObjective, x::Vector{Float64})::Hessian
-	ρ  = f.kernel.ρ
-	x₁ = x[1]
-	x₂ = x[2]
-	
-	H = [
-		2 - 4ρ * (x₂ - 3x₁^2)   -4ρ * x₁ ;
-		-4ρ * x₁                  2ρ
-	]
-	
-	return MatrixHessian(H)
+    ρ  = f.kernel.ρ
+    x₁ = x[1]
+    x₂ = x[2]
+    
+    H = [
+        2 - 4ρ * (x₂ - 3x₁^2)   -4ρ * x₁ ;
+        -4ρ * x₁                  2ρ
+    ]
+    
+    return MatrixHessian(H)
 end
 
 
@@ -123,20 +123,20 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	register_rosenbrock!()
+    register_rosenbrock!()
 
 Register the Rosenbrock problem with the problem factory.
 Invoked automatically when this module is loaded.
 """
 function register_rosenbrock!()
-	register_analytic_problem!(:rosenbrock, (params, rng) -> begin
-		ρ   = get(params, :rho, 100.0)
-		x0  = get(params, :x0, [-1.2, 1.0])
-		f   = RosenbrockObjective(RosenbrockKernel(ρ))
-		meta = Dict{Symbol,Any}(:rho => ρ, :condition_number => 2508.0)
-		x_opt = [1.0, 1.0]
-		Problem(f, x0; meta = meta, x_opt = x_opt)
-	end)
+    register_analytic_problem!(:rosenbrock, (params, rng) -> begin
+        ρ   = get(params, :rho, 100.0)
+        x0  = get(params, :x0, [-1.2, 1.0])
+        f   = RosenbrockObjective(RosenbrockKernel(ρ))
+        meta = Dict{Symbol,Any}(:rho => ρ, :condition_number => 2508.0)
+        x_opt = [1.0, 1.0]
+        Problem(f, x0; meta = meta, x_opt = x_opt)
+    end)
 end
 
 # Auto-register on module load

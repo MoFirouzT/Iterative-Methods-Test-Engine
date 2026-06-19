@@ -8,7 +8,7 @@ It crosses a **preconditioner** axis (`M⁻¹`) with a **step-size** axis (`α_k
 and is the framework's showcase of the *signature workflow*: define **one** experimental
 method, sweep its variants in a `VariantGrid` with `role = :experimental`, and let
 `resolve_methods` route them into the *experimental* bucket against a baseline — all in a
-single `run_experiment`. It lights up dual-bucket routing, a genuine ≥2-axis Cartesian
+single `run_experiment`. It drives dual-bucket routing, a genuine ≥2-axis Cartesian
 grid, `DiagonalHessian`, and the Jacobi preconditioner.
 
 ## 1. Method

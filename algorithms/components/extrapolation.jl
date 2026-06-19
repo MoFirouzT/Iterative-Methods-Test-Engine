@@ -11,30 +11,30 @@ using .TestEngine: register_abbreviation!
 
 
 """
-	abstract type Extrapolation
+    abstract type Extrapolation
 
 Base type for post-step correction strategies.
 """
 abstract type Extrapolation end
 
 """
-	struct NoExtrapolation <: Extrapolation
+    struct NoExtrapolation <: Extrapolation
 
 No-op correction.
 """
 struct NoExtrapolation <: Extrapolation end
 
 """
-	struct MomentumStep <: Extrapolation
+    struct MomentumStep <: Extrapolation
 
 Simple momentum correction.
 """
 @kwdef struct MomentumStep <: Extrapolation
-	α::Float64 = 0.1
+    α::Float64 = 0.1
 end
 
 """
-	struct NesterovStep <: Extrapolation
+    struct NesterovStep <: Extrapolation
 
 Nesterov-style correction (FISTA). Carries no parameters: the extrapolation
 coefficient is determined entirely by the `t` recurrence in `extrapolate` /
@@ -52,7 +52,7 @@ struct NesterovStep <: Extrapolation end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	extrapolate(mu::Extrapolation, x, x_prev, t) -> y
+    extrapolate(mu::Extrapolation, x, x_prev, t) -> y
 
 The point at which the gradient is evaluated this step.
 - `NoExtrapolation` ⇒ `y = x` (plain proximal gradient / ISTA).
@@ -67,20 +67,20 @@ The point at which the gradient is evaluated this step.
 extrapolate(::NoExtrapolation, x::Vector{Float64}, x_prev::Vector{Float64}, t::Float64) = copy(x)
 
 function extrapolate(::NesterovStep, x::Vector{Float64}, x_prev::Vector{Float64}, t::Float64)
-	isempty(x_prev) && return copy(x)
-	t_next = (1 + sqrt(1 + 4t^2)) / 2
-	β = (t - 1) / t_next
-	return x .+ β .* (x .- x_prev)
+    isempty(x_prev) && return copy(x)
+    t_next = (1 + sqrt(1 + 4t^2)) / 2
+    β = (t - 1) / t_next
+    return x .+ β .* (x .- x_prev)
 end
 
 function extrapolate(mu::MomentumStep, x::Vector{Float64}, x_prev::Vector{Float64}, t::Float64)
-	isempty(x_prev) && return copy(x)
-	return x .+ mu.α .* (x .- x_prev)
+    isempty(x_prev) && return copy(x)
+    return x .+ mu.α .* (x .- x_prev)
 end
 
 
 """
-	advance_momentum(mu::Extrapolation, t) -> t_next
+    advance_momentum(mu::Extrapolation, t) -> t_next
 
 Advance the momentum parameter after the iterate update. FISTA advances
 `t_next = (1 + √(1 + 4t²))/2`; the no-op and the fixed-`α` heavy-ball leave

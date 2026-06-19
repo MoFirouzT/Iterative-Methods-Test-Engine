@@ -1,5 +1,5 @@
 """
-	Stopping Criteria
+    Stopping Criteria
 
 Defines the StoppingCriterion type hierarchy and the `should_stop` dispatch interface.
 Provides composable criteria: by iteration count, core computation time, tolerance,
@@ -14,10 +14,10 @@ This gives full, composable control over how many steps any algorithm takes.
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	abstract type StoppingCriterion
+    abstract type StoppingCriterion
 
 Base type for all stopping criteria. Each concrete subtype must implement:
-	should_stop(criterion, state, iter::Int, logger::Logger) -> (stop::Bool, reason::Symbol)
+    should_stop(criterion, state, iter::Int, logger::Logger) -> (stop::Bool, reason::Symbol)
 """
 abstract type StoppingCriterion end
 
@@ -27,60 +27,60 @@ abstract type StoppingCriterion end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	MaxIterations(; n::Int = 1000)
+    MaxIterations(; n::Int = 1000)
 
 Terminate after a fixed number of iterations.
 """
 @kwdef struct MaxIterations <: StoppingCriterion
-	n :: Int = 1000
+    n :: Int = 1000
 end
 
 
 """
-	TimeLimit(; seconds::Float64 = 60.0)
+    TimeLimit(; seconds::Float64 = 60.0)
 
 Terminate when accumulated **core computation** time exceeds the budget.
 Time is measured as the sum of per-iteration core_time_ns values recorded
 in the logger — wall-clock and bookkeeping time are never counted.
 """
 @kwdef struct TimeLimit <: StoppingCriterion
-	seconds :: Float64 = 60.0
+    seconds :: Float64 = 60.0
 end
 
 
 """
-	GradientTolerance(; tol::Float64 = 1e-6)
+    GradientTolerance(; tol::Float64 = 1e-6)
 
 Terminate when gradient norm falls below threshold.
 """
 @kwdef struct GradientTolerance <: StoppingCriterion
-	tol :: Float64 = 1e-6
+    tol :: Float64 = 1e-6
 end
 
 
 """
-	ObjectiveStagnation(; tol::Float64 = 1e-8, window::Int = 10)
+    ObjectiveStagnation(; tol::Float64 = 1e-8, window::Int = 10)
 
 Terminate when objective change over last `window` iterations is below threshold.
 """
 @kwdef struct ObjectiveStagnation <: StoppingCriterion
-	tol    :: Float64 = 1e-8
-	window :: Int     = 10
+    tol    :: Float64 = 1e-8
+    window :: Int     = 10
 end
 
 
 """
-	StepTolerance(; tol::Float64 = 1e-8)
+    StepTolerance(; tol::Float64 = 1e-8)
 
 Terminate when step norm falls below threshold.
 """
 @kwdef struct StepTolerance <: StoppingCriterion
-	tol :: Float64 = 1e-8
+    tol :: Float64 = 1e-8
 end
 
 
 """
-	DistanceToOptimal(; tol::Float64 = 1e-6)
+    DistanceToOptimal(; tol::Float64 = 1e-6)
 
 Terminate when `‖x − x*‖` falls below threshold. Requires the problem to
 have a known optimum (`problem.x_opt !== nothing`); otherwise the runner
@@ -91,12 +91,12 @@ where the optimum is known by construction. For production solves, prefer
 `GradientTolerance` or `ObjectiveStagnation`.
 """
 @kwdef struct DistanceToOptimal <: StoppingCriterion
-	tol :: Float64 = 1e-6
+    tol :: Float64 = 1e-6
 end
 
 
 """
-	CompositeCriterion(; criteria::Vector{StoppingCriterion}, mode::Symbol = :any)
+    CompositeCriterion(; criteria::Vector{StoppingCriterion}, mode::Symbol = :any)
 
 Combine multiple criteria: :any (first satisfied wins) or :all (all must hold).
 
@@ -105,8 +105,8 @@ Combine multiple criteria: :any (first satisfied wins) or :all (all must hold).
 - `:all` — terminate when all criteria are satisfied
 """
 @kwdef struct CompositeCriterion <: StoppingCriterion
-	criteria :: Vector{StoppingCriterion}
-	mode     :: Symbol = :any    # :any | :all
+    criteria :: Vector{StoppingCriterion}
+    mode     :: Symbol = :any    # :any | :all
 end
 
 
@@ -115,7 +115,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	stop_when_any(cs...)
+    stop_when_any(cs...)
 
 Convenience constructor for CompositeCriterion with mode=:any.
 Terminates when the first criterion is satisfied.
@@ -126,12 +126,12 @@ stop_when_any(MaxIterations(1000), GradientTolerance(1e-6))
 ```
 """
 function stop_when_any(cs...)
-	CompositeCriterion(criteria=collect(cs), mode=:any)
+    CompositeCriterion(criteria=collect(cs), mode=:any)
 end
 
 
 """
-	stop_when_all(cs...)
+    stop_when_all(cs...)
 
 Convenience constructor for CompositeCriterion with mode=:all.
 Terminates when all criteria are satisfied.
@@ -142,7 +142,7 @@ stop_when_all(MaxIterations(1000), GradientTolerance(1e-6))
 ```
 """
 function stop_when_all(cs...)
-	CompositeCriterion(criteria=collect(cs), mode=:all)
+    CompositeCriterion(criteria=collect(cs), mode=:all)
 end
 
 
@@ -151,7 +151,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	should_stop(criterion::StoppingCriterion, state, iter::Int, logger::Logger) -> (stop::Bool, reason::Symbol)
+    should_stop(criterion::StoppingCriterion, state, iter::Int, logger::Logger) -> (stop::Bool, reason::Symbol)
 
 Dispatch point for all stopping criteria. Returns a tuple (stop, reason) where:
 - `stop::Bool` — whether the algorithm should terminate
@@ -164,26 +164,26 @@ function should_stop end
 
 # MaxIterations dispatch
 function should_stop(c::MaxIterations, state, iter::Int, logger)
-	iter >= c.n ? (true, :max_iterations) : (false, :none)
+    iter >= c.n ? (true, :max_iterations) : (false, :none)
 end
 
 
 # TimeLimit dispatch
 # Uses accumulated core computation time — never wall-clock
 function should_stop(c::TimeLimit, state, iter::Int, logger)
-	elapsed_core_s(logger) >= c.seconds ? (true, :time_limit) : (false, :none)
+    elapsed_core_s(logger) >= c.seconds ? (true, :time_limit) : (false, :none)
 end
 
 
 # GradientTolerance dispatch
 function should_stop(c::GradientTolerance, state, iter::Int, logger)
-	state.metrics.gradient_norm <= c.tol ? (true, :gradient_converged) : (false, :none)
+    state.metrics.gradient_norm <= c.tol ? (true, :gradient_converged) : (false, :none)
 end
 
 
 # StepTolerance dispatch
 function should_stop(c::StepTolerance, state, iter::Int, logger)
-	state.metrics.step_norm <= c.tol ? (true, :step_converged) : (false, :none)
+    state.metrics.step_norm <= c.tol ? (true, :step_converged) : (false, :none)
 end
 
 
@@ -191,17 +191,17 @@ end
 # state.metrics.dist_to_opt is `Inf` when the problem has no known optimum,
 # so this criterion is automatically inert in that case.
 function should_stop(c::DistanceToOptimal, state, iter::Int, logger)
-	state.metrics.dist_to_opt <= c.tol ? (true, :optimal_reached) : (false, :none)
+    state.metrics.dist_to_opt <= c.tol ? (true, :optimal_reached) : (false, :none)
 end
 
 
 # ObjectiveStagnation dispatch
 function should_stop(c::ObjectiveStagnation, state, iter::Int, logger)
-	iter < c.window && return (false, :none)
-	# Direct index access (not a slice) — avoids a per-check array allocation.
-	first_obj = logger.iter_logs[end-c.window+1].objective
-	last_obj  = logger.iter_logs[end].objective
-	abs(first_obj - last_obj) <= c.tol ? (true, :objective_stagnated) : (false, :none)
+    iter < c.window && return (false, :none)
+    # Direct index access (not a slice) — avoids a per-check array allocation.
+    first_obj = logger.iter_logs[end-c.window+1].objective
+    last_obj  = logger.iter_logs[end].objective
+    abs(first_obj - last_obj) <= c.tol ? (true, :objective_stagnated) : (false, :none)
 end
 
 
@@ -210,17 +210,17 @@ end
 # every iteration of every run (it is the default `stopping_criteria`), so the
 # allocation is on the hottest path — same discipline as ObjectiveStagnation above.
 function should_stop(c::CompositeCriterion, state, iter::Int, logger)
-	if c.mode == :any
-		for sub in c.criteria
-			stop, reason = should_stop(sub, state, iter, logger)
-			stop && return (true, reason)
-		end
-		return (false, :none)
-	else  # :all — an empty criteria list is never "all met"
-		isempty(c.criteria) && return (false, :none)
-		for sub in c.criteria
-			should_stop(sub, state, iter, logger)[1] || return (false, :none)
-		end
-		return (true, :all_criteria_met)
-	end
+    if c.mode == :any
+        for sub in c.criteria
+            stop, reason = should_stop(sub, state, iter, logger)
+            stop && return (true, reason)
+        end
+        return (false, :none)
+    else  # :all — an empty criteria list is never "all met"
+        isempty(c.criteria) && return (false, :none)
+        for sub in c.criteria
+            should_stop(sub, state, iter, logger)[1] || return (false, :none)
+        end
+        return (true, :all_criteria_met)
+    end
 end

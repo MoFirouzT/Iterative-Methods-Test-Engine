@@ -1,5 +1,5 @@
 """
-	Logging System
+    Logging System
 
 Provides per-iteration capture, core-time accumulation, event logging, and sub-logs.
 The logger is external to all algorithms and injected by the runner.
@@ -19,26 +19,26 @@ using Dates
 # ─────────────────────────────────────────────────────────────────────────
 
 @enum VerbosityLevel begin
-	SILENT = 0
-	MILESTONE = 1
-	SUMMARY = 2
-	DETAILED = 3
-	DEBUG = 4
+    SILENT = 0
+    MILESTONE = 1
+    SUMMARY = 2
+    DETAILED = 3
+    DEBUG = 4
 end
 
 
 """
-	VerbosityConfig
+    VerbosityConfig
 
 Controls console output from the logger.
 """
 @kwdef mutable struct VerbosityConfig
-	level::VerbosityLevel = SUMMARY
-	print_every::Int = 10
-	fields::Vector{Symbol} = [:iter, :objective, :gradient_norm]
-	color::Bool = true
-	io::IO = stdout
-	iter_range::Union{Nothing,UnitRange{Int}} = nothing
+    level::VerbosityLevel = SUMMARY
+    print_every::Int = 10
+    fields::Vector{Symbol} = [:iter, :objective, :gradient_norm]
+    color::Bool = true
+    io::IO = stdout
+    iter_range::Union{Nothing,UnitRange{Int}} = nothing
 end
 
 
@@ -47,7 +47,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	IterationLog
+    IterationLog
 
 Record of a single iteration. Mirrors the canonical MetricsGroup structure
 so that extract_log_entry has a trivial default implementation.
@@ -62,13 +62,13 @@ so that extract_log_entry has a trivial default implementation.
 - `extras::Dict{Symbol,Any}` — algorithm-specific fields and nested sub-logs
 """
 @kwdef mutable struct IterationLog
-	iter           :: Int
-	core_time_ns   :: Int64            # nanoseconds of core computation this step
-	objective      :: Float64
-	gradient_norm  :: Float64
-	step_norm      :: Float64
-	dist_to_opt    :: Float64 = Inf    # ‖x − x*‖; Inf when x_opt not provided
-	extras         :: Dict{Symbol,Any} = Dict()  # algorithm-specific & sub-logs
+    iter           :: Int
+    core_time_ns   :: Int64            # nanoseconds of core computation this step
+    objective      :: Float64
+    gradient_norm  :: Float64
+    step_norm      :: Float64
+    dist_to_opt    :: Float64 = Inf    # ‖x − x*‖; Inf when x_opt not provided
+    extras         :: Dict{Symbol,Any} = Dict()  # algorithm-specific & sub-logs
 end
 
 
@@ -77,7 +77,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	Logger
+    Logger
 
 External logging system injected by the runner. Records iteration logs,
 events, and accumulated timing information. Never called directly by algorithms.
@@ -95,16 +95,16 @@ events, and accumulated timing information. Never called directly by algorithms.
 - `pending_sub_logs::Vector{IterationLog}` — buffer for attach_sub_logs!
 """
 mutable struct Logger
-	method_name      :: String
-	run_id           :: Int
-	exp_path         :: String
-	verbosity_config :: VerbosityConfig
-	iter_logs        :: Vector{IterationLog}
-	events           :: Vector{NamedTuple}
-	metadata         :: Dict{Symbol,Any}
-	start_wall_time  :: Float64
-	total_core_ns    :: Int64
-	pending_sub_logs :: Vector{IterationLog}
+    method_name      :: String
+    run_id           :: Int
+    exp_path         :: String
+    verbosity_config :: VerbosityConfig
+    iter_logs        :: Vector{IterationLog}
+    events           :: Vector{NamedTuple}
+    metadata         :: Dict{Symbol,Any}
+    start_wall_time  :: Float64
+    total_core_ns    :: Int64
+    pending_sub_logs :: Vector{IterationLog}
 end
 
 
@@ -112,67 +112,67 @@ _verbosity_config(logger::Logger) = logger.verbosity_config
 
 
 """
-	make_logger(method_name::String, run_id::Int, exp_path::String, verbosity::VerbosityConfig) -> Logger
+    make_logger(method_name::String, run_id::Int, exp_path::String, verbosity::VerbosityConfig) -> Logger
 
 Convenience constructor for creating a Logger with default values for all fields except the provided ones.
 """
 function make_logger(method_name::String, run_id::Int, exp_path::String, verbosity::VerbosityConfig)
-	Logger(
-		method_name,
-		run_id,
-		exp_path,
-		verbosity,
-		IterationLog[],
-		NamedTuple[],
-		Dict{Symbol,Any}(),
-		time(),
-		0,
-		IterationLog[],
-	)
+    Logger(
+        method_name,
+        run_id,
+        exp_path,
+        verbosity,
+        IterationLog[],
+        NamedTuple[],
+        Dict{Symbol,Any}(),
+        time(),
+        0,
+        IterationLog[],
+    )
 end
 
 
 function _entry_field(entry::IterationLog, field::Symbol)
-	if field === :iter
-		return entry.iter
-	elseif field === :core_time_ns
-		return entry.core_time_ns
-	elseif field === :objective
-		return entry.objective
-	elseif field === :gradient_norm
-		return entry.gradient_norm
-	elseif field === :step_norm
-		return entry.step_norm
-	else
-		return get(entry.extras, field, missing)
-	end
+    if field === :iter
+        return entry.iter
+    elseif field === :core_time_ns
+        return entry.core_time_ns
+    elseif field === :objective
+        return entry.objective
+    elseif field === :gradient_norm
+        return entry.gradient_norm
+    elseif field === :step_norm
+        return entry.step_norm
+    else
+        return get(entry.extras, field, missing)
+    end
 end
 
 
 function _fmt_field(value)
-	if value isa AbstractFloat
-		return string(round(value; sigdigits = 6))
-	end
-	return string(value)
+    if value isa AbstractFloat
+        return string(round(value; sigdigits = 6))
+    end
+    return string(value)
 end
 
 
 function format_and_print(cfg::VerbosityConfig, logger::Logger, entry::IterationLog, level::VerbosityLevel)
-	parts = String[string(field, "=", _fmt_field(_entry_field(entry, field))) for field in cfg.fields]
-	line = string("[", logger.method_name, "|run ", logger.run_id, "] ", join(parts, " "))
-	if level == DEBUG
-		line = string(line, " extras=", entry.extras)
-	end
-	println(cfg.io, line)
+    parts = String[string(field, "=", _fmt_field(_entry_field(entry, field))) for field in cfg.fields]
+    line = string("[", logger.method_name, "|run ", logger.run_id, "] ", join(parts, " "))
+    if level == DEBUG
+        line = string(line, " extras=", entry.extras)
+    end
+    println(cfg.io, line)
 end
 
 
 function _print_milestone(logger::Logger, message::String)
-	cfg = _verbosity_config(logger)
-	isnothing(cfg) && return
-	if cfg.level >= MILESTONE
-		println(cfg.io, "[", logger.method_name, "|run ", logger.run_id, "] ", message)
-	end
+    cfg = _verbosity_config(logger)
+    isnothing(cfg) && return
+    if cfg.level >= MILESTONE
+        println(cfg.io, "[", logger.method_name, "|run ", logger.run_id, "] ", message)
+    end
 end
 
 
@@ -181,25 +181,25 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	elapsed_core_s(logger::Logger) :: Float64
+    elapsed_core_s(logger::Logger) :: Float64
 
 Return accumulated core computation time in seconds.
 This is the **authoritative** timing used by TimeLimit stopping criteria.
 Wall-clock time is never used as a stopping criterion.
 """
 function elapsed_core_s(logger::Logger)
-	logger.total_core_ns / 1e9
+    logger.total_core_ns / 1e9
 end
 
 
 """
-	elapsed_wall_s(logger::Logger) :: Float64
+    elapsed_wall_s(logger::Logger) :: Float64
 
 Return wall-clock elapsed time since log_init! in seconds.
 Informational only — never used for stopping decisions.
 """
 function elapsed_wall_s(logger::Logger)
-	time() - logger.start_wall_time
+    time() - logger.start_wall_time
 end
 
 
@@ -208,7 +208,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	log_init!(logger::Logger, method, state)
+    log_init!(logger::Logger, method, state)
 
 Initialize logger before the run loop. Called once per method per run.
 Records the start wall-time and any initial state information.
@@ -219,26 +219,26 @@ Records the start wall-time and any initial state information.
 - `state` — the initial algorithm state
 """
 function log_init!(logger::Logger, method, state)
-	logger.start_wall_time = time()
-	logger.total_core_ns = 0
-	logger.iter_logs = IterationLog[]
-	logger.events = NamedTuple[]
-	logger.pending_sub_logs = IterationLog[]
-	_print_milestone(logger, "start")
-	# Capture the initial state as an iter=0 entry so downstream tooling can
-	# reason about the starting point — trajectory plots (Stage 2), warm-up x₀
-	# invariants (Stage 6), and so on. `extract_log_entry` is dispatched on the
-	# concrete method type; if a method doesn't define one, fall back silently.
-	try
-		push!(logger.iter_logs, extract_log_entry(method, state, 0))
-	catch err
-		err isa MethodError || rethrow(err)
-	end
+    logger.start_wall_time = time()
+    logger.total_core_ns = 0
+    logger.iter_logs = IterationLog[]
+    logger.events = NamedTuple[]
+    logger.pending_sub_logs = IterationLog[]
+    _print_milestone(logger, "start")
+    # Capture the initial state as an iter=0 entry so downstream tooling can
+    # reason about the starting point — trajectory plots (Stage 2), warm-up x₀
+    # invariants (Stage 6), and so on. `extract_log_entry` is dispatched on the
+    # concrete method type; if a method doesn't define one, fall back silently.
+    try
+        push!(logger.iter_logs, extract_log_entry(method, state, 0))
+    catch err
+        err isa MethodError || rethrow(err)
+    end
 end
 
 
 """
-	log_iter!(logger::Logger, entry::IterationLog)
+    log_iter!(logger::Logger, entry::IterationLog)
 
 Record one iteration's results. Accumulates core time and may print to console.
 Called after each step!, after extract_log_entry, but before should_stop.
@@ -248,14 +248,14 @@ Called after each step!, after extract_log_entry, but before should_stop.
 - `entry::IterationLog` — the log entry from this iteration
 """
 function log_iter!(logger::Logger, entry::IterationLog)
-	push!(logger.iter_logs, entry)
-	logger.total_core_ns += entry.core_time_ns   # feeds elapsed_core_s() → TimeLimit
-	maybe_print(logger, entry)  # forward ref to the Verbosity System functions
+    push!(logger.iter_logs, entry)
+    logger.total_core_ns += entry.core_time_ns   # feeds elapsed_core_s() → TimeLimit
+    maybe_print(logger, entry)  # forward ref to the Verbosity System functions
 end
 
 
 """
-	log_event!(logger::Logger, reason::Symbol, iter::Int)
+    log_event!(logger::Logger, reason::Symbol, iter::Int)
 
 Record a named event: convergence, stopping reason, or warning.
 Called after should_stop returns true (never timed).
@@ -266,14 +266,14 @@ Called after should_stop returns true (never timed).
 - `iter::Int` — the iteration number when the event occurred
 """
 function log_event!(logger::Logger, reason::Symbol, iter::Int)
-	event = (reason=reason, iter=iter, timestamp=now())
-	push!(logger.events, event)
-	_print_milestone(logger, string("event=", reason, " iter=", iter))
+    event = (reason=reason, iter=iter, timestamp=now())
+    push!(logger.events, event)
+    _print_milestone(logger, string("event=", reason, " iter=", iter))
 end
 
 
 """
-	attach_sub_logs!(logger::Logger, sub_logs::Vector{IterationLog})
+    attach_sub_logs!(logger::Logger, sub_logs::Vector{IterationLog})
 
 Attach sub-iteration logs from a nested algorithm to the current pending entry.
 Called by run_sub_method when log_sub_iters=true.
@@ -283,13 +283,13 @@ Called by run_sub_method when log_sub_iters=true.
 - `sub_logs::Vector{IterationLog}` — logs from the sub-algorithm
 """
 function attach_sub_logs!(logger::Logger, sub_logs::Vector{IterationLog})
-	# Store in pending buffer; finalize! will attach to the current iteration
-	logger.pending_sub_logs = sub_logs
+    # Store in pending buffer; finalize! will attach to the current iteration
+    logger.pending_sub_logs = sub_logs
 end
 
 
 """
-	finalize!(logger::Logger, method, state) :: MethodResult
+    finalize!(logger::Logger, method, state) :: MethodResult
 
 Finalize the logger and return a MethodResult. Called after the run loop exits.
 
@@ -303,45 +303,45 @@ A `MethodResult` containing:
 - `state` — the final algorithm state
 """
 function finalize!(logger::Logger, method, state)
-	# Extract stop reason from the last event, or default to :unknown
-	stop_reason = isempty(logger.events) ? :unknown : logger.events[end].reason
-	
-	# Fallback attachment of the final iteration's pending sub-logs. A method that
-	# nests sub-solvers normally records its inner trace per-iteration in its own
-	# `extract_log_entry` (e.g. TrustRegion sets `extras[:sub_logs]` every step) —
-	# that data is authoritative, so we never clobber it here. The pending buffer
-	# only fills in `:sub_logs` for a method that did NOT store it itself.
-	if !isempty(logger.pending_sub_logs) && !isempty(logger.iter_logs)
-		last_entry = logger.iter_logs[end]
-		haskey(last_entry.extras, :sub_logs) || (last_entry.extras[:sub_logs] = logger.pending_sub_logs)
-	end
-	
-	# Count actual iterations, excluding the iter=0 init entry that log_init!
-	# records for trajectory / warm-up tooling. (run_sub_method counts the same
-	# way via its loop counter; using length() here double-counted the init row.)
-	n_iters = count(e -> e.iter > 0, logger.iter_logs)
-	_print_milestone(logger, string("finalize stop_reason=", stop_reason, " n_iters=", n_iters))
-	
-	# Return typed MethodResult when the orchestration layer is loaded, otherwise a compatible NamedTuple.
-	if @isdefined(MethodResult)
-		return MethodResult(
-			logger.method_name,
-			logger.iter_logs,
-			state,
-			stop_reason,
-			n_iters,
-			copy(logger.events),
-		)
-	end
+    # Extract stop reason from the last event, or default to :unknown
+    stop_reason = isempty(logger.events) ? :unknown : logger.events[end].reason
+    
+    # Fallback attachment of the final iteration's pending sub-logs. A method that
+    # nests sub-solvers normally records its inner trace per-iteration in its own
+    # `extract_log_entry` (e.g. TrustRegion sets `extras[:sub_logs]` every step) —
+    # that data is authoritative, so we never clobber it here. The pending buffer
+    # only fills in `:sub_logs` for a method that did NOT store it itself.
+    if !isempty(logger.pending_sub_logs) && !isempty(logger.iter_logs)
+        last_entry = logger.iter_logs[end]
+        haskey(last_entry.extras, :sub_logs) || (last_entry.extras[:sub_logs] = logger.pending_sub_logs)
+    end
+    
+    # Count actual iterations, excluding the iter=0 init entry that log_init!
+    # records for trajectory / warm-up tooling. (run_sub_method counts the same
+    # way via its loop counter; using length() here double-counted the init row.)
+    n_iters = count(e -> e.iter > 0, logger.iter_logs)
+    _print_milestone(logger, string("finalize stop_reason=", stop_reason, " n_iters=", n_iters))
+    
+    # Return typed MethodResult when the orchestration layer is loaded, otherwise a compatible NamedTuple.
+    if @isdefined(MethodResult)
+        return MethodResult(
+            logger.method_name,
+            logger.iter_logs,
+            state,
+            stop_reason,
+            n_iters,
+            copy(logger.events),
+        )
+    end
 
-	return (
-		method_name = logger.method_name,
-		iter_logs = logger.iter_logs,
-		final_state = state,
-		stop_reason = stop_reason,
-		n_iters = n_iters,
-		events = copy(logger.events),
-	)
+    return (
+        method_name = logger.method_name,
+        iter_logs = logger.iter_logs,
+        final_state = state,
+        stop_reason = stop_reason,
+        n_iters = n_iters,
+        events = copy(logger.events),
+    )
 end
 
 
@@ -350,30 +350,30 @@ end
 # ─────────────────────────────────────────────────────────────────────────
 
 """
-	maybe_print(logger::Logger, entry::IterationLog)
+    maybe_print(logger::Logger, entry::IterationLog)
 
 Verbosity-gated console output: range-gated and `print_every`-throttled printing
 driven by the logger's `VerbosityConfig`.
 """
 function maybe_print(logger::Logger, entry::IterationLog)
-	cfg = _verbosity_config(logger)
-	isnothing(cfg) && return
+    cfg = _verbosity_config(logger)
+    isnothing(cfg) && return
 
-	effective_level = if !isnothing(cfg.iter_range) && entry.iter in cfg.iter_range
-		DETAILED
-	elseif !isnothing(cfg.iter_range)
-		SILENT
-	else
-		cfg.level
-	end
+    effective_level = if !isnothing(cfg.iter_range) && entry.iter in cfg.iter_range
+        DETAILED
+    elseif !isnothing(cfg.iter_range)
+        SILENT
+    else
+        cfg.level
+    end
 
-	effective_level == SILENT && return
-	effective_level == MILESTONE && return
+    effective_level == SILENT && return
+    effective_level == MILESTONE && return
 
-	if effective_level >= SUMMARY
-		if !(effective_level >= DETAILED || entry.iter % cfg.print_every == 0)
-			return
-		end
-		format_and_print(cfg, logger, entry, effective_level)
-	end
+    if effective_level >= SUMMARY
+        if !(effective_level >= DETAILED || entry.iter % cfg.print_every == 0)
+            return
+        end
+        format_and_print(cfg, logger, entry, effective_level)
+    end
 end

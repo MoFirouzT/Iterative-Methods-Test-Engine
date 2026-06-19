@@ -5,7 +5,7 @@ A composite-objective method for problems
     min_x  f(x) + g(x)
 
 with `f` smooth (gradient available) and `g` "simple" (proximal operator
-available). Lights up the composite branch of the framework: `prox` dispatch,
+available). Exercises the composite branch of the framework: `prox` dispatch,
 the `f + g` sum in `total_objective`, and the `Extrapolation` hierarchy.
 
 ## 1. Method
@@ -106,11 +106,10 @@ of the iterate) when `dim ≤ 2`, for trajectory plots.
 - Sweeping only the `extrapolation` component orders the convergence — at a mid
   iteration the `f − f*` gap strictly decreases along `∅` → fixed momentum →
   Nesterov, i.e. **ISTA > heavy-ball > FISTA** (heavy-ball `α` tuned so this tier
-  stays monotone through the readable regime; a larger `α` matches/beats FISTA on
-  this benign instance, since heavy-ball is optimal for nice problems). On this
-  well-conditioned instance all converge linearly once the support is identified;
-  the sublinear `O(1/k)`-vs-`O(1/k²)` slope separation is measured on a dedicated
-  non-strongly-convex instance in `test/test_proximal_gradient.jl`.
+  stays monotone through the readable regime). This is the acceleration *ordering*,
+  not the asymptotic rate; the `O(1/k)`-vs-`O(1/k²)` slope separation is measured on a
+  dedicated non-strongly-convex instance in `test/test_proximal_gradient.jl` — see
+  [Convergence & Cost](../../docs/src/convergence-and-cost.md#reading-an-empirical-convergence-rate).
 - At sufficiently large `λ`, recovered support ⊆ true support; off-support
   coordinates are within one soft-threshold (`|x_i| ≤ γλ`) of zero.
 
