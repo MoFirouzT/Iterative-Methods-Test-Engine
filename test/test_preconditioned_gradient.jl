@@ -3,8 +3,9 @@ using LinearAlgebra: norm, Diagonal
 using Random: Xoshiro
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+include(joinpath(@__DIR__, "testutils.jl"))
 
-_mklog() = TestEngine.make_logger("PCG", 1, "", VerbosityConfig(level = SILENT))
+_mklog() = silent_logger("PCG")
 _run(method, p, K; tol = 1e-8) =
     run_method(method, p, stop_when_any(MaxIterations(n = K), DistanceToOptimal(tol = tol)),
                _mklog(), Xoshiro(3))

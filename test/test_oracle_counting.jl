@@ -2,8 +2,9 @@ using Test
 using Random: Xoshiro
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+include(joinpath(@__DIR__, "testutils.jl"))
 
-_oclog() = TestEngine.make_logger("oc", 1, "", VerbosityConfig(level = SILENT))
+_oclog() = silent_logger("oc")
 _rosen() = make_problem(AnalyticProblem(name = :rosenbrock, params = (rho = 100.0,)), Xoshiro(1))
 
 @testset "Oracle counting (opt-in)" begin

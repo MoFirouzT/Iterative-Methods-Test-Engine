@@ -109,7 +109,11 @@ TestEngine.jl/
 │   └── <date>/<NNN>/             #   manifest.json, result.jld2, run{N}_{method}.csv
 │
 └── test/                         # load engine + content via ../experiments/_bootstrap.jl
-    ├── runtests.jl               # step sizes, core runner, nesting, variant grid; includes ↓
+    ├── runtests.jl               # manifest: TEST_GROUP gating + wiring guard; includes ↓
+    ├── testutils.jl              # shared helpers (silent_logger); included by each test file
+    ├── test_step_sizes.jl        # step-size rules: Fixed / Armijo / Cauchy / Barzilai-Borwein
+    ├── test_core.jl              # core abstraction, nested runner, variant-grid expansion
+    ├── test_reproducibility.jl   # seed determinism: same seed ⇒ bit-identical run
     ├── test_module5.jl           # experiment orchestration (resolve_methods, run_experiment)
     ├── test_module7.jl           # verbosity system
     ├── test_module8.jl           # persistence (save/load, manifest, CSV)
@@ -117,7 +121,7 @@ TestEngine.jl/
     ├── test_proximal_gradient.jl # ProximalGradient: ISTA↔GD reduction, FISTA acceleration
     ├── test_least_squares.jl     # Hessian modes, :linear_ls conditioning, Cauchy-guard regression
     ├── test_preconditioned_gradient.jl # Jacobi=Newton, dual-bucket routing, diagonal contract
-    ├── test_external_validation.jl # cross-check solutions vs Optim.jl + ProximalAlgorithms.jl
+    ├── test_external_validation.jl # cross-check solutions vs Optim.jl + ProximalAlgorithms.jl (TEST_GROUP=external)
     └── test_trust_region.jl      # Steihaug-CG branches, TR convergence, nesting + core-time attribution
 ```
 

@@ -7,6 +7,7 @@ import ProximalOperators
 import ProximalAlgorithms
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+include(joinpath(@__DIR__, "testutils.jl"))
 
 # ---------------------------------------------------------------------------
 # These checks match *fixed points*, not iterate-by-iterate paths: our solvers
@@ -26,7 +27,7 @@ function ProximalAlgorithms.value_and_gradient(f::_LSSmooth, x)
     return 0.5 * dot(r, r), f.A' * r
 end
 
-_extlog() = TestEngine.make_logger("ext", 1, "", VerbosityConfig(level = SILENT))
+_extlog() = silent_logger("ext")
 
 @testset "External validation (Optim, ProximalAlgorithms)" begin
 

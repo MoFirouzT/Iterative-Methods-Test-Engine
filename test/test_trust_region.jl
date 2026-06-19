@@ -3,8 +3,9 @@ using LinearAlgebra: norm, eigvals
 using Random: Xoshiro
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+include(joinpath(@__DIR__, "testutils.jl"))
 
-_trlog() = TestEngine.make_logger("tr", 1, "", VerbosityConfig(level = SILENT))
+_trlog() = silent_logger("tr")
 _inner_crit(maxit) = stop_when_any(MaxIterations(n = maxit), GradientTolerance(tol = 1e-10),
                                    NegativeCurvature(), TrustRegionBoundary())
 

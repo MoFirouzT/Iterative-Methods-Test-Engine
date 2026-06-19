@@ -16,6 +16,14 @@ tests) never see the backend — swapping it out again would touch only this fil
 
 An inner constructor builds the backend operator from `λ`, so the two can never
 drift apart.
+
+**No co-located design note.** Unlike the problem families alongside this
+directory, regularizers are *components* — the `g(x)` vocabulary of the composite
+objective `f + Σ gᵢ`, not a problem family with its own math or win conditions.
+The `Regularizer`/`value`/`prox` contract lives in the engine and is documented
+in `docs/src/modules/problem-interface.md` (§Regularizer); the consumer behavior
+(soft-thresholding, ridge shrinkage, zero ⇒ plain gradient descent) is in
+`algorithms/proximal_gradient/proximal_gradient.md`.
 """
 
 import .TestEngine: Regularizer, value, prox

@@ -1,10 +1,10 @@
 using Test
 using LinearAlgebra: norm, Diagonal, I
-using Random: MersenneTwister
+using Random: Xoshiro
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
 
-@testset "Module 9 Problem Factory" begin
+@testset "Problem factory" begin
     # Test LeastSquares data fidelity
     A = [1.0 2.0; 3.0 4.0]
     b = [5.0; 6.0]
@@ -69,7 +69,7 @@ include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
     
     # Test AnalyticProblem spec
     spec = AnalyticProblem(name = :quadratic)
-    rng = MersenneTwister(42)
+    rng = Xoshiro(42)
     prob = make_problem(spec, rng)
     
     @test prob isa Problem
@@ -91,7 +91,7 @@ include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
         name = :test_lasso,
         params = (m = 15, n = 8, λ = 0.2),
     )
-    rng2 = MersenneTwister(43)
+    rng2 = Xoshiro(43)
     prob_random = make_problem(spec_random, rng2)
     
     @test prob_random isa Problem
@@ -112,7 +112,7 @@ include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
         loader_name = :test_file_loader,
         description = "Test file problem",
     )
-    rng3 = MersenneTwister(44)
+    rng3 = Xoshiro(44)
     prob_file = make_problem(spec_file, rng3)
     
     @test prob_file isa Problem
@@ -120,8 +120,8 @@ include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
     
     # Test error handling for unregistered problems
     spec_missing = AnalyticProblem(name = :nonexistent)
-    @test_throws KeyError make_problem(spec_missing, MersenneTwister(1))
+    @test_throws KeyError make_problem(spec_missing, Xoshiro(1))
     
     spec_missing_random = RandomProblem(name = :nonexistent)
-    @test_throws KeyError make_problem(spec_missing_random, MersenneTwister(1))
+    @test_throws KeyError make_problem(spec_missing_random, Xoshiro(1))
 end

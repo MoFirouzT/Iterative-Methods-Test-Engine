@@ -44,7 +44,7 @@ function step!(method::PersistMethod, state::PersistState, problem::Problem, ite
     end
 end
 
-@testset "Module 8 persistence" begin
+@testset "Persistence" begin
     spec = AnalyticProblem(
         name = :quadratic,
         params = (
@@ -124,7 +124,7 @@ function _rich_result(path)
     ExperimentResult(cfg, path, now(), "testhost", [RunResult(1, Dict("PersistMethod" => mres))])
 end
 
-@testset "Module 8 columnar round-trip + selective saving" begin
+@testset "Persistence: columnar round-trip + selective saving" begin
     mktempdir() do tmpdir
         # ── full round-trip through the columnar shim ──────────────────────
         full_path = joinpath(tmpdir, "full")

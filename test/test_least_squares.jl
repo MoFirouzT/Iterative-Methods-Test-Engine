@@ -3,6 +3,7 @@ using LinearAlgebra: norm, cond, diag, I
 using Random: Xoshiro
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+include(joinpath(@__DIR__, "testutils.jl"))
 
 @testset "LeastSquares Hessian modes + :linear_ls" begin
 
@@ -50,7 +51,7 @@ include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
     p = make_problem(RandomProblem(name = :linear_ls,
                                    params = (n = 60, condition_number = 1.0e2)), Xoshiro(11))
     cauchy = GradientDescent(step_size = CauchyStep(α_max = Inf))   # exact LS on a true quadratic
-    lg  = TestEngine.make_logger("C", 1, "", VerbosityConfig(level = SILENT))
+    lg  = silent_logger("C")
     res = run_method(cauchy, p,
                      stop_when_any(MaxIterations(n = 50_000), DistanceToOptimal(tol = 1e-6)),
                      lg, Xoshiro(3))

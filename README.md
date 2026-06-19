@@ -68,7 +68,9 @@ validation. That staged build log — with its own trajectory figures — lives 
 ## Tests & validation
 
 ```bash
-julia --project test/runtests.jl     # full unit + cross-validation suite
+julia --project test/runtests.jl                      # full unit + cross-validation suite
+TEST_GROUP=core     julia --project test/runtests.jl  # fast: everything except the external solves
+TEST_GROUP=external julia --project test/runtests.jl  # only the cross-validation against Optim / ProximalAlgorithms
 ```
 
 Converged solutions are **externally cross-checked** against `A\b`,

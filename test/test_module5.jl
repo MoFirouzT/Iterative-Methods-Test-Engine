@@ -47,7 +47,7 @@ function step!(method::Union{TinyGD,TinyExp}, state::TinyState, problem::Problem
     end
 end
 
-@testset "Module 5 experiment orchestration" begin
+@testset "Experiment orchestration" begin
     quad_spec = AnalyticProblem(
         name = :quadratic,
         params = (

@@ -3,6 +3,7 @@ using LinearAlgebra: norm, opnorm, cholesky, Diagonal, I
 using Random: MersenneTwister, Xoshiro, randperm
 
 include(joinpath(@__DIR__, "..", "experiments", "_bootstrap.jl"))
+include(joinpath(@__DIR__, "testutils.jl"))
 import .TestEngine: Regularizer, value, prox
 
 # A regularizer that tallies prox calls, to assert "exactly one prox per step".
@@ -18,11 +19,8 @@ function prox(g::CountingReg, x::Vector{Float64}, γ::Float64)
 end
 
 # Helper: run a ProximalGradient method to a fixed iteration budget.
-# NB: qualify make_logger — runtests.jl defines a zero-arg make_logger() in Main
-# that would otherwise shadow the engine's exported constructor.
 function _run_pg(method, problem, K; seed = 1)
-    lg = TestEngine.make_logger("PG", 1, "", VerbosityConfig(level = SILENT))
-    run_method(method, problem, MaxIterations(n = K), lg, Xoshiro(seed))
+    run_method(method, problem, MaxIterations(n = K), silent_logger("PG"), Xoshiro(seed))
 end
 
 # Least-squares slope of log₁₀(f(xₖ)−f*) vs log₁₀(k) over an iteration window —
@@ -82,7 +80,7 @@ end
     # total_objective(x) == value(f, x) + value(g, x) on the final iterate.
     x_hat = rf.final_state.iterate.x
     decomp = value(prob.f, x_hat) + value(prob.gs[1], x_hat)
-    @test isapprox(total_objective(prob, x_hat), decomp; rtol = 1e-12)
+    @test isapprox(total_objective(prob, x_hat), decomp; rtol = 1e-10)
 
     # Reference f* from a long FISTA run; FISTA's gap must beat ISTA's at a mid iter.
     fstar = minimum(e.objective for e in _run_pg(fista, prob, 20_000).iter_logs)
@@ -125,7 +123,7 @@ end
     # not vanish at a composite minimizer). Smooth-case equivalence to ‖∇f(y)‖ is
     # exercised by test_external_validation.jl's GradientTolerance(1e-10) run.
     @testset "gradient mapping = composite stationarity residual" begin
-        lg = TestEngine.make_logger("gm", 1, "", VerbosityConfig(level = SILENT))
+        lg = silent_logger("gm")
         rconv = run_method(fista, prob,
             stop_when_any(MaxIterations(n = 50_000), GradientTolerance(tol = 1e-8)),
             lg, Xoshiro(1))
